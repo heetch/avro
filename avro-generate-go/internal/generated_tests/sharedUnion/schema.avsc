@@ -1,0 +1,22 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "A",
+                        "type": [
+                            "int",
+                            "string",
+                            "float"
+                        ]
+                    },
+                    {
+                        "name": "B",
+                        "type": [
+                            "int",
+                            "string",
+                            "float"
+                        ]
+                    }
+                ]
+            }

@@ -1,0 +1,15 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "fixedField",
+                        "type": {
+                            "name": "five",
+                            "type": "fixed",
+                            "size": 5
+                        },
+                        "default": "hello"
+                    }
+                ]
+            }

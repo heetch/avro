@@ -1,0 +1,14 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "F",
+                        "type": {
+                            "name": "five",
+                            "type": "fixed",
+                            "size": 5
+                        }
+                    }
+                ]
+            }

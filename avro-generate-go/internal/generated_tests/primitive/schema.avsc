@@ -1,0 +1,34 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "intField",
+                        "type": "int"
+                    },
+                    {
+                        "name": "longField",
+                        "type": "long"
+                    },
+                    {
+                        "name": "floatField",
+                        "type": "float"
+                    },
+                    {
+                        "name": "doubleField",
+                        "type": "double"
+                    },
+                    {
+                        "name": "boolField",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "bytesField",
+                        "type": "bytes"
+                    },
+                    {
+                        "name": "stringField",
+                        "type": "string"
+                    }
+                ]
+            }

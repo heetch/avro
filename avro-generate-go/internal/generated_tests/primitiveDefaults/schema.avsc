@@ -1,0 +1,36 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "int",
+                        "type": "int",
+                        "default": 1111
+                    },
+                    {
+                        "name": "long",
+                        "type": "long",
+                        "default": 2222
+                    },
+                    {
+                        "name": "string",
+                        "type": "string",
+                        "default": "hello"
+                    },
+                    {
+                        "name": "float",
+                        "type": "float",
+                        "default": 1.5
+                    },
+                    {
+                        "name": "double",
+                        "type": "double",
+                        "default": 2.75
+                    },
+                    {
+                        "name": "boolean",
+                        "type": "boolean",
+                        "default": true
+                    }
+                ]
+            }

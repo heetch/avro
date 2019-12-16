@@ -1,0 +1,13 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "OptionalString",
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                ]
+            }

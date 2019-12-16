@@ -1,0 +1,13 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "M",
+                        "type": {
+                            "type": "map",
+                            "values": "int"
+                        }
+                    }
+                ]
+            }
