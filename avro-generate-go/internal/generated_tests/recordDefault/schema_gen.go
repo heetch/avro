@@ -6,9 +6,7 @@ import "github.com/rogpeppe/avro"
 
 type Foo struct {
 	F1 int
-
 	F2 string
-
 	F3 string
 }
 

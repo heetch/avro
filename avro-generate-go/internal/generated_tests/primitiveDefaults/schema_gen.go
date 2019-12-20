@@ -5,17 +5,12 @@ package primitiveDefaults
 import "github.com/rogpeppe/avro"
 
 type R struct {
-	Int int `json:"int"`
-
-	Long int64 `json:"long"`
-
-	String string `json:"string"`
-
-	Float float32 `json:"float"`
-
-	Double float64 `json:"double"`
-
-	Boolean bool `json:"boolean"`
+	Int     int     `json:"int"`
+	Long    int64   `json:"long"`
+	String  string  `json:"string"`
+	Float   float32 `json:"float"`
+	Double  float64 `json:"double"`
+	Boolean bool    `json:"boolean"`
 }
 
 // AvroRecord implements the avro.AvroRecord interface.

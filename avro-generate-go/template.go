@@ -35,14 +35,16 @@ package «.Pkg»
 
 import "github.com/rogpeppe/avro"
 
-«range .NS.Definitions»
-	«- doc "// " .»
-	«- if eq (typeof .) "RecordDefinition"»
+«range $defName, $def  :=.NS.Definitions»
+	«- if ne $defName .AvroName »
+		// Alias «$defName» = «.AvroName»
+	«- else if eq (typeof .) "RecordDefinition"»
+		«- doc "// " .»
 		type «.Name» struct {
-		«range .Fields»
+		«- range $i, $_ := .Fields»
 			«- doc "\t// " .»
 			«- $type := goType .Type»
-			«if isExportedGoIdentifier .Name»
+			«- if isExportedGoIdentifier .Name»
 				«- .GoName» «$type.GoType»
 			«- else»
 				«- .GoName» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
@@ -57,7 +59,7 @@ import "github.com/rogpeppe/avro"
 
 		// TODO implement MarshalBinary and UnmarshalBinary methods?
 	«else if eq (typeof .) "EnumDefinition"»
-		«$def := .»
+		«- doc "// " . -»
 		type «.Name» int
 		const (
 		«- range $i, $sym := .Symbols»
@@ -66,6 +68,7 @@ import "github.com/rogpeppe/avro"
 		)
 		// TODO UnmarshalText and String methods.
 	«else if eq (typeof .) "FixedDefinition"»
+		«- doc "// " . -»
 		type «.Name» [«.SizeBytes»]byte
 	«else»
 		// unknown definition type «printf "%T; name %q" . (typeof .)» .
@@ -85,8 +88,8 @@ type documented interface {
 }
 
 func doc(indentStr string, d interface{}) string {
-	if d, ok := d.(documented); ok {
-		return indent(d.Doc(), indentStr)
+	if d, ok := d.(documented); ok && d.Doc() != "" {
+		return "\n" + indent(d.Doc(), indentStr) + "\n"
 	}
 	return ""
 }

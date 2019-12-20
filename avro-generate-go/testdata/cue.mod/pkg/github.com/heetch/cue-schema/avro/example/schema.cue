@@ -1,18 +1,53 @@
 package avro
 
+cloudEvent: Schema & {
+	type:      "record"
+	name:      "SomeEvent"
+	namespace: "foo.bar"
+	fields: [{
+		name: "Metadata"
+		type: {
+			type:      "record"
+			name:      "Metadata"
+			namespace: "avro.apache.org"
+			fields: [{
+				name: "id"
+				type: "string"
+			}, {
+				name: "source"
+				type: "string"
+			}, {
+				"name": "time"
+				"type": {
+					type:          "long"
+					"logicalType": "timestamp-micros"
+				}
+			}]
+		}
+	}, {
+		name: "other"
+		type: "string"
+	}]
+}
+
 fixedType: Schema & {
 	type: "fixed"
 	name: "five"
 	size: 5
 }
 
+locicalType: Schema & {
+	type:        "long"
+	logicalType: "timestamp-micros"
+}
+
 anyType: Schema & [
-	"bytes",
-	"null",
-	"boolean",
-	"double",
-	"string",
-	{
+		"bytes",
+		"null",
+		"boolean",
+		"double",
+		"string",
+		{
 		type: "map"
 		values: ["anyType"]
 	},
@@ -23,9 +58,9 @@ anyType: Schema & [
 ]
 
 heetchEventSchema: Schema & {
-	type:    "record"
-	name:    "CloudEvent"
-	doc:     "Avro Event Format for Heetch Events"
+	type: "record"
+	name: "CloudEvent"
+	doc:  "Avro Event Format for Heetch Events"
 	fields: [
 		{
 			name: "attribute"
@@ -37,13 +72,13 @@ heetchEventSchema: Schema & {
 		{
 			name: "data"
 			type: anyType
-		}
+		},
 	]
 }
 
 exampleHeetchEvent: Protocol & {
 	namespace: "com.heetch"
-	protocol: "heetch"
+	protocol:  "heetch"
 	types: [heetchEventSchema]
 }
 

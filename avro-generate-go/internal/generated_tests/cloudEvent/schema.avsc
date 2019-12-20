@@ -1,0 +1,32 @@
+{
+                "name": "SomeEvent",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "Metadata",
+                        "type": {
+                            "name": "Metadata",
+                            "type": "record",
+                            "fields": [
+                                {
+                                    "name": "id",
+                                    "type": "string"
+                                },
+                                {
+                                    "name": "source",
+                                    "type": "string"
+                                },
+                                {
+                                    "name": "time",
+                                    "type": "long"
+                                }
+                            ],
+                            "namespace": "avro.apache.org"
+                        }
+                    }
+                ],
+                "namespace": "foo.bar",
+                "aliases": [
+                    "foo.bar.XXXX"
+                ]
+            }

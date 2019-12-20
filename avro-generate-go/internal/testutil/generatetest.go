@@ -28,7 +28,7 @@ func (test RoundTripTest) Test(t *testing.T) {
 	inCodec, err := goavro.NewCodec(test.InSchema)
 	c.Assert(err, qt.Equals, nil)
 	inNative, _, err := inCodec.NativeFromTextual([]byte(test.InDataJSON))
-	c.Assert(err, qt.Equals, nil)
+	c.Assert(err, qt.Equals, nil, qt.Commentf("inDataJSON: %q", test.InDataJSON))
 
 	inData, err := inCodec.BinaryFromNative(nil, inNative)
 	c.Assert(err, qt.Equals, nil)

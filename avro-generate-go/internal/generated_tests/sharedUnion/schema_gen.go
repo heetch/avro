@@ -6,7 +6,6 @@ import "github.com/rogpeppe/avro"
 
 type R struct {
 	A interface{}
-
 	B interface{}
 }
 

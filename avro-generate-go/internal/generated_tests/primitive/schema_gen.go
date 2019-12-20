@@ -5,19 +5,13 @@ package primitive
 import "github.com/rogpeppe/avro"
 
 type R struct {
-	IntField int `json:"intField"`
-
-	LongField int64 `json:"longField"`
-
-	FloatField float32 `json:"floatField"`
-
+	IntField    int     `json:"intField"`
+	LongField   int64   `json:"longField"`
+	FloatField  float32 `json:"floatField"`
 	DoubleField float64 `json:"doubleField"`
-
-	BoolField bool `json:"boolField"`
-
-	BytesField []byte `json:"bytesField"`
-
-	StringField string `json:"stringField"`
+	BoolField   bool    `json:"boolField"`
+	BytesField  []byte  `json:"bytesField"`
+	StringField string  `json:"stringField"`
 }
 
 // AvroRecord implements the avro.AvroRecord interface.

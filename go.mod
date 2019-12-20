@@ -10,3 +10,5 @@ require (
 	github.com/linkedin/goavro/v2 v2.9.7
 	gopkg.in/errgo.v1 v1.0.1
 )
+
+replace github.com/linkedin/goavro/v2 => /home/rog/gohack/github.com/linkedin/goavro/v2

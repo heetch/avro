@@ -5,11 +5,14 @@ package largeRecord
 import "github.com/rogpeppe/avro"
 
 // Common information related to the event which must be included in any clean event
+
 type Data1 struct {
 	// Unique identifier for the event used for de-duplication and tracing.
 	Uuid *UUID1 `json:"uuid"`
+
 	// Fully qualified name of the host that generated the event that generated the data.
 	Hostname *string `json:"hostname"`
+
 	// Trace information not redundant with this object
 	Trace *Trace1 `json:"trace"`
 }
@@ -59,6 +62,7 @@ func (Data1) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // Trace1
+
 type Trace1 struct {
 	// Trace Identifier
 	TraceId *UUID0 `json:"traceId"`
@@ -87,6 +91,7 @@ func (Trace1) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014
+
 type UUID1 struct {
 	Uuid string `json:"uuid"`
 }
@@ -108,9 +113,11 @@ func (UUID1) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // GoGen test
+
 type Sample struct {
 	// Core data information required for any event
 	Header *Data0 `json:"header"`
+
 	// Core data information required for any event
 	Body *Data1 `json:"body"`
 }
@@ -149,11 +156,14 @@ func (Sample) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // Common information related to the event which must be included in any clean event
+
 type Data0 struct {
 	// Unique identifier for the event used for de-duplication and tracing.
 	Uuid *UUID0 `json:"uuid"`
+
 	// Fully qualified name of the host that generated the event that generated the data.
 	Hostname *string `json:"hostname"`
+
 	// Trace information not redundant with this object
 	Trace *Trace0 `json:"trace"`
 }
@@ -203,6 +213,7 @@ func (Data0) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // Trace0
+
 type Trace0 struct {
 	// Trace Identifier
 	TraceId *UUID0 `json:"traceId"`
@@ -231,6 +242,7 @@ func (Trace0) AvroRecord() avro.RecordInfo {
 // TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014
+
 type UUID0 struct {
 	Uuid string `json:"uuid"`
 }
