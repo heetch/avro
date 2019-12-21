@@ -1,15 +1,18 @@
 package avro
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"reflect"
+	"sync"
 
 	"github.com/actgardner/gogen-avro/compiler"
 	"github.com/actgardner/gogen-avro/vm"
 )
+
+// map from reflect.Type fo schema.AvroType
+var avroTypes sync.Map
 
 // Unmarshal unmarshals the given Avro-encoded binary
 // data, written with the given schema, into v, which should
@@ -32,7 +35,12 @@ func Unmarshal(data []byte, x interface{}, writerSchema string) error {
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("not pointer destination %T", x)
 	}
-	return unmarshal(bytes.NewReader(data), prog, v.Elem())
+	v = v.Elem()
+	prog1, err := analyzeProgramTypes(prog, v.Type())
+	if err != nil {
+		return fmt.Errorf("analysis failed: %v", err)
+	}
+	return unmarshal(nil, data, prog1, v)
 }
 
 type stackFrame struct {
@@ -48,6 +56,9 @@ type decoder struct {
 	pc      int
 	program *program
 
+	// buf holds bytes read from r to be consumed
+	// by the decoder. The unconsumed bytes are
+	// in d.buf[d.scan:].
 	buf     []byte
 	scan    int
 	r       io.Reader
@@ -60,7 +71,7 @@ type decodeError struct {
 
 // unmarshal unmarshals Avro binary data from r and writes it to target
 // following the given program.
-func unmarshal(r io.Reader, program *vm.Program, target reflect.Value) (err error) {
+func unmarshal(r io.Reader, buf []byte, prog *program, target reflect.Value) (err error) {
 	defer func() {
 		switch panicErr := recover().(type) {
 		case *decodeError:
@@ -70,16 +81,15 @@ func unmarshal(r io.Reader, program *vm.Program, target reflect.Value) (err erro
 			panic(panicErr)
 		}
 	}()
-	// TODO do this only once for any given type and cache
-	// the result.
-	prog, err := analyzeProgramTypes(program, target.Type())
-	if err != nil {
-		return fmt.Errorf("analysis failed: %v", err)
-	}
 	d := decoder{
 		r:       r,
-		buf:     make([]byte, 0, bufSize),
 		program: prog,
+	}
+	if r == nil {
+		d.buf = buf
+		d.readErr = io.EOF
+	} else {
+		d.buf = make([]byte, 0, bufSize)
 	}
 	d.eval(target)
 	return nil

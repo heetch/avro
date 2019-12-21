@@ -99,6 +99,11 @@ func (enc *Encoder) OmitHeader()
 // See https://avro.apache.org/docs/1.8.2/spec.html#json_encoding
 func (enc *Encoder) UseJSON()
 
+type Decoder struct {
+	readerSchema schema.AvroType
+	progs        map[reflect.Type]*program
+}
+
 // NewDecoder returns a new Decoder instance that
 // decodes a stream of messages from r.
 // By default it decodes the Avro object container
@@ -146,8 +151,11 @@ func NewCodec(g SchemaGetter) *Codec
 // message.
 func (u *Codec) Marshal(x interface{}) ([]byte, error)
 
-// Unmarshal unmarshals the given data into x
-func (u *Codec) Unmarshal(data []byte, x interface{}) error
+// Unmarshal unmarshals the given data into x.
+// It needs the context argument because it might end up
+// fetching schema data over the network via the Codec's
+// associated SchemaGetter.
+func (u *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error
 
 // SchemaGetter is used by an Unmarshaler to find information
 // about the schema used to encode a message.
