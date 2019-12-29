@@ -2,7 +2,6 @@ package avro
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -63,8 +62,8 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*program, error) {
 		enter:       make([]func(reflect.Value) (reflect.Value, bool), len(prog.Instructions)),
 		makeDefault: make([]func() interface{}, len(prog.Instructions)),
 	}
-	log.Printf("analyze %d instructions\n%s {", len(prog.Instructions), prog)
-	defer log.Printf("}")
+	debugf("analyze %d instructions\n%s {", len(prog.Instructions), prog)
+	defer debugf("}")
 	info, err := newAzTypeInfo(t)
 	if err != nil {
 		return nil, err
@@ -98,8 +97,8 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*program, error) {
 }
 
 func (a *analyser) eval(stack []int, path []pathElem) error {
-	log.Printf("eval %v; path %s{", stack, pathStr(path))
-	defer log.Printf("}")
+	debugf("eval %v; path %s{", stack, pathStr(path))
+	defer debugf("}")
 	for {
 		pc := stack[len(stack)-1]
 		if pc >= len(a.prog.Instructions) {
@@ -110,29 +109,23 @@ func (a *analyser) eval(stack []int, path []pathElem) error {
 			// of the current path.
 			a.pcInfo[pc].path = append(a.pcInfo[pc].path, path...)
 		} else {
-			log.Printf("already evaluated instruction %d", pc)
+			debugf("already evaluated instruction %d", pc)
 			// We've already visited this instruction which
 			// means we can stop analysing here.
 			// Make sure that the path is consistent though,
 			// to sanity-check our assumptions about the VM.
-			// TODO
-			// This isn't correct - we *can* get to the same place
-			// from multiple paths (for example where there's a data
-			// structure shared between others). Maybe we need to
-			// ignore all except the elements of the path that are
-			// within a struct.
 			if !equalPathRef(path, a.pcInfo[pc].path) {
 				return fmt.Errorf("type mismatch (\n\tprevious %s\n\tnew %s\n)", pathStr(a.pcInfo[pc].path), pathStr(path))
 			}
 			return nil
 		}
-		log.Printf("exec %d: %v", pc, a.prog.Instructions[pc])
+		debugf("exec %d: %v", pc, a.prog.Instructions[pc])
 
 		elem := path[len(path)-1]
 		switch inst := a.prog.Instructions[pc]; inst.Op {
 		case vm.Set:
 			// TODO: sanity-check that if it's Set(Bytes), the previous
-			// instruction was Read(Bytes) (i.e. frame.Bytes is not invalidated).
+			// instruction was Read(Bytes) (i.e. frame.Bytes hasn't been invalidated).
 			if !canAssignVMType(inst.Operand, elem.ftype) {
 				return fmt.Errorf("cannot assign %v to %s", inst.Operand, elem.ftype)
 			}
@@ -144,7 +137,7 @@ func (a *analyser) eval(stack []int, path []pathElem) error {
 				return fmt.Errorf("union index out of bounds; pc %d; type %s", pc, elem.ftype)
 			}
 			info := elem.info.entries[index]
-			log.Printf("enter %d -> %v, %d entries", index, info.ftype, len(info.entries))
+			debugf("enter %d -> %v, %d entries", index, info.ftype, len(info.entries))
 			if info.ftype == nil {
 				// Special case for the nil value. Return
 				// a zero value that will never be used.
@@ -234,7 +227,7 @@ func (a *analyser) eval(stack []int, path []pathElem) error {
 			}
 			stack = stack[:len(stack)-1]
 		case vm.CondJump:
-			log.Printf("split {")
+			debugf("split {")
 			// Execute one path of the condition with a forked
 			// version of the state before carrying on with the
 			// current execution flow.
@@ -246,7 +239,7 @@ func (a *analyser) eval(stack []int, path []pathElem) error {
 			if err := a.eval(stack1, path1); err != nil {
 				return err
 			}
-			log.Printf("}")
+			debugf("}")
 		case vm.Jump:
 			stack[len(stack)-1] = inst.Operand - 1
 		case vm.EvalGreater,

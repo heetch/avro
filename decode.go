@@ -3,7 +3,6 @@ package avro
 import (
 	"fmt"
 	"io"
-	"log"
 	"reflect"
 	"sync"
 
@@ -97,14 +96,14 @@ func unmarshal(r io.Reader, buf []byte, prog *program, target reflect.Value) (er
 
 func (d *decoder) eval(target reflect.Value) {
 	if target.IsValid() {
-		log.Printf("eval %s", target.Type())
+		debugf("eval %s", target.Type())
 	} else {
-		log.Printf("eval nil")
+		debugf("eval nil")
 	}
-	defer log.Printf("}")
+	defer debugf("}")
 	var frame stackFrame
 	for ; d.pc < len(d.program.Instructions); d.pc++ {
-		log.Printf("x %d: %v", d.pc, d.program.Instructions[d.pc])
+		debugf("x %d: %v", d.pc, d.program.Instructions[d.pc])
 		switch inst := d.program.Instructions[d.pc]; inst.Op {
 		case vm.Read:
 			switch inst.Operand {
@@ -130,7 +129,7 @@ func (d *decoder) eval(target reflect.Value) {
 				frame.Bytes = d.readFixed(inst.Operand - 11)
 			}
 		case vm.Set:
-			log.Printf("%v on %s", inst, target.Type())
+			debugf("%v on %s", inst, target.Type())
 			switch inst.Operand {
 			case vm.Null:
 			case vm.Boolean:
@@ -167,14 +166,14 @@ func (d *decoder) eval(target reflect.Value) {
 			target.Field(inst.Operand).Set(reflect.ValueOf(d.program.makeDefault[d.pc]()))
 		case vm.Enter:
 			val, isRef := d.program.enter[d.pc](target)
-			log.Printf("enter %d -> %#v (isRef %v) {", inst.Operand, val, isRef)
+			debugf("enter %d -> %#v (isRef %v) {", inst.Operand, val, isRef)
 			d.pc++
 			d.eval(val)
 			if !isRef {
 				target.Set(val)
 			}
 		case vm.Exit:
-			log.Printf("}")
+			debugf("}")
 			return
 		case vm.AppendArray:
 			target.Set(reflect.Append(target, reflect.Zero(target.Type().Elem())))

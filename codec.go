@@ -2,6 +2,7 @@ package avro
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -56,6 +57,17 @@ type Codec struct {
 	programs map[codecSchemaPair]*program
 }
 
+// NewCodec returns a new Codec
+// that uses g to determine the schema of each
+// message that's marshaled or unmarshaled.
+func NewCodec(g SchemaGetter) *Codec {
+	return &Codec{
+		getter:        g,
+		writerSchemas: make(map[int64]schema.AvroType),
+		programs:      make(map[codecSchemaPair]*program),
+	}
+}
+
 // errorSchema is a hack - it pretends to be an AvroType
 // so that it can be put into the writerSchemas map.
 // In fact it just holds an error so that we can cache SchemaGetter
@@ -80,7 +92,7 @@ func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal: %v", err)
 	}
-	return unmarshal(nil, data, prog, v)
+	return unmarshal(nil, body, prog, v)
 }
 
 func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*program, error) {
@@ -116,6 +128,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*pr
 		// Someone else got there first.
 		return prog, nil
 	}
+
 	prog, err := compileProgram(vt, wSchema)
 	if err != nil {
 		c.writerSchemas[wID] = errorSchema{err: err}
@@ -138,6 +151,18 @@ func compileProgram(vt reflect.Type, wSchema schema.AvroType) (*program, error) 
 		return nil, fmt.Errorf("analysis failed: %v", err)
 	}
 	return prog1, nil
+}
+
+func schemaForType(t schema.AvroType) string {
+	def, err := t.Definition(make(map[schema.QualifiedName]interface{}))
+	if err != nil {
+		panic(err)
+	}
+	data, err := json.Marshal(def)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
 
 func parseSchema(s string) (schema.AvroType, error) {

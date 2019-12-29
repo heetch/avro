@@ -54,7 +54,7 @@ type TypeInfo struct {
 
 // azTypeInfo is the representation of the above types used
 // by the analyzer. It can represent a record, a field or a type
-// inside on of those.
+// inside one of those.
 type azTypeInfo struct {
 	// ftype holds the Go type used for this Avro type.
 	ftype reflect.Type
@@ -70,13 +70,13 @@ type azTypeInfo struct {
 	// entry for each possible type in the union.
 	entries []azTypeInfo
 
-	// referenceType holds the type of closest
+	// referenceType holds the type of the closest
 	// ancestor struct type containing this type.
 	referenceType reflect.Type
 }
 
 func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
-	log.Printf("azTypeInfo(%v)", t)
+	debugf("azTypeInfo(%v)", t)
 	switch v := reflect.Zero(t).Interface().(type) {
 	case AvroRecord:
 		info := azTypeInfo{
@@ -96,12 +96,12 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			}
 			info.entries[i] = entry
 		}
-		log.Printf("-> record, %d entries", len(info.entries))
+		debugf("-> record, %d entries", len(info.entries))
 		return info, nil
 	case AvroEnum:
 		return azTypeInfo{}, fmt.Errorf("enum not implemented yet")
 	default:
-		log.Printf("-> unknown")
+		debugf("-> unknown")
 		return azTypeInfo{
 			ftype: t,
 		}, nil
@@ -143,4 +143,12 @@ func newAzTypeInfoFromType(refType reflect.Type, t TypeInfo) (azTypeInfo, error)
 		info.entries[i] = entry
 	}
 	return info, nil
+}
+
+const debugging = false
+
+func debugf(f string, a ...interface{}) {
+	if debugging {
+		log.Printf(f, a...)
+	}
 }

@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	dirFlag = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag = flag.String("p", "wiretypes", "package name")
+	dirFlag  = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag  = flag.String("p", "wiretypes", "package name")
+	testFlag = flag.Bool("t", false, "generated files will have _test.go suffix")
 )
 
 func main() {
@@ -57,7 +58,11 @@ func generateFile(f string) error {
 	}
 
 	outFile := filepath.Base(f)
-	outFile = strings.TrimSuffix(f, filepath.Ext(f)) + "_gen.go"
+	outFile = strings.TrimSuffix(f, filepath.Ext(f)) + "_gen"
+	if *testFlag {
+		outFile += "_test"
+	}
+	outFile += ".go"
 	outFile = filepath.Join(*dirFlag, outFile)
 	if err := ioutil.WriteFile(outFile, resultData, 0666); err != nil {
 		return err
