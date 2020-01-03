@@ -5,10 +5,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/actgardner/gogen-avro/schema"
 	"github.com/actgardner/gogen-avro/vm"
 )
 
-type program struct {
+type decodeProgram struct {
 	vm.Program
 
 	// enter holds an entry for each Enter instruction in the
@@ -51,11 +52,17 @@ type pathElem struct {
 	info azTypeInfo
 }
 
+// compileDecoder returns a decoder program to decode into values of the given type
+// Avro values encoded with the given writer schema.
+func compileDecoder(t reflect.Type, writerType schema.AvroType) (*decodeProgram, error) {
+
+}
+
 // analyzeProgramTypes analyses the given program with
 // respect to the given type (the program must have been generated for that
 // type) and returns a program with a populated "enter" field allowing
 // the VM to correctly create union and field values for Enter instructions.
-func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*program, error) {
+func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, error) {
 	a := &analyser{
 		prog:        prog,
 		pcInfo:      make([]pcInfo, len(prog.Instructions)),
@@ -74,7 +81,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*program, error) {
 	}}); err != nil {
 		return nil, fmt.Errorf("eval: %v", err)
 	}
-	prog1 := &program{
+	prog1 := &decodeProgram{
 		Program:     *prog,
 		enter:       a.enter,
 		makeDefault: a.makeDefault,
