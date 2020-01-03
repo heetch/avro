@@ -19,27 +19,34 @@ var avroTypes sync.Map
 // TODO provide a way of unmarshaling single-object-encoded
 // data along with a way of retrieving external schemas.
 func Unmarshal(data []byte, x interface{}, writerSchema string) error {
-	var readerSchema string
-	if x, ok := x.(AvroRecord); ok {
-		readerSchema = x.AvroRecord().Schema
-	} else {
-		// TODO generate schema from type
-		return fmt.Errorf("cannot get schema info for %T", x)
-	}
-	prog, err := compiler.CompileSchemaBytes([]byte(writerSchema), []byte(readerSchema))
+	writerType, err := parseSchema(writerSchema)
 	if err != nil {
-		return fmt.Errorf("cannot compile schemas: %v", err)
+		return fmt.Errorf("cannot parse writer schema: %v", err)
 	}
 	v := reflect.ValueOf(x)
-	if v.Kind() != reflect.Ptr {
-		return fmt.Errorf("not pointer destination %T", x)
+	t := v.Type()
+	if t.Kind() != reflect.Ptr {
+		return fmt.Errorf("destination is not a pointer %s", t)
 	}
+	prog, err := compileDecoder(t.Elem(), writerType)
 	v = v.Elem()
 	prog1, err := analyzeProgramTypes(prog, v.Type())
 	if err != nil {
 		return fmt.Errorf("analysis failed: %v", err)
 	}
 	return unmarshal(nil, data, prog1, v)
+}
+
+func parseSchema(s string) (schema.AvroType, error) {
+	ns := schema.NewNamespace(false)
+	at, err := ns.TypeForSchema([]byte(s))
+	if err != nil {
+		return nil, err
+	}
+	if err := sType.ResolveReferences(ns); err != nil {
+		return nil, err
+	}
+	return at, nil
 }
 
 type stackFrame struct {
@@ -53,7 +60,7 @@ type stackFrame struct {
 
 type decoder struct {
 	pc      int
-	program *program
+	program *decodeProgram
 
 	// buf holds bytes read from r to be consumed
 	// by the decoder. The unconsumed bytes are

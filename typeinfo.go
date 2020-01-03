@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+
+	"github.com/actgardner/gogen-avro/schema"
 )
 
 type AvroRecord interface {
@@ -33,11 +35,16 @@ type RecordInfo struct {
 	// for that member of the union.
 	Unions [][]interface{}
 }
+XXXXX
 
 // azTypeInfo is the representation of the above types used
 // by the analyzer. It can represent a record, a field or a type
 // inside one of those.
 type azTypeInfo struct {
+	// avroType holds the Avro schema for the type (with
+	// references resolved).
+	avroSchema schema.AvroType
+
 	// ftype holds the Go type used for this Avro type (or nil for null).
 	ftype reflect.Type
 
@@ -55,6 +62,10 @@ type azTypeInfo struct {
 	// referenceType holds the type of the closest
 	// ancestor struct type containing this type.
 	referenceType reflect.Type
+}
+
+type goTypeChecker struct {
+	defs map[reflect.Type]goTypeDef
 }
 
 func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
