@@ -54,7 +54,7 @@ type Codec struct {
 	writerSchemas map[int64]schema.AvroType
 
 	// programs holds the programs previously created when decoding.
-	programs map[codecSchemaPair]*program
+	programs map[codecSchemaPair]*decodeProgram
 }
 
 // NewCodec returns a new Codec
@@ -64,17 +64,8 @@ func NewCodec(g SchemaGetter) *Codec {
 	return &Codec{
 		getter:        g,
 		writerSchemas: make(map[int64]schema.AvroType),
-		programs:      make(map[codecSchemaPair]*program),
+		programs:      make(map[codecSchemaPair]*decodeProgram),
 	}
-}
-
-// errorSchema is a hack - it pretends to be an AvroType
-// so that it can be put into the writerSchemas map.
-// In fact it just holds an error so that we can cache SchemaGetter
-// failures.
-type errorSchema struct {
-	schema.AvroType
-	err error
 }
 
 func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error {
@@ -95,7 +86,7 @@ func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error
 	return unmarshal(nil, body, prog, v)
 }
 
-func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*program, error) {
+func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*decodeProgram, error) {
 	c.mu.RLock()
 	if prog := c.programs[codecSchemaPair{vt, wID}]; prog != nil {
 		c.mu.RUnlock()
@@ -137,8 +128,8 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*pr
 	return prog, nil
 }
 
-func compileProgram(vt reflect.Type, wSchema schema.AvroType) (*program, error) {
-	rSchema, err := schemaForGoType(vt)
+func compileProgram(vt reflect.Type, wSchema schema.AvroType) (*decodeProgram, error) {
+	rSchema, err := schemaForGoType(vt, wSchema)
 	if err != nil {
 		return nil, err
 	}
@@ -163,43 +154,4 @@ func schemaForType(t schema.AvroType) string {
 		panic(err)
 	}
 	return string(data)
-}
-
-func parseSchema(s string) (schema.AvroType, error) {
-	ns := schema.NewNamespace(false)
-	avroType, err := ns.TypeForSchema([]byte(s))
-	if err != nil {
-		return nil, err
-	}
-	if err := avroType.ResolveReferences(ns); err != nil {
-		return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
-	}
-	return avroType, nil
-}
-
-// map from reflect.Type fo schema.AvroType
-var goTypeToSchema sync.Map
-
-func schemaForGoType(t reflect.Type) (schema.AvroType, error) {
-	if at, ok := goTypeToSchema.Load(t); ok {
-		if es, ok := at.(errorSchema); ok {
-			return nil, es.err
-		}
-		return at.(schema.AvroType), nil
-	}
-	x := reflect.Zero(t).Interface()
-	var readerSchema string
-	if x, ok := x.(AvroRecord); ok {
-		readerSchema = x.AvroRecord().Schema
-	} else {
-		// TODO generate schema from type
-		return nil, fmt.Errorf("cannot get schema info for non-Avro-generated type %T", x)
-	}
-	sc, err := parseSchema(readerSchema)
-	if err != nil {
-		goTypeToSchema.LoadOrStore(t, errorSchema{err: err})
-		return nil, err
-	}
-	goTypeToSchema.LoadOrStore(t, sc)
-	return sc, err
 }

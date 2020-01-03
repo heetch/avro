@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/actgardner/gogen-avro/compiler"
 	"github.com/actgardner/gogen-avro/schema"
 	"github.com/actgardner/gogen-avro/vm"
 )
@@ -54,8 +55,21 @@ type pathElem struct {
 
 // compileDecoder returns a decoder program to decode into values of the given type
 // Avro values encoded with the given writer schema.
-func compileDecoder(t reflect.Type, writerType schema.AvroType) (*decodeProgram, error) {
-
+func compileDecoder(t reflect.Type, writerSchema schema.AvroType) (*decodeProgram, error) {
+	// First determine the schema for the type.
+	readerSchema, err := schemaForGoType(t, writerSchema)
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine schema for %s: %v", t, err)
+	}
+	prog, err := compiler.Compile(writerSchema, readerSchema)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create decoder: %v", err)
+	}
+	prog1, err := analyzeProgramTypes(prog, t)
+	if err != nil {
+		return nil, fmt.Errorf("analysis failed: %v", err)
+	}
+	return prog1, nil
 }
 
 // analyzeProgramTypes analyses the given program with
