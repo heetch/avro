@@ -15,6 +15,26 @@ tests: unionInOut: {
 	outData: inData
 }
 
+tests: arrayOfUnion: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "F"
+			type: {
+				type: "array"
+				items: [
+					"int",
+					"string",
+				]
+			}
+		}]
+	}
+	outSchema: inSchema
+	inData: F: [1, "hello"]
+	outData: inData
+}
+
 tests: unionToScalar: {
 	inSchema: tests.unionInOut.inSchema
 	outSchema: {
