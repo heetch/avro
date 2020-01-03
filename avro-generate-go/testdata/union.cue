@@ -31,7 +31,7 @@ tests: arrayOfUnion: {
 		}]
 	}
 	outSchema: inSchema
-	inData: F: [1, "hello"]
+	inData: F: [{int: 1}, {string: "hello"}]
 	outData: inData
 }
 

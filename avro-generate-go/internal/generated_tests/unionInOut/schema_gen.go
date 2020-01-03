@@ -12,28 +12,13 @@ type PrimitiveUnionTestRecord struct {
 func (PrimitiveUnionTestRecord) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":1234,"name":"UnionField","type":["int","long","float","double","string","boolean","null"]}],"name":"PrimitiveUnionTestRecord","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return 1234
-				},
-				Info: &avro.TypeInfo{
-					Type: new(interface{}),
-					Union: []avro.TypeInfo{{
-						Type: new(int),
-					}, {
-						Type: new(int64),
-					}, {
-						Type: new(float32),
-					}, {
-						Type: new(float64),
-					}, {
-						Type: new(string),
-					}, {
-						Type: new(bool),
-					}, {}},
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return 1234
 			},
+		},
+		Unions: [][]interface{}{
+			0: {new(int), new(int64), new(float32), new(float64), new(string), new(bool), nil},
 		},
 	}
 }

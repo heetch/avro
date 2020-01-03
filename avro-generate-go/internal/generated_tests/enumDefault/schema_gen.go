@@ -22,11 +22,9 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":"b","name":"enumField","type":{"name":"Foo","symbols":["a","b","c"],"type":"enum"}}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return FooB
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return FooB
 			},
 		},
 	}

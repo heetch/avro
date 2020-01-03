@@ -13,31 +13,9 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"A","type":["int","string","float"]},{"name":"B","type":["int","string","float"]}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Info: &avro.TypeInfo{
-					Type: new(interface{}),
-					Union: []avro.TypeInfo{{
-						Type: new(int),
-					}, {
-						Type: new(string),
-					}, {
-						Type: new(float32),
-					}},
-				},
-			},
-			1: {
-				Info: &avro.TypeInfo{
-					Type: new(interface{}),
-					Union: []avro.TypeInfo{{
-						Type: new(int),
-					}, {
-						Type: new(string),
-					}, {
-						Type: new(float32),
-					}},
-				},
-			},
+		Unions: [][]interface{}{
+			0: {new(int), new(string), new(float32)},
+			1: {new(int), new(string), new(float32)},
 		},
 	}
 }

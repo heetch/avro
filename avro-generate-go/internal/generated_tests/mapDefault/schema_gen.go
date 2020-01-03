@@ -12,15 +12,13 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":{"a":2,"b":5,"c":99},"name":"mapOfInt","type":{"type":"map","values":"int"}}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return map[string]int{
-						"a": 2,
-						"b": 5,
-						"c": 99,
-					}
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return map[string]int{
+					"a": 2,
+					"b": 5,
+					"c": 99,
+				}
 			},
 		},
 	}

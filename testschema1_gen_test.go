@@ -13,11 +13,9 @@ type TestRecord struct {
 func (TestRecord) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":42,"name":"A","type":{"type":"int"}},{"name":"B","type":{"type":"int"}}],"name":"TestRecord","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return 42
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return 42
 			},
 		},
 	}

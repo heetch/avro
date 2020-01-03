@@ -18,45 +18,27 @@ type AvroEnum interface {
 type RecordInfo struct {
 	// Schema holds the Avro schema of the record.
 	Schema string
-	// Fields holds information on each field in the record.
-	// If it's shorter than the actual number of fields in the
-	// associated struct type, additional zero-valued entries
-	// are inferred as needed.
-	Fields []FieldInfo
-}
 
-type FieldInfo struct {
-	// Default returns the default value for the
-	// type if any. If there is no default value
-	// or the default value is the zero value, Default
-	// will be nil.
-	Default func() interface{}
+	// Defaults holds default values for the fields.
+	// Each item corresponds to the field at that index and returns
+	// a newly created default value for the field.
+	// Missing or nil entries are assumed to have no default.
+	// TODO assuming a missing entry implies a zero default.
+	Defaults []func() interface{}
 
-	// Info holds information about the field type.
-	// This is only set when the field is a union
-	// so the information can't be inferred from the
-	// field type itself.
-	Info *TypeInfo
-}
-
-type TypeInfo struct {
-	// Type holds a value of type *T where T is
-	// the type described by the TypeInfo,
-	// except when the TypeInfo represents the null
-	// type, in which case Type will be nil.
-	Type interface{}
-
-	// When the TypeInfo describes a union,
-	// Union holds an entry for each member
-	// of the union.
-	Union []TypeInfo
+	// Unions holds entries for union fields.
+	// Each item corresponds to the field at that index
+	// and holds slice with one value for each member
+	// of the union, of type *T, where T is the type used
+	// for that member of the union.
+	Unions [][]interface{}
 }
 
 // azTypeInfo is the representation of the above types used
 // by the analyzer. It can represent a record, a field or a type
 // inside one of those.
 type azTypeInfo struct {
-	// ftype holds the Go type used for this Avro type.
+	// ftype holds the Go type used for this Avro type (or nil for null).
 	ftype reflect.Type
 
 	// makeDefault is a function that returns the default
@@ -86,11 +68,15 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 		r := v.AvroRecord()
 		// TODO consider struct embedding.
 		for i := 0; i < t.NumField(); i++ {
-			var fieldInfo FieldInfo
-			if i < len(r.Fields) {
-				fieldInfo = r.Fields[i]
+			var makeDefault func() interface{}
+			var unionVals []interface{}
+			if i < len(r.Defaults) {
+				makeDefault = r.Defaults[i]
 			}
-			entry, err := newAzTypeInfoFromField(t, t.Field(i).Type, fieldInfo)
+			if i < len(r.Unions) {
+				unionVals = r.Unions[i]
+			}
+			entry, err := newAzTypeInfoFromField(t, t.Field(i).Type, makeDefault, unionVals)
 			if err != nil {
 				return azTypeInfo{}, err
 			}
@@ -108,44 +94,30 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(refType, t reflect.Type, f FieldInfo) (azTypeInfo, error) {
-	var info azTypeInfo
-	if f.Info != nil {
-		info1, err := newAzTypeInfoFromType(refType, *f.Info)
-		if err != nil {
-			return azTypeInfo{}, err
-		}
-		info = info1
-	}
-	info.ftype = t
-	info.makeDefault = f.Default
-	info.referenceType = refType
-	return info, nil
-}
-
-func newAzTypeInfoFromType(refType reflect.Type, t TypeInfo) (azTypeInfo, error) {
+func newAzTypeInfoFromField(refType, t reflect.Type, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
 	info := azTypeInfo{
-		entries:       make([]azTypeInfo, len(t.Union)),
+		ftype:         t,
+		makeDefault:   makeDefault,
 		referenceType: refType,
 	}
-	if t.Type != nil {
-		info.ftype = reflect.TypeOf(t.Type).Elem()
-	}
-	if len(t.Union) == 0 {
+	if len(unionVals) == 0 {
 		return info, nil
 	}
-	info.entries = make([]azTypeInfo, len(t.Union))
-	for i, u := range t.Union {
-		entry, err := newAzTypeInfoFromType(refType, u)
-		if err != nil {
-			return azTypeInfo{}, err
+	info.entries = make([]azTypeInfo, len(unionVals))
+	for i, v := range unionVals {
+		var ut reflect.Type
+		if v != nil {
+			ut = reflect.TypeOf(v).Elem()
 		}
-		info.entries[i] = entry
+		info.entries[i] = azTypeInfo{
+			ftype:         ut,
+			referenceType: refType,
+		}
 	}
 	return info, nil
 }
 
-const debugging = false
+const debugging = true
 
 func debugf(f string, a ...interface{}) {
 	if debugging {

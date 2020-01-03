@@ -67,31 +67,52 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 		panic(err)
 	}
 	fprintf(w, "Schema: %s,\n", quote(schemaStr))
-	doneFields := false
+	doneDefaults := false
 	for i, f := range t.Fields() {
-		uf, isUnion := f.Type().(*schema.UnionField)
-		if !f.HasDefault() && !isUnion {
+		// TODO if the field's default value is the zero value for the type,
+		// omit the default.
+		if !f.HasDefault() {
 			continue
 		}
-		if !doneFields {
-			fprintf(w, "Fields: []avro.FieldInfo{\n")
-			doneFields = true
+		if !doneDefaults {
+			fprintf(w, "Defaults: []func() interface{}{\n")
+			doneDefaults = true
 		}
-		fprintf(w, "%d: {\n", i)
-		if f.HasDefault() {
-			lit, err := defaultFuncLiteral(f.Default(), f.Type())
-			if err != nil {
-				fprintf(w, "Default: func() interface{} {}, // ERROR: %v\n", err)
-			} else {
-				fprintf(w, "Default: func() interface{} {\nreturn %s\n},\n", lit)
+		fprintf(w, "%d: ", i)
+		lit, err := defaultFuncLiteral(f.Default(), f.Type())
+		if err != nil {
+			fprintf(w, "func() interface{} {}, // ERROR: %v\n", err)
+		} else {
+			fprintf(w, "func() interface{} {\nreturn %s\n},\n", lit)
+		}
+	}
+	if doneDefaults {
+		fprintf(w, "},\n")
+	}
+	doneUnions := false
+	for i, f := range t.Fields() {
+		info := goType(f.Type())
+		if len(info.Union) == 0 {
+			continue
+		}
+		if !doneUnions {
+			fprintf(w, "Unions: [][]interface{}{\n")
+			doneUnions = true
+		}
+		fprintf(w, "%d: {", i)
+		for i, u := range info.Union {
+			if i > 0 {
+				fprintf(w, ", ")
 			}
-		}
-		if isUnion {
-			fprintf(w, "Info: &avro.TypeInfo%s,\n", typeInfoLiteral(goType(uf)))
+			if u.GoType == "nil" {
+				fprintf(w, "nil")
+			} else {
+				fprintf(w, "new(%s)", u.GoType)
+			}
 		}
 		fprintf(w, "},\n")
 	}
-	if doneFields {
+	if doneUnions {
 		fprintf(w, "},\n")
 	}
 	fprintf(w, "}")
@@ -282,27 +303,6 @@ func numberDefault(v interface{}, goType string) (string, error) {
 func isValidInt(s string) bool {
 	_, err := strconv.ParseInt(s, 10, 64)
 	return err == nil
-}
-
-func typeInfoLiteral(t typeInfo) string {
-	if t.GoType == "nil" {
-		return "{}"
-	}
-	w := new(strings.Builder)
-	fprintf(w, "{\n")
-	fprintf(w, "Type: new(%s),\n", t.GoType)
-	if len(t.Union) > 0 {
-		fprintf(w, "Union: []avro.TypeInfo{")
-		for i, u := range t.Union {
-			if i > 0 {
-				fprintf(w, ", ")
-			}
-			fprintf(w, "%s", typeInfoLiteral(u))
-		}
-		fprintf(w, "},\n")
-	}
-	fprintf(w, "}")
-	return w.String()
 }
 
 func writeUnionComment(w io.Writer, union []typeInfo, indent string) {

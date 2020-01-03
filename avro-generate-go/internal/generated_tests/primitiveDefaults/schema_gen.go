@@ -17,36 +17,24 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":1111,"name":"int","type":"int"},{"default":2222,"name":"long","type":"long"},{"default":"hello","name":"string","type":"string"},{"default":1.5,"name":"float","type":"float"},{"default":2.75,"name":"double","type":"double"},{"default":true,"name":"boolean","type":"boolean"}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return 1111
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return 1111
 			},
-			1: {
-				Default: func() interface{} {
-					return int64(2222)
-				},
+			1: func() interface{} {
+				return int64(2222)
 			},
-			2: {
-				Default: func() interface{} {
-					return "hello"
-				},
+			2: func() interface{} {
+				return "hello"
 			},
-			3: {
-				Default: func() interface{} {
-					return float32(1.5)
-				},
+			3: func() interface{} {
+				return float32(1.5)
 			},
-			4: {
-				Default: func() interface{} {
-					return 2.75
-				},
+			4: func() interface{} {
+				return 2.75
 			},
-			5: {
-				Default: func() interface{} {
-					return true
-				},
+			5: func() interface{} {
+				return true
 			},
 		},
 	}

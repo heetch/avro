@@ -12,15 +12,8 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"OptionalString","type":["string","null"]}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Info: &avro.TypeInfo{
-					Type: new(*string),
-					Union: []avro.TypeInfo{{
-						Type: new(string),
-					}, {}},
-				},
-			},
+		Unions: [][]interface{}{
+			0: {new(string), nil},
 		},
 	}
 }

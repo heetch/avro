@@ -96,9 +96,11 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*program, error) {
 	return prog1, nil
 }
 
-func (a *analyser) eval(stack []int, path []pathElem) error {
+func (a *analyser) eval(stack []int, path []pathElem) (retErr error) {
 	debugf("eval %v; path %s{", stack, pathStr(path))
-	defer debugf("}")
+	defer func() {
+		debugf("} -> %v", retErr)
+	}()
 	for {
 		pc := stack[len(stack)-1]
 		if pc >= len(a.prog.Instructions) {

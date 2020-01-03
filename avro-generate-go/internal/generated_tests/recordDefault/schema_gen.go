@@ -14,11 +14,9 @@ type Foo struct {
 func (Foo) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			2: {
-				Default: func() interface{} {
-					return "hello"
-				},
+		Defaults: []func() interface{}{
+			2: func() interface{} {
+				return "hello"
 			},
 		},
 	}
@@ -34,15 +32,13 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":{"F1":44,"F2":"whee"},"name":"recordField","type":{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return Foo{
-						F1: 44,
-						F2: "whee",
-						F3: "hello",
-					}
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return Foo{
+					F1: 44,
+					F2: "whee",
+					F3: "hello",
+				}
 			},
 		},
 	}

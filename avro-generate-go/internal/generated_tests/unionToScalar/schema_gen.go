@@ -12,11 +12,9 @@ type PrimitiveUnionTestRecord struct {
 func (PrimitiveUnionTestRecord) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":1234,"name":"UnionField","type":"int"}],"name":"PrimitiveUnionTestRecord","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return 1234
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return 1234
 			},
 		},
 	}

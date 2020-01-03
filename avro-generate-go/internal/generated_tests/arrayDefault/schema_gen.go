@@ -12,11 +12,9 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"default":[2,3,4],"name":"arrayOfInt","type":{"items":"int","type":"array"}}],"name":"R","type":"record"}`,
-		Fields: []avro.FieldInfo{
-			0: {
-				Default: func() interface{} {
-					return []int{2, 3, 4}
-				},
+		Defaults: []func() interface{}{
+			0: func() interface{} {
+				return []int{2, 3, 4}
 			},
 		},
 	}
