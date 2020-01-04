@@ -123,7 +123,7 @@ func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault 
 		// the union defaults to ["null", type]
 		unionVals = []interface{}{
 			nil,
-			reflect.New(t.Elem()),
+			reflect.New(t.Elem()).Interface(),
 		}
 	}
 	// Make an appropriate makeDefault function, even when one isn't explicitly specified.

@@ -1,7 +1,6 @@
 package roundtrip
 
-tests: simpleGoType: {
-	outSchema: null
+tests: goTypeSimple: {
 	inSchema: {
 		"name": "TestRecord",
 		"type": "record",
@@ -13,6 +12,7 @@ tests: simpleGoType: {
 			"type": "int"
 		}]
 	}
+	outSchema: null
 	goType: "TestRecord"
 	goTypeBody: """
 		struct {
@@ -23,6 +23,50 @@ tests: simpleGoType: {
 	inData: {
 		A: 1
 		B: 2
+	}
+	outData: inData
+}
+
+tests: goTypePointer: {
+	inSchema: {
+		"name": "TestRecord",
+		"type": "record",
+		"fields": [{
+			"name": "A",
+			"type": ["null", "long"]
+		}]
+	}
+	outSchema: null
+	goType: "TestRecord"
+	goTypeBody: """
+		struct {
+			A *int
+		}
+	"""
+	inData: {
+		A: long: 99
+	}
+	outData: inData
+}
+
+tests: goTypeNilPointer: {
+	inSchema: {
+		"name": "TestRecord",
+		"type": "record",
+		"fields": [{
+			"name": "A",
+			"type": ["null", "int"]
+		}]
+	}
+	outSchema: null
+	goType: "TestRecord"
+	goTypeBody: """
+		struct {
+			A *int
+		}
+	"""
+	inData: {
+		A: null
 	}
 	outData: inData
 }

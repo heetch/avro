@@ -149,7 +149,7 @@ func NewCodec(g SchemaGetter) *Codec
 
 // Marshal marshals the given value and returns the resulting
 // message.
-func (u *Codec) Marshal(x interface{}) ([]byte, error)
+func (u *Codec) Marshal(ctx context.Context, x interface{}) ([]byte, error)
 
 // Unmarshal unmarshals the given data into x.
 // It needs the context argument because it might end up
@@ -170,12 +170,15 @@ type SchemaGetter interface {
 	// If the message isn't valid, SchemaID should return (0, nil).
 	SchemaID(msg []byte) (int64, []byte)
 
-	// AppendWithSchemaID appends the message encoded along with the
+	// AppendMessage appends the message encoded along with the
 	// given schema ID to the given buffer.
-	AppendWithSchemaID(buf []byte, msg []byte, id int64) []byte
+	AppendMessage(buf []byte, msg []byte, id int64) []byte
 
 	// SchemaForID returns the schema for the given ID.
 	SchemaForID(ctx context.Context, id int64) (string, error)
+
+	// IDForSchema returns an id for the given schema.
+	IDForSchema(ctx context.Context, schema string) (int64, error)
 }
 
 ----------------------------------------
