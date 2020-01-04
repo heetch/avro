@@ -29,6 +29,25 @@ type errorSchema struct {
 	err error
 }
 
+// Schema returns the Avro schema for the type of x.
+func Schema(x interface{}) (string, error) {
+	at, err := schemaForGoType(reflect.TypeOf(x), nil)
+	if err != nil {
+		return "", err
+	}
+	// TODO we could cache the schema string for a given type
+	// (perhaps schemaForGoType could do that in fact).
+	def, err := at.Definition(make(map[schema.QualifiedName]interface{}))
+	if err != nil {
+		return "", fmt.Errorf("cannot make schema definition: %v", err)
+	}
+	data, err := json.Marshal(def)
+	if err != nil {
+		return "", fmt.Errorf("cannot marshal schema definition: %v", err)
+	}
+	return string(data), nil
+}
+
 func schemaForGoType(t reflect.Type, wSchema schema.AvroType) (schema.AvroType, error) {
 	if rSchema, ok := goTypeToSchema.Load(t); ok {
 		if es, ok := rSchema.(errorSchema); ok {
@@ -304,7 +323,7 @@ func enumSymbols(t reflect.Type) []string {
 
 func defaultForType(t reflect.Type) interface{} {
 	// TODO this is almost certainly inadequate.
-	return reflect.Zero(t)
+	return reflect.Zero(t).Interface()
 }
 
 // jsonFieldName returns the name that the field will be given

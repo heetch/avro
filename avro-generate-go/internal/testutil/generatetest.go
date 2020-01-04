@@ -49,8 +49,10 @@ func (test RoundTripTest) Test(t *testing.T) {
 	outData, err := avro.Marshal(x.Elem().Interface())
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("output data: %x", outData)
-	outCodec, err := goavro.NewCodec(test.OutSchema)
+	outSchema, err := avro.Schema(x.Elem().Interface())
 	c.Assert(err, qt.Equals, nil)
+	outCodec, err := goavro.NewCodec(outSchema)
+	c.Assert(err, qt.Equals, nil, qt.Commentf("outSchema: %s", outSchema))
 	native, remaining, err := outCodec.NativeFromBinary(outData)
 	c.Assert(err, qt.Equals, nil)
 	// Marshal the native value to JSON so that we don't get type clashes on
