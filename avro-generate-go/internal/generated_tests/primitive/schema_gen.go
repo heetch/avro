@@ -18,6 +18,15 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"intField","type":"int"},{"name":"longField","type":"long"},{"name":"floatField","type":"float"},{"name":"doubleField","type":"double"},{"name":"boolField","type":"boolean"},{"name":"bytesField","type":"bytes"},{"name":"stringField","type":"string"}],"name":"R","type":"record"}`,
+		Required: []bool{
+			0: true,
+			1: true,
+			2: true,
+			3: true,
+			4: true,
+			5: true,
+			6: true,
+		},
 	}
 }
 

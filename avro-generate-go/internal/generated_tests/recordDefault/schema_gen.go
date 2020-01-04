@@ -14,6 +14,10 @@ type Foo struct {
 func (Foo) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}`,
+		Required: []bool{
+			0: true,
+			1: true,
+		},
 		Defaults: []func() interface{}{
 			2: func() interface{} {
 				return "hello"

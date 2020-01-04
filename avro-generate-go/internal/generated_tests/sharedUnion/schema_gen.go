@@ -13,6 +13,10 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"A","type":["int","string","float"]},{"name":"B","type":["int","string","float"]}],"name":"R","type":"record"}`,
+		Required: []bool{
+			0: true,
+			1: true,
+		},
 		Unions: [][]interface{}{
 			0: {new(int), new(string), new(float32)},
 			1: {new(int), new(string), new(float32)},

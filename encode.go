@@ -22,25 +22,16 @@ const sortMapKeys = false
 // Currently, x must be a type that was generated
 // by the avro-generate-go command.
 func Marshal(x interface{}) (_ []byte, marshalErr error) {
-	var recInfo RecordInfo
-
-	if x, ok := x.(AvroRecord); ok {
-		recInfo = x.AvroRecord()
-	} else {
-		// TODO generate schema from type
+	xv := reflect.ValueOf(x)
+	at, err := schemaForGoType(xv.Type(), nil)
+	if err != nil {
 		return nil, fmt.Errorf("cannot get schema info for %T", x)
 	}
-	namespace := schema.NewNamespace(false)
-	at, err := namespace.TypeForSchema([]byte(recInfo.Schema))
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse schema; %v", err)
-	}
-	xv := reflect.ValueOf(x)
 	info, err := newAzTypeInfo(xv.Type())
 	if err != nil {
 		return nil, err
 	}
-	enc := typeEncoder(namespace, at, xv.Type(), info)
+	enc := typeEncoder(at, xv.Type(), info)
 	var e encodeState
 	defer func() {
 		if r := recover(); r != nil {
@@ -77,15 +68,11 @@ type encodeError struct {
 
 type encoderFunc func(e *encodeState, v reflect.Value)
 
-func typeEncoder(ns *schema.Namespace, at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
 	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
 	case *schema.Reference:
-		def, ok := ns.Definitions[at.TypeName]
-		if !ok {
-			return errorEncoder(fmt.Errorf("reference to unknown name %q", at.TypeName))
-		}
-		switch def := def.(type) {
+		switch def := at.Def.(type) {
 		case *schema.RecordDefinition:
 			if t.Kind() != reflect.Struct {
 				return errorEncoder(fmt.Errorf("expected struct"))
@@ -106,7 +93,7 @@ func typeEncoder(ns *schema.Namespace, at schema.AvroType, t reflect.Type, info 
 			}
 			fields := make([]encoderFunc, len(def.Fields()))
 			for i, f := range def.Fields() {
-				fields[i] = typeEncoder(ns, f.Type(), t.Field(i).Type, info.entries[i])
+				fields[i] = typeEncoder(f.Type(), t.Field(i).Type, info.entries[i])
 			}
 			return structEncoder{fields}.encode
 		case *schema.EnumDefinition:
@@ -128,12 +115,12 @@ func typeEncoder(ns *schema.Namespace, at schema.AvroType, t reflect.Type, info 
 			case info.entries[0].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{0, 1},
-					encodeElem: typeEncoder(ns, atypes[1], info.entries[1].ftype, info.entries[1]),
+					encodeElem: typeEncoder(atypes[1], info.entries[1].ftype, info.entries[1]),
 				}.encode
 			case info.entries[1].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{1, 0},
-					encodeElem: typeEncoder(ns, atypes[0], info.entries[0].ftype, info.entries[0]),
+					encodeElem: typeEncoder(atypes[0], info.entries[0].ftype, info.entries[0]),
 				}.encode
 			default:
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
@@ -149,7 +136,7 @@ func typeEncoder(ns *schema.Namespace, at schema.AvroType, t reflect.Type, info 
 				} else {
 					enc.choices[i] = unionEncoderChoice{
 						typ: entry.ftype,
-						enc: typeEncoder(ns, atypes[i], entry.ftype, info.entries[i]),
+						enc: typeEncoder(atypes[i], entry.ftype, info.entries[i]),
 					}
 				}
 			}
@@ -158,9 +145,9 @@ func typeEncoder(ns *schema.Namespace, at schema.AvroType, t reflect.Type, info 
 			return errorEncoder(fmt.Errorf("union type is not pointer or interface"))
 		}
 	case *schema.MapField:
-		return mapEncoder{typeEncoder(ns, at.ItemType(), t.Elem(), info)}.encode
+		return mapEncoder{typeEncoder(at.ItemType(), t.Elem(), info)}.encode
 	case *schema.ArrayField:
-		return arrayEncoder{typeEncoder(ns, at.ItemType(), t.Elem(), info)}.encode
+		return arrayEncoder{typeEncoder(at.ItemType(), t.Elem(), info)}.encode
 	case *schema.BoolField:
 		return boolEncoder
 	case *schema.IntField,

@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"go/format"
 	"io/ioutil"
 	"log"
@@ -41,6 +42,10 @@ var test = testutil.RoundTripTest{
 	GoType: new(«.GoType»),
 }
 
+«if .GoTypeBody -»
+type «.GoType» «.GoTypeBody»
+«end»
+
 func TestGeneratedCode(t *testing.T) {
 	test.Test(t)
 }
@@ -49,12 +54,13 @@ func TestGeneratedCode(t *testing.T) {
 const generateDir = "internal/generated_tests"
 
 type testData struct {
-	TestName  string          `json:"testName"`
-	InSchema  json.RawMessage `json:"inSchema"`
-	OutSchema json.RawMessage `json:"outSchema"`
-	GoType    string          `json:"goType"`
-	InData    json.RawMessage `json:"inData"`
-	OutData   json.RawMessage `json:"outData"`
+	TestName   string          `json:"testName"`
+	InSchema   json.RawMessage `json:"inSchema"`
+	OutSchema  json.RawMessage `json:"outSchema"`
+	GoType     string          `json:"goType"`
+	GoTypeBody string          `json:"goTypeBody"`
+	InData     json.RawMessage `json:"inData"`
+	OutData    json.RawMessage `json:"outData"`
 }
 
 func main() {
@@ -78,17 +84,18 @@ func main() {
 		dir := filepath.Join(generateDir, test.TestName)
 		err := os.MkdirAll(dir, 0777)
 		check("mkdir", err)
-		file := filepath.Join(dir, "schema.avsc")
-		err = ioutil.WriteFile(file, []byte(test.OutSchema), 0666)
-		check("create schema file", err)
+		if !bytes.Equal(test.OutSchema, []byte(`null`)) {
+			file := filepath.Join(dir, "schema.avsc")
+			err = ioutil.WriteFile(file, []byte(test.OutSchema), 0666)
+			check("create schema file", err)
 
-		cmd := exec.Command("avro-generate-go", "-p", test.TestName, "schema.avsc")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Dir = dir
-		err = cmd.Run()
-		check("avro-generate-go "+file, err)
-
+			cmd := exec.Command("avro-generate-go", "-p", test.TestName, "schema.avsc")
+			cmd.Stderr = os.Stderr
+			cmd.Stdout = os.Stdout
+			cmd.Dir = dir
+			err = cmd.Run()
+			check("avro-generate-go "+file, err)
+		}
 		var buf bytes.Buffer
 		err = testCodeTemplate.Execute(&buf, test)
 		check("generate test code", err)
@@ -101,7 +108,8 @@ func main() {
 
 func check(what string, err error) {
 	if err != nil {
-		log.Fatalf("%s: %v", what, err)
+		fmt.Fprintf(os.Stderr, "generatetestcode: %s: %v\n", what, err)
+		os.Exit(1)
 	}
 }
 

@@ -19,11 +19,16 @@ type RecordInfo struct {
 	// Schema holds the Avro schema of the record.
 	Schema string
 
+	// Required holds whether fields are required.
+	// If a field is required, it has no default value.
+	Required []bool
+
 	// Defaults holds default values for the fields.
 	// Each item corresponds to the field at that index and returns
 	// a newly created default value for the field.
-	// Missing or nil entries are assumed to have no default.
-	// TODO assuming a missing entry implies a zero default.
+	// An entry is only consulted if Required is false for that field.
+	// Missing or nil entries are assumed to default to the zero
+	// value for the type.
 	Defaults []func() interface{}
 
 	// Unions holds entries for union fields.
@@ -59,24 +64,43 @@ type azTypeInfo struct {
 
 func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	debugf("azTypeInfo(%v)", t)
-	switch v := reflect.Zero(t).Interface().(type) {
-	case AvroRecord:
+	switch t.Kind() {
+	case reflect.Struct:
 		info := azTypeInfo{
 			ftype:   t,
 			entries: make([]azTypeInfo, t.NumField()),
 		}
-		r := v.AvroRecord()
-		// TODO consider struct embedding.
+		// Note that RecordInfo is defined in such a way that
+		// the zero value gives useful defaults for a normal Go
+		// value that doesn't return the any RecordInfo - all
+		// fields will default to their zero value and the only
+		// unions will be pointer types.
+		// We don't need to diagnose all bad Go types here - they'll
+		// be caught earlier - when we try to determine the Avro schema
+		// from the Go type.
+		var r RecordInfo
+		if v, ok := reflect.Zero(t).Interface().(AvroRecord); ok {
+			r = v.AvroRecord()
+		}
 		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			if f.Anonymous {
+				// TODO consider struct embedding.
+				return azTypeInfo{}, fmt.Errorf("anonymous fields not supported")
+			}
+			var required bool
 			var makeDefault func() interface{}
 			var unionVals []interface{}
+			if i < len(r.Required) {
+				required = r.Required[i]
+			}
 			if i < len(r.Defaults) {
 				makeDefault = r.Defaults[i]
 			}
 			if i < len(r.Unions) {
 				unionVals = r.Unions[i]
 			}
-			entry, err := newAzTypeInfoFromField(t, t.Field(i).Type, makeDefault, unionVals)
+			entry, err := newAzTypeInfoFromField(t, f.Type, required, makeDefault, unionVals)
 			if err != nil {
 				return azTypeInfo{}, err
 			}
@@ -84,9 +108,8 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 		}
 		debugf("-> record, %d entries", len(info.entries))
 		return info, nil
-	case AvroEnum:
-		return azTypeInfo{}, fmt.Errorf("enum not implemented yet")
 	default:
+		// TODO check for top-level union types too.
 		debugf("-> unknown")
 		return azTypeInfo{
 			ftype: t,
@@ -94,7 +117,34 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(refType, t reflect.Type, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+	if t.Kind() == reflect.Ptr && len(unionVals) == 0 {
+		// It's a pointer but there's no explicit union entry, which means that
+		// the union defaults to ["null", type]
+		unionVals = []interface{}{
+			nil,
+			reflect.New(t.Elem()),
+		}
+	}
+	// Make an appropriate makeDefault function, even when one isn't explicitly specified.
+	switch {
+	case required:
+		// Keep to the letter of the contract.
+		makeDefault = nil
+	case makeDefault == nil && len(unionVals) > 0:
+		var v interface{}
+		if unionVals[0] != nil {
+			v = reflect.Zero(reflect.TypeOf(unionVals[0]).Elem()).Interface()
+		}
+		makeDefault = func() interface{} {
+			return v
+		}
+	case makeDefault == nil:
+		v := reflect.Zero(t).Interface()
+		makeDefault = func() interface{} {
+			return v
+		}
+	}
 	info := azTypeInfo{
 		ftype:         t,
 		makeDefault:   makeDefault,

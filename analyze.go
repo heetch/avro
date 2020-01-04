@@ -239,7 +239,7 @@ func (a *analyser) eval(stack []int, path []pathElem) (retErr error) {
 			}
 			info := elem.info.entries[index]
 			if info.makeDefault == nil {
-				return fmt.Errorf("no default info found index %d at %v", index, pathStr(path))
+				return fmt.Errorf("no default info found at index %d at %v", index, pathStr(path))
 			}
 			a.makeDefault[pc] = info.makeDefault
 		case vm.Call:

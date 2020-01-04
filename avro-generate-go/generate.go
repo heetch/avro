@@ -67,11 +67,26 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 		panic(err)
 	}
 	fprintf(w, "Schema: %s,\n", quote(schemaStr))
-	doneDefaults := false
+	doneRequired := false
 	for i, f := range t.Fields() {
 		// TODO if the field's default value is the zero value for the type,
 		// omit the default.
-		if !f.HasDefault() {
+		if f.HasDefault() {
+			continue
+		}
+		if !doneRequired {
+			fprintf(w, "Required: []bool{\n")
+			doneRequired = true
+		}
+		fprintf(w, "%d: %v,\n", i, true)
+	}
+	if doneRequired {
+		fprintf(w, "},\n")
+	}
+
+	doneDefaults := false
+	for i, f := range t.Fields() {
+		if !f.HasDefault() || isZeroDefault(f.Default(), f.Type()) {
 			continue
 		}
 		if !doneDefaults {
@@ -89,6 +104,7 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 	if doneDefaults {
 		fprintf(w, "},\n")
 	}
+
 	doneUnions := false
 	for i, f := range t.Fields() {
 		info := goType(f.Type())
@@ -117,6 +133,56 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 	}
 	fprintf(w, "}")
 	return w.String()
+}
+
+// isZeroDefault reports whether x is the zero default value of type t.
+func isZeroDefault(x interface{}, t schema.AvroType) bool {
+	switch t := t.(type) {
+	case *schema.UnionField:
+		// Defaults for unions fields use the first member of the union.
+		return isZeroDefault(x, t.AvroTypes()[0])
+	case *schema.NullField:
+		return x == nil
+	case *schema.BoolField:
+		return x == false
+	case *schema.IntField,
+		*schema.LongField,
+		*schema.FloatField,
+		*schema.DoubleField:
+		return x == float64(0)
+	case *schema.BytesField,
+		*schema.StringField:
+		return x == ""
+	case *schema.ArrayField:
+		x, ok := x.([]interface{})
+		return ok && len(x) == 0
+	case *schema.MapField:
+		x, ok := x.(map[string]interface{})
+		return ok && len(x) == 0
+	case *schema.Reference:
+		switch def := t.Def.(type) {
+		case *schema.EnumDefinition:
+			s, ok := x.(string)
+			syms := def.Symbols()
+			return ok && len(syms) > 0 && s == syms[0]
+		case *schema.FixedDefinition:
+			s, ok := x.(string)
+			return ok && s == strings.Repeat(string(0), def.SizeBytes())
+		case *schema.RecordDefinition:
+			m, ok := x.(map[string]interface{})
+			if !ok {
+				return false
+			}
+			for _, field := range def.Fields() {
+				f, ok := m[field.Name()]
+				if !ok || !isZeroDefault(f, field.Type()) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
 }
 
 func jsonMarshal(x interface{}) string {

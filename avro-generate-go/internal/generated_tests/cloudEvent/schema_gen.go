@@ -14,6 +14,11 @@ type Metadata struct {
 func (Metadata) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}`,
+		Required: []bool{
+			0: true,
+			1: true,
+			2: true,
+		},
 	}
 }
 
@@ -27,6 +32,9 @@ type SomeEvent struct {
 func (SomeEvent) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"aliases":["foo.bar.XXXX"],"fields":[{"name":"Metadata","type":{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}}],"name":"SomeEvent","namespace":"foo.bar","type":"record"}`,
+		Required: []bool{
+			0: true,
+		},
 	}
 }
 

@@ -22,6 +22,9 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"E","type":{"name":"MyEnum","symbols":["a","b","c"],"type":"enum"}}],"name":"R","type":"record"}`,
+		Required: []bool{
+			0: true,
+		},
 	}
 }
 

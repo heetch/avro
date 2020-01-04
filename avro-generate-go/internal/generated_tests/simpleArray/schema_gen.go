@@ -12,6 +12,9 @@ type R struct {
 func (R) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"fields":[{"name":"A","type":{"items":"int","type":"array"}}],"name":"R","type":"record"}`,
+		Required: []bool{
+			0: true,
+		},
 	}
 }
 

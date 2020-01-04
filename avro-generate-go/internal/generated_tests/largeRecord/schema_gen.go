@@ -21,17 +21,6 @@ type Data1 struct {
 func (Data1) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID1","namespace":"bodyworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace1","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]}],"name":"Trace1","type":"record"}]}],"name":"Data1","namespace":"bodyworks","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return nil
-			},
-			1: func() interface{} {
-				return nil
-			},
-			2: func() interface{} {
-				return nil
-			},
-		},
 		Unions: [][]interface{}{
 			0: {nil, new(UUID1)},
 			1: {nil, new(string)},
@@ -53,11 +42,6 @@ type Trace1 struct {
 func (Trace1) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"Trace1","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]}],"name":"Trace1","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return nil
-			},
-		},
 		Unions: [][]interface{}{
 			0: {nil, new(UUID0)},
 		},
@@ -76,11 +60,6 @@ type UUID1 struct {
 func (UUID1) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID1","namespace":"bodyworks.datatype","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return ""
-			},
-		},
 	}
 }
 
@@ -100,14 +79,6 @@ type Sample struct {
 func (Sample) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"GoGen test","fields":[{"default":null,"doc":"Core data information required for any event","name":"header","type":["null",{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace0","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null","headerworks.datatype.UUID0"]}],"name":"Trace0","type":"record"}]}],"name":"Data0","namespace":"headerworks","type":"record"}]},{"default":null,"doc":"Core data information required for any event","name":"body","type":["null",{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID1","namespace":"bodyworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace1","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null","headerworks.datatype.UUID0"]}],"name":"Trace1","type":"record"}]}],"name":"Data1","namespace":"bodyworks","type":"record"}]}],"name":"sample","namespace":"com.avro.test","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return nil
-			},
-			1: func() interface{} {
-				return nil
-			},
-		},
 		Unions: [][]interface{}{
 			0: {nil, new(Data0)},
 			1: {nil, new(Data1)},
@@ -134,17 +105,6 @@ type Data0 struct {
 func (Data0) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace0","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null","headerworks.datatype.UUID0"]}],"name":"Trace0","type":"record"}]}],"name":"Data0","namespace":"headerworks","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return nil
-			},
-			1: func() interface{} {
-				return nil
-			},
-			2: func() interface{} {
-				return nil
-			},
-		},
 		Unions: [][]interface{}{
 			0: {nil, new(UUID0)},
 			1: {nil, new(string)},
@@ -166,11 +126,6 @@ type Trace0 struct {
 func (Trace0) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"Trace0","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]}],"name":"Trace0","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return nil
-			},
-		},
 		Unions: [][]interface{}{
 			0: {nil, new(UUID0)},
 		},
@@ -189,11 +144,6 @@ type UUID0 struct {
 func (UUID0) AvroRecord() avro.RecordInfo {
 	return avro.RecordInfo{
 		Schema: `{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}`,
-		Defaults: []func() interface{}{
-			0: func() interface{} {
-				return ""
-			},
-		},
 	}
 }
 

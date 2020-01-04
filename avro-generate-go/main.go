@@ -30,6 +30,7 @@ func main() {
 	}
 	if err := generateFiles(files); err != nil {
 		fmt.Fprintf(os.Stderr, "avrogen: %v\n", err)
+		os.Exit(1)
 	}
 }
 
