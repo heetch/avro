@@ -14,13 +14,12 @@ import (
 // Set to true for deterministic output.
 const sortMapKeys = false
 
-// Marshal encodes the given value as
-// a message using the Avro binary encoding.
+// Marshal encodes the given value as a message using the Avro binary
+// encoding.
+//
+// The schema used for the generated value is Schema(x).
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
-//
-// Currently, x must be a type that was generated
-// by the avro-generate-go command.
 func Marshal(x interface{}) (_ []byte, marshalErr error) {
 	xv := reflect.ValueOf(x)
 	at, err := schemaForGoType(xv.Type(), nil)

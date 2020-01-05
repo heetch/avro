@@ -1,5 +1,27 @@
 package roundtrip
 
+tests: recordWithDefaultNotPresent: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "A"
+			type: "int"
+			default: 99
+		}]
+	}
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "A"
+			type: "int"
+		}]
+	}
+	inData: {}
+	outData: A: 99
+}
+
 tests: largeRecord: {
 	inSchema: {
 		type:      "record"
