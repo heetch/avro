@@ -37,25 +37,26 @@ type errorSchema struct {
 // Otherwise, the schema for Go type T, Schema(T), is derived according to
 // the following rules:
 //
-// - int, int64 and uint32 encode as "long"
-// - int32, int16, uint16, int8 and uint8 encode as "int"
-// - float32 encodes as "float"
-// - float64 encodes as "double"
-// - string encodes as "string"
-// - [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
-// - a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
-// - []T encodes as {"type": "array", "items": Schema(T)}
-// - map[string]T encodes as {"type": "map", "values": Schema(T)}
-// - *T encodes as ["null", Schema(T)]
-// - a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
-//	where the fields are encoded as described below.
-// - an interface type is disallowed (but see Unmarshal for when it may be allowed).
+//	- int, int64 and uint32 encode as "long"
+//	- int32, int16, uint16, int8 and uint8 encode as "int"
+//	- float32 encodes as "float"
+//	- float64 encodes as "double"
+//	- string encodes as "string"
+//	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
+//	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
+//	- []T encodes as {"type": "array", "items": Schema(T)}
+//	- map[string]T encodes as {"type": "map", "values": Schema(T)}
+//	- *T encodes as ["null", Schema(T)]
+//	- a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
+//		where the fields are encoded as described below.
+//	- an interface type is disallowed (but see Unmarshal for when it may be allowed).
 //
 // Struct fields are encoded as follows:
-// - unexported struct fields are ignored
-// - the field name is taken from the Go field name, or from a "json" tag for the field if present.
-// - the default value for the field is the zero value for the type.
-// - anonymous struct fields are currently disallowed
+//
+//	- unexported struct fields are ignored
+//	- the field name is taken from the Go field name, or from a "json" tag for the field if present.
+//	- the default value for the field is the zero value for the type.
+//	- anonymous struct fields are currently disallowed
 func Schema(x interface{}) (string, error) {
 	at, err := schemaForGoType(reflect.TypeOf(x), nil)
 	if err != nil {

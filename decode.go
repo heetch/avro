@@ -24,23 +24,22 @@ import (
 // When decoding Avro values into a Go interface{} type, the decoded Go type for Avro type
 // T, decode(T), is derived according to the following rules (TODO implement this):
 //
-// - "int" decodes as int32
-// - "long" decodes as int64
-// - "float" decodes as float32
-// - "double" decodes as float64
-// - "string" decodes as string
-// - "null" decodes as nil
-// - {"type": "fixed", "size": N} decodes as [N]byte
-// - {"type": "array", "items": T} decodes as []decode(T)
-// - {"type": "map", "values": T} decodes as map[string]decode(T)
-// - {"type": "record", "fields": [....]} decodes as map[string]interface{}
-// - ["null", T] decodes as *decode(T).
-// - [T1, T2, ...] when {decode(T1), decode(T2), ...} are all distinct
-// Go types, decodes as the value itself.
-// - [T1, T2, ...] otherwise decodes as map[string] interface{} where
-// the map contains a single key holding the actual union type name as
-// represented in the Avro JSON encoding and the value holds a value of
-// type decode(Tn).
+//	- "int" decodes as int32
+//	- "long" decodes as int64
+//	- "float" decodes as float32
+//	- "double" decodes as float64
+//	- "string" decodes as string
+//	- "null" decodes as nil
+//	- {"type": "fixed", "size": N} decodes as [N]byte
+//	- {"type": "array", "items": T} decodes as []decode(T)
+//	- {"type": "map", "values": T} decodes as map[string]decode(T)
+//	- {"type": "record", "fields": [....]} decodes as map[string]interface{}
+//	- ["null", T] decodes as *decode(T).
+//	- [T1, T2, ...] when {decode(T1), decode(T2), ...} are all distinct Go types, decodes as the value itself.
+//	- [T1, T2, ...] otherwise decodes as map[string] interface{} where
+//	the map contains a single key holding the actual union type name as
+//	represented in the Avro JSON encoding and the value holds a value of
+//	type decode(Tn).
 //
 // TODO it might be better to decode in encoding/json-compatible format (e.g. all slices are []interface{} etc).
 //
