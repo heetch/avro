@@ -2,15 +2,15 @@
 
 package simpleArray
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	A []int
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"A","type":{"items":"int","type":"array"}}],"name":"R","type":"record"}`,
 		Required: []bool{
 			0: true,

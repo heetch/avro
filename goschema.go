@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/actgardner/gogen-avro/schema"
+
+	"github.com/rogpeppe/avro/avrotypegen"
 )
 
 // avroTypes is effectively a map[reflect.Type]schema.AvroType
@@ -136,7 +138,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		return d.name, nil
 	}
 
-	if r, ok := reflect.Zero(t).Interface().(AvroRecord); ok {
+	if r, ok := reflect.Zero(t).Interface().(avrotypegen.AvroRecord); ok {
 		// It's a generated type which comes with its own schema.
 		// TODO the schema might refer to names that are used the
 		// go type - we should de-duplicate those entries (probably

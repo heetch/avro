@@ -2,7 +2,7 @@
 
 package primitiveDefaults
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	Int     int     `json:"int"`
@@ -14,8 +14,8 @@ type R struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":1111,"name":"int","type":"int"},{"default":2222,"name":"long","type":"long"},{"default":"hello","name":"string","type":"string"},{"default":1.5,"name":"float","type":"float"},{"default":2.75,"name":"double","type":"double"},{"default":true,"name":"boolean","type":"boolean"}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

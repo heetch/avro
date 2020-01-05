@@ -2,7 +2,7 @@
 
 package avro_test
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type TestRecord struct {
 	A int
@@ -10,8 +10,8 @@ type TestRecord struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (TestRecord) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (TestRecord) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":42,"name":"A","type":{"type":"int"}},{"name":"B","type":{"type":"int"}}],"name":"TestRecord","type":"record"}`,
 		Required: []bool{
 			1: true,

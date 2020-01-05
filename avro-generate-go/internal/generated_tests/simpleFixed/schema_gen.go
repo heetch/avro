@@ -2,15 +2,15 @@
 
 package simpleFixed
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	F Five
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"F","type":{"name":"five","size":5,"type":"fixed"}}],"name":"R","type":"record"}`,
 		Required: []bool{
 			0: true,

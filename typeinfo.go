@@ -4,40 +4,9 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+
+	"github.com/rogpeppe/avro/avrotypegen"
 )
-
-type AvroRecord interface {
-	AvroRecord() RecordInfo
-}
-
-type AvroEnum interface {
-	NumMembers() int
-	String() string
-}
-
-type RecordInfo struct {
-	// Schema holds the Avro schema of the record.
-	Schema string
-
-	// Required holds whether fields are required.
-	// If a field is required, it has no default value.
-	Required []bool
-
-	// Defaults holds default values for the fields.
-	// Each item corresponds to the field at that index and returns
-	// a newly created default value for the field.
-	// An entry is only consulted if Required is false for that field.
-	// Missing or nil entries are assumed to default to the zero
-	// value for the type.
-	Defaults []func() interface{}
-
-	// Unions holds entries for union fields.
-	// Each item corresponds to the field at that index
-	// and holds slice with one value for each member
-	// of the union, of type *T, where T is the type used
-	// for that member of the union.
-	Unions [][]interface{}
-}
 
 // azTypeInfo is the representation of the above types used
 // by the analyzer. It can represent a record, a field or a type
@@ -78,8 +47,8 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 		// We don't need to diagnose all bad Go types here - they'll
 		// be caught earlier - when we try to determine the Avro schema
 		// from the Go type.
-		var r RecordInfo
-		if v, ok := reflect.Zero(t).Interface().(AvroRecord); ok {
+		var r avrotypegen.RecordInfo
+		if v, ok := reflect.Zero(t).Interface().(avrotypegen.AvroRecord); ok {
 			r = v.AvroRecord()
 		}
 		for i := 0; i < t.NumField(); i++ {

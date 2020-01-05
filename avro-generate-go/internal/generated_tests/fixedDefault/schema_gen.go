@@ -2,15 +2,15 @@
 
 package fixedDefault
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	FixedField Five `json:"fixedField"`
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":"hello","name":"fixedField","type":{"name":"five","size":5,"type":"fixed"}}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

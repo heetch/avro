@@ -2,7 +2,7 @@
 
 package simpleEnum
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type MyEnum int
 
@@ -19,8 +19,8 @@ type R struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"E","type":{"name":"MyEnum","symbols":["a","b","c"],"type":"enum"}}],"name":"R","type":"record"}`,
 		Required: []bool{
 			0: true,

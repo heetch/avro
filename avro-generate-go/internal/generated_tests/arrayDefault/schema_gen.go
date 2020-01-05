@@ -2,15 +2,15 @@
 
 package arrayDefault
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	ArrayOfInt []int `json:"arrayOfInt"`
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":[2,3,4],"name":"arrayOfInt","type":{"items":"int","type":"array"}}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

@@ -33,7 +33,7 @@ var genTemplate = template.Must(
 
 package «.Pkg»
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 «range $defName, $def  :=.NS.Definitions»
 	«- if ne $defName .AvroName »
@@ -53,7 +53,7 @@ import "github.com/rogpeppe/avro"
 		}
 
 		// AvroRecord implements the avro.AvroRecord interface.
-		func («.Name») AvroRecord() avro.RecordInfo {
+		func («.Name») AvroRecord() avrotypegen.RecordInfo {
 			return «recordInfoLiteral .»
 		}
 

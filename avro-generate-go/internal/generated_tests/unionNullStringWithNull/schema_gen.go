@@ -2,15 +2,15 @@
 
 package unionNullStringWithNull
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	OptionalString *string
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"OptionalString","type":["null","string"]}],"name":"R","type":"record"}`,
 		Required: []bool{
 			0: true,

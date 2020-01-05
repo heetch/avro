@@ -2,15 +2,15 @@
 
 package unionInOut
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type PrimitiveUnionTestRecord struct {
 	UnionField interface{}
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (PrimitiveUnionTestRecord) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (PrimitiveUnionTestRecord) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":1234,"name":"UnionField","type":["int","long","float","double","string","boolean","null"]}],"name":"PrimitiveUnionTestRecord","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

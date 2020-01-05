@@ -61,7 +61,7 @@ func fprintf(w io.Writer, f string, a ...interface{}) {
 
 func recordInfoLiteral(t *schema.RecordDefinition) string {
 	w := new(strings.Builder)
-	fprintf(w, "avro.RecordInfo{\n")
+	fprintf(w, "avrotypegen.RecordInfo{\n")
 	schemaStr, err := t.Schema()
 	if err != nil {
 		panic(err)

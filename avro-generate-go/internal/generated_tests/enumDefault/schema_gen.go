@@ -2,7 +2,7 @@
 
 package enumDefault
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type Foo int
 
@@ -19,8 +19,8 @@ type R struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":"b","name":"enumField","type":{"name":"Foo","symbols":["a","b","c"],"type":"enum"}}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

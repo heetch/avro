@@ -2,7 +2,7 @@
 
 package recordDefault
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type Foo struct {
 	F1 int
@@ -11,8 +11,8 @@ type Foo struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (Foo) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (Foo) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}`,
 		Required: []bool{
 			0: true,
@@ -33,8 +33,8 @@ type R struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"default":{"F1":44,"F2":"whee"},"name":"recordField","type":{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {

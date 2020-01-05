@@ -2,7 +2,7 @@
 
 package sharedUnion
 
-import "github.com/rogpeppe/avro"
+import "github.com/rogpeppe/avro/avrotypegen"
 
 type R struct {
 	A interface{}
@@ -10,8 +10,8 @@ type R struct {
 }
 
 // AvroRecord implements the avro.AvroRecord interface.
-func (R) AvroRecord() avro.RecordInfo {
-	return avro.RecordInfo{
+func (R) AvroRecord() avrotypegen.RecordInfo {
+	return avrotypegen.RecordInfo{
 		Schema: `{"fields":[{"name":"A","type":["int","string","float"]},{"name":"B","type":["int","string","float"]}],"name":"R","type":"record"}`,
 		Required: []bool{
 			0: true,
