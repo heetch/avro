@@ -24,7 +24,15 @@ var tests = testutil.RoundTripTest{
             }`,
 	GoType: new(R),
 	Subtests: []testutil.RoundTripSubtest{{
-		TestName: "main",
+		TestName: "empty",
+		InDataJSON: `{
+                        "A": []
+                    }`,
+		OutDataJSON: `{
+                        "A": []
+                    }`,
+	}, {
+		TestName: "non_empty",
 		InDataJSON: `{
                         "A": [
                             23,

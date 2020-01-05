@@ -9,21 +9,21 @@ tests: [_]: roundTripTest
 tests: [name=_]: testName: name
 
 roundTripTest :: {
-	testName:  string
-	inSchema:  avro.Schema
-	outSchema?: avro.Schema
-	goType:    *outSchema.name | string
+	testName:    string
+	inSchema:    avro.Schema
+	outSchema?:  avro.Schema
+	goType:      *outSchema.name | string
 	goTypeBody?: string
-	inData?:    _
-	outData?:   _
+	inData?:     _
+	outData?:    _
 	subtests: [name=_]: {
 		testName: name
-		inData: _
-		outData: _
+		inData:   _
+		outData:  _
 	}
 	if inData != _|_ {
 		subtests: main: {
-			"inData": inData
+			"inData":  inData
 			"outData": outData
 		}
 	}

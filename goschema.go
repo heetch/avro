@@ -132,6 +132,8 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		return def, nil
 	}
 	switch t.Kind() {
+	case reflect.String:
+		return "string", nil
 	case reflect.Int, reflect.Int64, reflect.Uint32:
 		return "long", nil
 	case reflect.Int32, reflect.Int16, reflect.Uint16, reflect.Int8, reflect.Uint8:
@@ -322,8 +324,18 @@ func enumSymbols(t reflect.Type) []string {
 }
 
 func defaultForType(t reflect.Type) interface{} {
-	// TODO this is almost certainly inadequate.
-	return reflect.Zero(t).Interface()
+	// TODO perhaps a Go slice/map should accept a union
+	// of null and array/map?
+	switch t.Kind() {
+	case reflect.Slice:
+		return reflect.MakeSlice(t, 0, 0).Interface()
+	case reflect.Map:
+		return reflect.MakeMap(t).Interface()
+	case reflect.Array:
+		return strings.Repeat("\u0000", t.Len())
+	default:
+		return reflect.Zero(t).Interface()
+	}
 }
 
 // jsonFieldName returns the name that the field will be given

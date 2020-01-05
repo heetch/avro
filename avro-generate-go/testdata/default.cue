@@ -69,9 +69,7 @@ tests: arrayDefault: {
 		}]
 	}
 	inData: {}
-	outData: {
-		arrayOfInt: [2, 3, 4]
-	}
+	outData: arrayOfInt: [2, 3, 4]
 }
 
 tests: mapDefault: {
@@ -86,12 +84,18 @@ tests: mapDefault: {
 				type:   "map"
 				values: "int"
 			}
-			default: {"a": 2, "b": 5, "c": 99}
+			default: {
+				a: 2
+				b: 5
+				c: 99
+			}
 		}]
 	}
 	inData: {}
-	outData: {
-		mapOfInt: {"a": 2, "b": 5, "c": 99}
+	outData: mapOfInt: {
+		a: 2
+		b: 5
+		c: 99
 	}
 }
 
@@ -125,12 +129,10 @@ tests: recordDefault: {
 		}]
 	}
 	inData: {}
-	outData: {
-		recordField: {
-			F1: 44
-			F2: "whee"
-			F3: "hello"
-		}
+	outData: recordField: {
+		F1: 44
+		F2: "whee"
+		F3: "hello"
 	}
 }
 
@@ -151,9 +153,7 @@ tests: enumDefault: {
 		}]
 	}
 	inData: {}
-	outData: {
-		enumField: "b"
-	}
+	outData: enumField: "b"
 }
 
 tests: fixedDefault: {
@@ -173,7 +173,5 @@ tests: fixedDefault: {
 		}]
 	}
 	inData: {}
-	outData: {
-		fixedField: "hello"
-	}
+	outData: fixedField: "hello"
 }

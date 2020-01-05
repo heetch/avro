@@ -2,8 +2,8 @@ package roundtrip
 
 tests: cloudEvent: {
 	inSchema: {
-		type: "record"
-		name: "SomeEvent"
+		type:      "record"
+		name:      "SomeEvent"
 		namespace: "foo.bar"
 		fields: [{
 			name: "Metadata"
@@ -18,8 +18,8 @@ tests: cloudEvent: {
 					name: "source"
 					type: "string"
 				}, {
-					name:        "time"
-					type:        "long"
+					name: "time"
+					type: "long"
 					// logicalType: "timestamp-micros"
 				}]
 			}
@@ -29,7 +29,7 @@ tests: cloudEvent: {
 		}]
 	}
 	outSchema: {
-		name: "SomeEvent"
+		name:      "SomeEvent"
 		namespace: "foo.bar"
 		aliases: ["foo.bar.XXXX"]
 		type: "record"
@@ -46,8 +46,8 @@ tests: cloudEvent: {
 					name: "source"
 					type: "string"
 				}, {
-					name:        "time"
-					type:        "long"
+					name: "time"
+					type: "long"
 					// logicalType: "timestamp-micros"
 				}]
 			}
@@ -55,9 +55,9 @@ tests: cloudEvent: {
 	}
 	inData: {
 		Metadata: {
-			id: "id1"
+			id:     "id1"
 			source: "source1"
-			time: 12345
+			time:   12345
 		}
 		other: "some other data"
 	}

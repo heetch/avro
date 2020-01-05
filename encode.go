@@ -186,9 +186,13 @@ type mapEncoder struct {
 }
 
 func (me mapEncoder) encode(e *encodeState, v reflect.Value) {
-	e.writeLong(int64(v.Len()))
+	n := v.Len()
+	e.writeLong(int64(n))
+	if n == 0 {
+		return
+	}
 	if sortMapKeys {
-		keys := make([]string, 0, v.Len())
+		keys := make([]string, 0, n)
 		for iter := v.MapRange(); iter.Next(); {
 			keys = append(keys, iter.Key().String())
 		}
@@ -214,6 +218,9 @@ type arrayEncoder struct {
 func (ae arrayEncoder) encode(e *encodeState, v reflect.Value) {
 	n := v.Len()
 	e.writeLong(int64(n))
+	if n == 0 {
+		return
+	}
 	for i := 0; i < n; i++ {
 		ae.encodeElem(e, v.Index(i))
 	}

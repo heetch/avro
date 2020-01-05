@@ -13,9 +13,17 @@ tests: simpleMap: {
 		}]
 	}
 	outSchema: inSchema
+}
+
+tests: simpleMap: subtests: non_empty: {
 	inData: M: {
 		a: 32
 		b: 54
 	}
+	outData: inData
+}
+
+tests: simpleMap: subtests: empty: {
+	inData: M: {}
 	outData: inData
 }
