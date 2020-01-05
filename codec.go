@@ -42,6 +42,17 @@ type codecSchemaPair struct {
 	schemaID int64
 }
 
+// Codec encodes and decodes messages in Avro binary format.
+// Each message includes a header or wrapper that indicates the schema
+// used to encode the message.
+//
+// A SchemaGetter is used to retrieve the schema for a given message
+// or to find the encoding for a given schema.
+//
+// To encode or decode a stream of messages that all use the same
+// schema, use Encoder or Decoder instead.
+//
+// TODO implement Codec.Marshal.
 type Codec struct {
 	getter SchemaGetter
 
@@ -68,6 +79,12 @@ func NewCodec(g SchemaGetter) *Codec {
 	}
 }
 
+// Unmarshal unmarshals the given message into x. The body
+// of the message is unmarshaled as with the Unmarshal function.
+//
+// It needs the context argument because it might end up
+// fetching schema data over the network via the Codec's
+// associated SchemaGetter.
 func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Ptr {
