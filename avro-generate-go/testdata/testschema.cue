@@ -11,7 +11,7 @@ tests: [name=_]: testName: name
 roundTripTest :: {
 	testName:  string
 	inSchema:  avro.Schema
-	outSchema: avro.Schema | *null
+	outSchema?: avro.Schema
 	goType:    *outSchema.name | string
 	goTypeBody?: string
 	inData?:    _

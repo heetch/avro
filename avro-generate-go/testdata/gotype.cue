@@ -12,7 +12,6 @@ tests: goTypeSimple: {
 			"type": "int"
 		}]
 	}
-	outSchema: null
 	goType: "TestRecord"
 	goTypeBody: """
 		struct {
@@ -36,7 +35,6 @@ tests: goTypePointer: {
 			"type": ["null", "long"]
 		}]
 	}
-	outSchema: null
 	goType: "TestRecord"
 	goTypeBody: """
 		struct {

@@ -109,7 +109,7 @@ func main() {
 		dir := filepath.Join(generateDir, test.TestName)
 		err := os.MkdirAll(dir, 0777)
 		check("mkdir", err)
-		if !bytes.Equal(test.OutSchema, []byte(`null`)) {
+		if test.OutSchema != nil {
 			file := filepath.Join(dir, "schema.avsc")
 			err = ioutil.WriteFile(file, []byte(test.OutSchema), 0666)
 			check("create schema file", err)
