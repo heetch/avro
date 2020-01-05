@@ -8,22 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{
-                "Metadata": {
-                    "time": 12345,
-                    "id": "id1",
-                    "source": "source1"
-                },
-                "other": "some other data"
-            }`,
-	OutDataJSON: `{
-                "Metadata": {
-                    "time": 12345,
-                    "id": "id1",
-                    "source": "source1"
-                }
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "SomeEvent",
                 "type": "record",
@@ -57,41 +42,27 @@ var test = testutil.RoundTripTest{
                 ],
                 "namespace": "foo.bar"
             }`,
-	OutSchema: `{
-                "name": "SomeEvent",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "Metadata",
-                        "type": {
-                            "name": "Metadata",
-                            "type": "record",
-                            "fields": [
-                                {
-                                    "name": "id",
-                                    "type": "string"
-                                },
-                                {
-                                    "name": "source",
-                                    "type": "string"
-                                },
-                                {
-                                    "name": "time",
-                                    "type": "long"
-                                }
-                            ],
-                            "namespace": "avro.apache.org"
-                        }
-                    }
-                ],
-                "namespace": "foo.bar",
-                "aliases": [
-                    "foo.bar.XXXX"
-                ]
-            }`,
 	GoType: new(SomeEvent),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName: "main",
+		InDataJSON: `{
+                        "Metadata": {
+                            "time": 12345,
+                            "id": "id1",
+                            "source": "source1"
+                        },
+                        "other": "some other data"
+                    }`,
+		OutDataJSON: `{
+                        "Metadata": {
+                            "time": 12345,
+                            "id": "id1",
+                            "source": "source1"
+                        }
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

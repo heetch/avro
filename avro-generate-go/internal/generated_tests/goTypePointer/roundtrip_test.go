@@ -8,17 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{
-                "A": {
-                    "long": 99
-                }
-            }`,
-	OutDataJSON: `{
-                "A": {
-                    "long": 99
-                }
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "TestRecord",
                 "type": "record",
@@ -32,8 +22,28 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `null`,
-	GoType:    new(TestRecord),
+	GoType: new(TestRecord),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName: "non_null",
+		InDataJSON: `{
+                        "A": {
+                            "long": 99
+                        }
+                    }`,
+		OutDataJSON: `{
+                        "A": {
+                            "long": 99
+                        }
+                    }`,
+	}, {
+		TestName: "null",
+		InDataJSON: `{
+                        "A": null
+                    }`,
+		OutDataJSON: `{
+                        "A": null
+                    }`,
+	}},
 }
 
 type TestRecord struct {
@@ -41,5 +51,5 @@ type TestRecord struct {
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

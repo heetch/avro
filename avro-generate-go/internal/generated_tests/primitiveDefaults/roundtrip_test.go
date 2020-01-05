@@ -8,16 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{}`,
-	OutDataJSON: `{
-                "string": "hello",
-                "int": 1111,
-                "long": 2222,
-                "float": 1.5,
-                "double": 2.75,
-                "boolean": true
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "R",
                 "type": "record",
@@ -29,45 +20,21 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `{
-                "name": "R",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "int",
-                        "type": "int",
-                        "default": 1111
-                    },
-                    {
-                        "name": "long",
-                        "type": "long",
-                        "default": 2222
-                    },
-                    {
-                        "name": "string",
-                        "type": "string",
-                        "default": "hello"
-                    },
-                    {
-                        "name": "float",
-                        "type": "float",
-                        "default": 1.5
-                    },
-                    {
-                        "name": "double",
-                        "type": "double",
-                        "default": 2.75
-                    },
-                    {
-                        "name": "boolean",
-                        "type": "boolean",
-                        "default": true
-                    }
-                ]
-            }`,
 	GoType: new(R),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName:   "main",
+		InDataJSON: `{}`,
+		OutDataJSON: `{
+                        "string": "hello",
+                        "int": 1111,
+                        "long": 2222,
+                        "float": 1.5,
+                        "double": 2.75,
+                        "boolean": true
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

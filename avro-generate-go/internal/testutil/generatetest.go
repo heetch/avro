@@ -15,20 +15,33 @@ import (
 )
 
 type RoundTripTest struct {
+	InSchema string
+	GoType   interface{}
+	Subtests []RoundTripSubtest
+}
+
+type RoundTripSubtest struct {
+	TestName    string
 	InDataJSON  string
 	OutDataJSON string
-	InSchema    string
-	OutSchema   string
-	GoType      interface{}
 }
 
 func (test RoundTripTest) Test(t *testing.T) {
 	c := qt.New(t)
+
 	// Translate the JSON input data into binary using the input schema.
 	inCodec, err := goavro.NewCodec(test.InSchema)
 	c.Assert(err, qt.Equals, nil)
-	inNative, _, err := inCodec.NativeFromTextual([]byte(test.InDataJSON))
-	c.Assert(err, qt.Equals, nil, qt.Commentf("inDataJSON: %q", test.InDataJSON))
+	for _, subtest := range test.Subtests {
+		c.Run(subtest.TestName, func(c *qt.C) {
+			subtest.runTest(c, test, inCodec)
+		})
+	}
+}
+
+func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *goavro.Codec) {
+	inNative, _, err := inCodec.NativeFromTextual([]byte(subtest.InDataJSON))
+	c.Assert(err, qt.Equals, nil, qt.Commentf("inDataJSON: %q", subtest.InDataJSON))
 
 	inData, err := inCodec.BinaryFromNative(nil, inNative)
 	c.Assert(err, qt.Equals, nil)
@@ -62,7 +75,7 @@ func (test RoundTripTest) Test(t *testing.T) {
 
 	nativeJSON, err := marshalNative(native)
 	c.Assert(err, qt.Equals, nil)
-	c.Check(nativeJSON, qt.JSONEquals, json.RawMessage(test.OutDataJSON))
+	c.Check(nativeJSON, qt.JSONEquals, json.RawMessage(subtest.OutDataJSON))
 	c.Check(remaining, qt.HasLen, 0)
 }
 

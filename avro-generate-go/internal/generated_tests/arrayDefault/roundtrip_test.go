@@ -8,15 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{}`,
-	OutDataJSON: `{
-                "arrayOfInt": [
-                    2,
-                    3,
-                    4
-                ]
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "R",
                 "type": "record",
@@ -28,27 +20,20 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `{
-                "name": "R",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "arrayOfInt",
-                        "type": {
-                            "type": "array",
-                            "items": "int"
-                        },
-                        "default": [
+	GoType: new(R),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName:   "main",
+		InDataJSON: `{}`,
+		OutDataJSON: `{
+                        "arrayOfInt": [
                             2,
                             3,
                             4
                         ]
-                    }
-                ]
-            }`,
-	GoType: new(R),
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

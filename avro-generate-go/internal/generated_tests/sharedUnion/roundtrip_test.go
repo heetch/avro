@@ -8,23 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{
-                "A": {
-                    "int": 244
-                },
-                "B": {
-                    "string": "hello"
-                }
-            }`,
-	OutDataJSON: `{
-                "A": {
-                    "int": 244
-                },
-                "B": {
-                    "string": "hello"
-                }
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "R",
                 "type": "record",
@@ -47,31 +31,28 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `{
-                "name": "R",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "A",
-                        "type": [
-                            "int",
-                            "string",
-                            "float"
-                        ]
-                    },
-                    {
-                        "name": "B",
-                        "type": [
-                            "int",
-                            "string",
-                            "float"
-                        ]
-                    }
-                ]
-            }`,
 	GoType: new(R),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName: "main",
+		InDataJSON: `{
+                        "A": {
+                            "int": 244
+                        },
+                        "B": {
+                            "string": "hello"
+                        }
+                    }`,
+		OutDataJSON: `{
+                        "A": {
+                            "int": 244
+                        },
+                        "B": {
+                            "string": "hello"
+                        }
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

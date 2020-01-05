@@ -8,27 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{
-                "F": [
-                    {
-                        "int": 1
-                    },
-                    {
-                        "string": "hello"
-                    }
-                ]
-            }`,
-	OutDataJSON: `{
-                "F": [
-                    {
-                        "int": 1
-                    },
-                    {
-                        "string": "hello"
-                    }
-                ]
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "R",
                 "type": "record",
@@ -45,25 +25,32 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `{
-                "name": "R",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "F",
-                        "type": {
-                            "type": "array",
-                            "items": [
-                                "int",
-                                "string"
-                            ]
-                        }
-                    }
-                ]
-            }`,
 	GoType: new(R),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName: "main",
+		InDataJSON: `{
+                        "F": [
+                            {
+                                "int": 1
+                            },
+                            {
+                                "string": "hello"
+                            }
+                        ]
+                    }`,
+		OutDataJSON: `{
+                        "F": [
+                            {
+                                "int": 1
+                            },
+                            {
+                                "string": "hello"
+                            }
+                        ]
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }

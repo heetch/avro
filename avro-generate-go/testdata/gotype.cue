@@ -43,28 +43,16 @@ tests: goTypePointer: {
 			A *int
 		}
 	"""
+}
+
+tests: goTypePointer: subtests: non_null: {
 	inData: {
 		A: long: 99
 	}
 	outData: inData
 }
 
-tests: goTypeNilPointer: {
-	inSchema: {
-		"name": "TestRecord",
-		"type": "record",
-		"fields": [{
-			"name": "A",
-			"type": ["null", "int"]
-		}]
-	}
-	outSchema: null
-	goType: "TestRecord"
-	goTypeBody: """
-		struct {
-			A *int
-		}
-	"""
+tests: goTypePointer: subtests: "null": {
 	inData: {
 		A: null
 	}

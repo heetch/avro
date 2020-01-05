@@ -8,25 +8,7 @@ import (
 	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
 )
 
-var test = testutil.RoundTripTest{
-	InDataJSON: `{
-                "intField": 1073741824,
-                "longField": 4611686018427387904,
-                "floatField": 2E-10,
-                "doubleField": 2E-50,
-                "boolField": true,
-                "bytesField": "stuff",
-                "stringField": "hello world"
-            }`,
-	OutDataJSON: `{
-                "intField": 1073741824,
-                "longField": 4611686018427387904,
-                "floatField": 2E-10,
-                "doubleField": 2E-50,
-                "boolField": true,
-                "bytesField": "stuff",
-                "stringField": "hello world"
-            }`,
+var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "R",
                 "type": "record",
@@ -61,43 +43,30 @@ var test = testutil.RoundTripTest{
                     }
                 ]
             }`,
-	OutSchema: `{
-                "name": "R",
-                "type": "record",
-                "fields": [
-                    {
-                        "name": "intField",
-                        "type": "int"
-                    },
-                    {
-                        "name": "longField",
-                        "type": "long"
-                    },
-                    {
-                        "name": "floatField",
-                        "type": "float"
-                    },
-                    {
-                        "name": "doubleField",
-                        "type": "double"
-                    },
-                    {
-                        "name": "boolField",
-                        "type": "boolean"
-                    },
-                    {
-                        "name": "bytesField",
-                        "type": "bytes"
-                    },
-                    {
-                        "name": "stringField",
-                        "type": "string"
-                    }
-                ]
-            }`,
 	GoType: new(R),
+	Subtests: []testutil.RoundTripSubtest{{
+		TestName: "main",
+		InDataJSON: `{
+                        "intField": 1073741824,
+                        "longField": 4611686018427387904,
+                        "floatField": 2E-10,
+                        "doubleField": 2E-50,
+                        "boolField": true,
+                        "bytesField": "stuff",
+                        "stringField": "hello world"
+                    }`,
+		OutDataJSON: `{
+                        "intField": 1073741824,
+                        "longField": 4611686018427387904,
+                        "floatField": 2E-10,
+                        "doubleField": 2E-50,
+                        "boolField": true,
+                        "bytesField": "stuff",
+                        "stringField": "hello world"
+                    }`,
+	}},
 }
 
 func TestGeneratedCode(t *testing.T) {
-	test.Test(t)
+	tests.Test(t)
 }
