@@ -136,7 +136,7 @@ func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault 
 	return info, nil
 }
 
-const debugging = true
+const debugging = false
 
 func debugf(f string, a ...interface{}) {
 	if debugging {

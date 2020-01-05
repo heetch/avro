@@ -1,3 +1,14 @@
+// The avro-generate-go command generates Go types for the Avro schemas specified on the
+// command line. Each schema file results in a Go file with the same basename but with a ".go" suffix.
+//
+// Usage:
+//
+//	usage: avrogen [flags] schema-file...
+//	  -d string
+//	    	directory to write Go files to (default ".")
+//	  -p string
+//	    	package name
+//	  -t	generated files will have _test.go suffix
 package main
 
 import (
@@ -13,13 +24,13 @@ import (
 
 var (
 	dirFlag  = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag  = flag.String("p", "wiretypes", "package name")
+	pkgFlag  = flag.String("p", "", "package name")
 	testFlag = flag.Bool("t", false, "generated files will have _test.go suffix")
 )
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "avrogen [flags] schema-file...\n")
+		fmt.Fprintf(os.Stderr, "usage: avrogen [flags] schema-file...\n")
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
@@ -27,6 +38,10 @@ func main() {
 	files := flag.Args()
 	if len(files) == 0 {
 		flag.Usage()
+	}
+	if *pkgFlag == "" {
+		fmt.Fprintf(os.Stderr, "avrogen: -p flag must specify a package name\n")
+		os.Exit(1)
 	}
 	if err := generateFiles(files); err != nil {
 		fmt.Fprintf(os.Stderr, "avrogen: %v\n", err)
