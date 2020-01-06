@@ -1,5 +1,7 @@
 github.com/actgardner/gogen-avro v6.3.0+incompatible h1:3YFvU6e1S9zFub48eNnL3R5xwQVgH8+DdAwI8/NIVo4=
 github.com/actgardner/gogen-avro v6.3.0+incompatible/go.mod h1:N2PzqZtS+5w9xxGp2daeykhWdTL0lBiRhbbvkVj4Yd8=
+github.com/actgardner/gogen-avro v6.3.2-0.20191230211803-dfccd5d39401+incompatible h1:571aT88xvQovO7vm7t8GT2QTuv3eTusDZSx2faPw5Bg=
+github.com/actgardner/gogen-avro v6.3.2-0.20191230211803-dfccd5d39401+incompatible/go.mod h1:N2PzqZtS+5w9xxGp2daeykhWdTL0lBiRhbbvkVj4Yd8=
 github.com/frankban/quicktest v1.2.2 h1:xfmOhhoH5fGPgbEAlhLpJH9p0z/0Qizio9osmvn9IUY=
 github.com/frankban/quicktest v1.2.2/go.mod h1:Qh/WofXFeiAFII1aEBu529AtJo6Zg2VHscnEsbBnJ20=
 github.com/frankban/quicktest v1.7.2 h1:2QxQoC1TS09S7fhCPsrvqYdvP1H5M1P1ih5ABm3BTYk=

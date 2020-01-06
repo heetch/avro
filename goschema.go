@@ -111,15 +111,7 @@ func schemaForGoTypeUncached(t reflect.Type, wSchema schema.AvroType) (schema.Av
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal generated schema: %v", err)
 	}
-	ns := schema.NewNamespace(false)
-	at, err := ns.TypeForSchema(data)
-	if err != nil {
-		return nil, err
-	}
-	if err := at.ResolveReferences(ns); err != nil {
-		return nil, err
-	}
-	return at, nil
+	return parseSchema(data)
 }
 
 type goTypeDef struct {

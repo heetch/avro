@@ -1,0 +1,15 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "F",
+                        "type": [
+                            "long",
+                            "int",
+                            "string"
+                        ],
+                        "default": 1234
+                    }
+                ]
+            }

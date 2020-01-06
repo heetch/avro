@@ -9,12 +9,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/actgardner/gogen-avro/parser"
+	"github.com/actgardner/gogen-avro/resolver"
 	"github.com/actgardner/gogen-avro/schema"
 )
 
 func generate(w io.Writer, s []byte, pkg string) error {
-	ns := schema.NewNamespace(false)
-	sType, err := ns.TypeForSchema(s)
+	ns := parser.NewNamespace(false)
+	sType, err := parseSchema(ns, s)
 	if err != nil {
 		return err
 	}
@@ -27,9 +29,6 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		// is represented by an interface type in Go.
 		return fmt.Errorf("cannot generate code for a schema which hasn't got a name (%T)", sType)
 	}
-	if err := sType.ResolveReferences(ns); err != nil {
-		return err
-	}
 	if err := genTemplate.Execute(w, templateParams{
 		NS:  ns,
 		Pkg: pkg,
@@ -37,6 +36,19 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		return err
 	}
 	return nil
+}
+
+func parseSchema(ns *parser.Namespace, s []byte) (schema.AvroType, error) {
+	avroType, err := ns.TypeForSchema(s)
+	if err != nil {
+		return nil, err
+	}
+	for _, def := range ns.Roots {
+		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
+			return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
+		}
+	}
+	return avroType, nil
 }
 
 type typeInfo struct {

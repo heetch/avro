@@ -1,43 +1,26 @@
 package avro
 
-import (
-	"testing"
-
-	"github.com/actgardner/gogen-avro/compiler"
-	"github.com/actgardner/gogen-avro/schema"
-	qt "github.com/frankban/quicktest"
-)
-
-func BenchmarkMakeAvroType(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		ns := schema.NewNamespace(false)
-		sType, err := ns.TypeForSchema([]byte(sample))
-		if err != nil {
-			b.Fatal(err)
-		}
-		err = sType.ResolveReferences(ns)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkCompileSchema(b *testing.B) {
-	c := qt.New(b)
-	ns := schema.NewNamespace(false)
-	sType, err := ns.TypeForSchema([]byte(sample))
-	c.Assert(err, qt.Equals, nil)
-	err = sType.ResolveReferences(ns)
-	c.Assert(err, qt.Equals, nil)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := compiler.Compile(sType, sType)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
+//message EyeballCoord {
+//    double latitude = 1;
+//    double longitude = 2;
+//}
+//
+//message Eyeball {
+//    string id = 1;
+//    string user_id = 2;
+//    string city_id = 3;
+//    EyeballCoord position = 4;
+//    EyeballCoord marker_position = 5;
+//    string selected_product_id = 6;
+//    int64 nearest_driver_eta = 7;
+//    int64 nearest_drivers_count = 8;
+//    int64 created_at = 9;
+//}
+//
+//message EyeballId {
+//    string id = 1;
+//}
+//
 
 const sample = `
 {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/actgardner/gogen-avro/schema"
+	"github.com/actgardner/gogen-avro/parser"
 )
 
 type templateParams struct {
-	NS  *schema.Namespace
+	NS  *parser.Namespace
 	Pkg string
 }
 

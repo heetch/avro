@@ -121,7 +121,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		var s string
 		s, err = c.getter.SchemaForID(ctx, wID)
 		if err == nil {
-			wSchema, err = parseSchema(s)
+			wSchema, err = parseSchema([]byte(s))
 		}
 		// TODO look at the SchemaForID error
 		// and return an error without caching it if it's temporary?

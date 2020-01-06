@@ -4,7 +4,7 @@ tests: cloudEvent: {
 	inSchema: {
 		type:      "record"
 		name:      "SomeEvent"
-		namespace: "foo.bar"
+		namespace: "foo"
 		fields: [{
 			name: "Metadata"
 			type: {
@@ -30,8 +30,7 @@ tests: cloudEvent: {
 	}
 	outSchema: {
 		name:      "SomeEvent"
-		namespace: "foo.bar"
-		aliases: ["foo.bar.XXXX"]
+		namespace: "bar"
 		type: "record"
 		fields: [{
 			name: "Metadata"

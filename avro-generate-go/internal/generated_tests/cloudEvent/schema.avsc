@@ -25,8 +25,5 @@
                         }
                     }
                 ],
-                "namespace": "foo.bar",
-                "aliases": [
-                    "foo.bar.XXXX"
-                ]
+                "namespace": "foo.x"
             }

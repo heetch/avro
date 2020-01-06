@@ -5,6 +5,8 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/actgardner/gogen-avro/parser"
+	"github.com/actgardner/gogen-avro/resolver"
 	"github.com/actgardner/gogen-avro/schema"
 	"github.com/actgardner/gogen-avro/vm"
 )
@@ -47,7 +49,7 @@ import (
 // unless x contains interface{} fields. That would allow any unmarshaled value
 // to be marshaled again, even if it contained interface{}-typed values.
 func Unmarshal(data []byte, x interface{}, wSchemaStr string) error {
-	wSchema, err := parseSchema(wSchemaStr)
+	wSchema, err := parseSchema([]byte(wSchemaStr))
 	if err != nil {
 		return fmt.Errorf("cannot parse writer schema: %v", err)
 	}
@@ -64,14 +66,16 @@ func Unmarshal(data []byte, x interface{}, wSchemaStr string) error {
 	return unmarshal(nil, data, prog, v)
 }
 
-func parseSchema(s string) (schema.AvroType, error) {
-	ns := schema.NewNamespace(false)
-	avroType, err := ns.TypeForSchema([]byte(s))
+func parseSchema(s []byte) (schema.AvroType, error) {
+	ns := parser.NewNamespace(false)
+	avroType, err := ns.TypeForSchema(s)
 	if err != nil {
 		return nil, err
 	}
-	if err := avroType.ResolveReferences(ns); err != nil {
-		return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
+	for _, def := range ns.Roots {
+		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
+			return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
+		}
 	}
 	return avroType, nil
 }

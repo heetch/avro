@@ -15,6 +15,29 @@ tests: unionInOut: {
 	outData: inData
 }
 
+tests: unionIntVsLong: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "F"
+			type: ["int", "string"]
+			default: 1234
+		}]
+	}
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "F"
+			type: ["long", "int", "string"]
+			default: 1234
+		}]
+	}
+	inData: F: int: 999
+	outData: F: long: 999
+}
+
 tests: arrayOfUnion: {
 	inSchema: {
 		type: "record"

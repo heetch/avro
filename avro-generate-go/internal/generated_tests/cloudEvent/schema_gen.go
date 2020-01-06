@@ -31,7 +31,7 @@ type SomeEvent struct {
 // AvroRecord implements the avro.AvroRecord interface.
 func (SomeEvent) AvroRecord() avrotypegen.RecordInfo {
 	return avrotypegen.RecordInfo{
-		Schema: `{"aliases":["foo.bar.XXXX"],"fields":[{"name":"Metadata","type":{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}}],"name":"SomeEvent","namespace":"foo.bar","type":"record"}`,
+		Schema: `{"fields":[{"name":"Metadata","type":{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}}],"name":"SomeEvent","namespace":"foo.x","type":"record"}`,
 		Required: []bool{
 			0: true,
 		},
@@ -39,5 +39,3 @@ func (SomeEvent) AvroRecord() avrotypegen.RecordInfo {
 }
 
 // TODO implement MarshalBinary and UnmarshalBinary methods?
-
-// Alias foo.bar.XXXX = foo.bar.SomeEvent
