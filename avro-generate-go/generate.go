@@ -120,7 +120,9 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 	doneUnions := false
 	for i, f := range t.Fields() {
 		info := goType(f.Type())
-		if len(info.Union) == 0 {
+		if len(info.Union) == 0 || (len(info.Union) == 2 && info.Union[0].GoType == "nil") {
+			// Either there's no union or the union is ["null", T] (the default union type for a
+			// pointer).
 			continue
 		}
 		if !doneUnions {

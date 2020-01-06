@@ -73,7 +73,7 @@ tests: unionToScalar: {
 	outData: UnionField: 999
 }
 
-tests: unionNullStringWithNull: {
+tests: unionNullString: {
 	inSchema: {
 		type: "record"
 		name: "R"
@@ -83,39 +83,19 @@ tests: unionNullStringWithNull: {
 		}]
 	}
 	outSchema: inSchema
+}
+
+tests: unionNullString: subtests: withNull: {
 	inData: OptionalString: null
 	outData: inData
 }
 
-tests: unionNullStringReverseWithNull: {
-	inSchema: {
-		type: "record"
-		name: "R"
-		fields: [{
-			name: "OptionalString"
-			type: ["string", "null"]
-		}]
-	}
-	outSchema: inSchema
-	inData: OptionalString: null
-	outData: inData
-}
-
-tests: unionNullStringWithString: {
-	inSchema: {
-		type: "record"
-		name: "R"
-		fields: [{
-			name: "OptionalString"
-			type: ["null", "string"]
-		}]
-	}
-	outSchema: inSchema
+tests: unionNullString: subtests: withString: {
 	inData: OptionalString: string: "hello"
 	outData: inData
 }
 
-tests: unionNullStringReverseWithString: {
+tests: unionNullStringReverse: {
 	inSchema: {
 		type: "record"
 		name: "R"
@@ -125,6 +105,14 @@ tests: unionNullStringReverseWithString: {
 		}]
 	}
 	outSchema: inSchema
+}
+
+tests: unionNullStringReverse: subtests: withNull: {
+	inData: OptionalString: null
+	outData: inData
+}
+
+tests: unionNullStringReverse: subtests: withString: {
 	inData: OptionalString: string: "hello"
 	outData: inData
 }

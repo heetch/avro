@@ -98,7 +98,8 @@ func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault 
 	// Make an appropriate makeDefault function, even when one isn't explicitly specified.
 	switch {
 	case required:
-		// Keep to the letter of the contract.
+		// Keep to the letter of the contract (makeDefault should always
+		// be nil in this case anyway).
 		makeDefault = nil
 	case makeDefault == nil && len(unionVals) > 0:
 		var v interface{}
