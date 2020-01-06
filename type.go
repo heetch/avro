@@ -8,11 +8,14 @@ import (
 	"github.com/actgardner/gogen-avro/schema"
 )
 
+// Type represents an Avro schema type.
 type Type struct {
 	schema   string
 	avroType schema.AvroType
 }
 
+// ParseType parses an Avro schema in the format defined by the Avro
+// specification at https://avro.apache.org/docs/current/spec.html.
 func ParseType(s string) (*Type, error) {
 	ns := parser.NewNamespace(false)
 	avroType, err := ns.TypeForSchema([]byte(s))
