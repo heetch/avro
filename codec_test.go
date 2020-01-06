@@ -61,7 +61,7 @@ func TestCodec(t *testing.T) {
 	}]
 }`,
 	})
-	data, err := avro.Marshal(TestRecord{A: 40, B: 20})
+	data, _, err := avro.Marshal(TestRecord{A: 40, B: 20}, nil)
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("data: %d", data)
 	var x TestRecord

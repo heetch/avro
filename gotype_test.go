@@ -11,10 +11,10 @@ import (
 func TestSimpleGoType(t *testing.T) {
 	c := qt.New(t)
 	wSchema := TestRecord{}.AvroRecord().Schema
-	data, err := avro.Marshal(TestRecord{
+	data, _, err := avro.Marshal(TestRecord{
 		A: 1,
 		B: 2,
-	})
+	}, nil)
 	c.Assert(err, qt.Equals, nil)
 	type TestRecord struct {
 		B int

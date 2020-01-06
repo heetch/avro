@@ -20,15 +20,15 @@ const sortMapKeys = false
 // The schema used for the generated value is Schema(x).
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
-func Marshal(x interface{}) (_ []byte, marshalErr error) {
+func Marshal(x interface{}, wType *Type) (_ []byte, _ *Type, marshalErr error) {
 	xv := reflect.ValueOf(x)
-	at, err := schemaForGoType(xv.Type(), nil)
+	at, err := schemaForGoType(xv.Type(), wType)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get schema info for %T", x)
+		return nil, nil, fmt.Errorf("cannot get schema info for %T", x)
 	}
 	info, err := newAzTypeInfo(xv.Type())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	enc := typeEncoder(at.avroType, xv.Type(), info)
 	var e encodeState
@@ -42,7 +42,7 @@ func Marshal(x interface{}) (_ []byte, marshalErr error) {
 		}
 	}()
 	enc(&e, xv)
-	return e.Bytes(), nil
+	return e.Bytes(), at, nil
 }
 
 type encodeState struct {
