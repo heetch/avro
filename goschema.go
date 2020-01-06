@@ -132,7 +132,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		// TODO the schema might refer to names that are used the
 		// go type - we should de-duplicate those entries (probably
 		// by name but also making sure that the names actually match).
-		return gts.define(json.RawMessage(r.AvroRecord().Schema))
+		return gts.define(t, json.RawMessage(r.AvroRecord().Schema))
 	}
 
 	if syms := enumSymbols(t); len(syms) > 0 {
@@ -215,7 +215,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 				"type":    ftype,
 			})
 		}
-		return gts.define(map[string]interface{}{
+		return gts.define(t, map[string]interface{}{
 			"name":   name,
 			"type":   "record",
 			"fields": fields,
@@ -228,7 +228,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		if name == "" {
 			name = fmt.Sprintf("go.Fixed%d", t.Len())
 		}
-		return gts.define(map[string]interface{}{
+		return gts.define(t, map[string]interface{}{
 			"name": name,
 			"type": "fixed",
 			"size": t.Len(),
@@ -253,14 +253,14 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	}
 }
 
-func (gts *goTypeSchema) define(def0 interface{}) (interface{}, error) {
+func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}) (interface{}, error) {
 	def, ok := def0.(map[string]interface{})
 	if !ok {
 		if err := json.Unmarshal(def0.(json.RawMessage), &def); err != nil {
 			return nil, err
 		}
 	}
-	name := def["name"]
+	name, _ := def["name"].(string)
 	if name == "" {
 		return nil, fmt.Errorf("definition with empty name")
 	}
@@ -269,6 +269,10 @@ func (gts *goTypeSchema) define(def0 interface{}) (interface{}, error) {
 			// TODO use package path to disambiguate.
 			return nil, fmt.Errorf("duplicate struct type name %q", name)
 		}
+	}
+	gts.defs[t] = goTypeDef{
+		name:   name,
+		schema: def,
 	}
 	return def, nil
 }

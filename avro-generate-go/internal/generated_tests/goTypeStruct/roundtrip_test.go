@@ -14,7 +14,7 @@ var tests = testutil.RoundTripTest{
                 "type": "record",
                 "fields": [
                     {
-                        "name": "S",
+                        "name": "S1",
                         "type": {
                             "name": "T",
                             "type": "record",
@@ -29,6 +29,10 @@ var tests = testutil.RoundTripTest{
                                 }
                             ]
                         }
+                    },
+                    {
+                        "name": "S2",
+                        "type": "T"
                     }
                 ]
             }`,
@@ -36,22 +40,31 @@ var tests = testutil.RoundTripTest{
 	Subtests: []testutil.RoundTripSubtest{{
 		TestName: "main",
 		InDataJSON: `{
-                        "S": {
+                        "S1": {
                             "A": 12345,
                             "B": "hello"
+                        },
+                        "S2": {
+                            "A": 999,
+                            "B": "b"
                         }
                     }`,
 		OutDataJSON: `{
-                        "S": {
+                        "S1": {
                             "A": 12345,
                             "B": "hello"
+                        },
+                        "S2": {
+                            "A": 999,
+                            "B": "b"
                         }
                     }`,
 	}},
 }
 
 type R struct {
-	S T
+	S1 T
+	S2 T
 }
 type T struct {
 	A int

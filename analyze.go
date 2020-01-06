@@ -293,31 +293,10 @@ func canAssignVMType(operand int, t reflect.Type) bool {
 }
 
 func equalPathRef(p1, p2 []pathElem) bool {
-	p1 = singleRefPath(p1)
-	p2 = singleRefPath(p2)
-	if len(p1) != len(p2) {
-		return false
+	if len(p1) == 0 || len(p2) == 0 {
+		return len(p1) == len(p2)
 	}
-	for i := range p1 {
-		e1, e2 := &p1[i], &p2[i]
-		if e1.ftype != e2.ftype || e1.index != e2.index {
-			return false
-		}
-	}
-	return true
-}
-
-func singleRefPath(p []pathElem) []pathElem {
-	if len(p) == 0 {
-		return nil
-	}
-	refType := p[len(p)-1].info.referenceType
-	for i := len(p) - 1; i >= 0; i-- {
-		if p[i].info.referenceType != refType {
-			return p[i+1:]
-		}
-	}
-	return p
+	return p1[len(p1)-1].ftype == p2[len(p2)-1].ftype
 }
 
 func pathStr(ps []pathElem) string {

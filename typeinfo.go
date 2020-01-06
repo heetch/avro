@@ -25,10 +25,6 @@ type azTypeInfo struct {
 	// for each field; for union types, this holds an
 	// entry for each possible type in the union.
 	entries []azTypeInfo
-
-	// referenceType holds the type of the closest
-	// ancestor struct type containing this type.
-	referenceType reflect.Type
 }
 
 func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
@@ -69,7 +65,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			if i < len(r.Unions) {
 				unionVals = r.Unions[i]
 			}
-			entry, err := newAzTypeInfoFromField(t, f.Type, required, makeDefault, unionVals)
+			entry, err := newAzTypeInfoFromField(f.Type, required, makeDefault, unionVals)
 			if err != nil {
 				return azTypeInfo{}, err
 			}
@@ -86,7 +82,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+func newAzTypeInfoFromField(t reflect.Type, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
 	if t.Kind() == reflect.Ptr && len(unionVals) == 0 {
 		// It's a pointer but there's no explicit union entry, which means that
 		// the union defaults to ["null", type]
@@ -116,9 +112,8 @@ func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault 
 		}
 	}
 	info := azTypeInfo{
-		ftype:         t,
-		makeDefault:   makeDefault,
-		referenceType: refType,
+		ftype:       t,
+		makeDefault: makeDefault,
 	}
 	if len(unionVals) == 0 {
 		return info, nil
@@ -130,8 +125,7 @@ func newAzTypeInfoFromField(refType, t reflect.Type, required bool, makeDefault 
 			ut = reflect.TypeOf(v).Elem()
 		}
 		info.entries[i] = azTypeInfo{
-			ftype:         ut,
-			referenceType: refType,
+			ftype: ut,
 		}
 	}
 	return info, nil
