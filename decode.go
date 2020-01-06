@@ -5,23 +5,22 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/actgardner/gogen-avro/parser"
-	"github.com/actgardner/gogen-avro/resolver"
-	"github.com/actgardner/gogen-avro/schema"
 	"github.com/actgardner/gogen-avro/vm"
 )
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must
-// have been written with the given schema, wSchemaStr, into x, which must be a
-// pointer to a struct type T.
+// have been written with Avro type described by wType,
+// into x, which must be a pointer to some struct type T.
 //
-// The schema of T must be compatible with the writer schema
-// described by wSchemaStr according to the rules described
-// here: https://avro.apache.org/docs/current/spec.html#Schema+Resolution
+// It returns the actual Avro type that was used for unmarshaling.
 //
-// The reader schema used is Schema(*x) except that interface{}-typed values
-// are allowed in non-generated types. When an interface{}-typed value is encountered, it is
-// as if that part of the type was filled in with the writer schema.
+// The schema of T must be compatible with wType according to the
+// rules described here:
+// https://avro.apache.org/docs/current/spec.html#Schema+Resolution
+//
+// The reader schema used is TypeOf(*x, wType). When an
+// interface{}-typed value is encountered, it is as if that part of the
+// type was filled in with the writer schema.
 //
 // When decoding Avro values into a Go interface{} type, the decoded Go type for Avro type
 // T, decode(T), is derived according to the following rules (TODO implement this):
@@ -48,36 +47,18 @@ import (
 // TODO return the actual reader schema value used? This will be Schema(*x)
 // unless x contains interface{} fields. That would allow any unmarshaled value
 // to be marshaled again, even if it contained interface{}-typed values.
-func Unmarshal(data []byte, x interface{}, wSchemaStr string) error {
-	wSchema, err := parseSchema([]byte(wSchemaStr))
-	if err != nil {
-		return fmt.Errorf("cannot parse writer schema: %v", err)
-	}
+func Unmarshal(data []byte, x interface{}, wType *Type) (*Type, error) {
 	v := reflect.ValueOf(x)
 	t := v.Type()
 	if t.Kind() != reflect.Ptr {
-		return fmt.Errorf("destination is not a pointer %s", t)
+		return nil, fmt.Errorf("destination is not a pointer %s", t)
 	}
-	prog, err := compileDecoder(t.Elem(), wSchema)
-	if err != nil {
-		return err
-	}
-	v = v.Elem()
-	return unmarshal(nil, data, prog, v)
-}
-
-func parseSchema(s []byte) (schema.AvroType, error) {
-	ns := parser.NewNamespace(false)
-	avroType, err := ns.TypeForSchema(s)
+	prog, err := compileDecoder(t.Elem(), wType)
 	if err != nil {
 		return nil, err
 	}
-	for _, def := range ns.Roots {
-		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
-			return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
-		}
-	}
-	return avroType, nil
+	v = v.Elem()
+	return unmarshal(nil, data, prog, v)
 }
 
 type stackFrame struct {
@@ -108,7 +89,7 @@ type decodeError struct {
 
 // unmarshal unmarshals Avro binary data from r and writes it to target
 // following the given program.
-func unmarshal(r io.Reader, buf []byte, prog *decodeProgram, target reflect.Value) (err error) {
+func unmarshal(r io.Reader, buf []byte, prog *decodeProgram, target reflect.Value) (_ *Type, err error) {
 	defer func() {
 		switch panicErr := recover().(type) {
 		case *decodeError:
@@ -129,7 +110,7 @@ func unmarshal(r io.Reader, buf []byte, prog *decodeProgram, target reflect.Valu
 		d.buf = make([]byte, 0, bufSize)
 	}
 	d.eval(target)
-	return nil
+	return prog.readerType, nil
 }
 
 func (d *decoder) eval(target reflect.Value) {

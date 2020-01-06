@@ -30,7 +30,7 @@ func Marshal(x interface{}) (_ []byte, marshalErr error) {
 	if err != nil {
 		return nil, err
 	}
-	enc := typeEncoder(at, xv.Type(), info)
+	enc := typeEncoder(at.avroType, xv.Type(), info)
 	var e encodeState
 	defer func() {
 		if r := recover(); r != nil {

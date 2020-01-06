@@ -20,8 +20,10 @@ func TestSimpleGoType(t *testing.T) {
 		B int
 		A int
 	}
+	wType, err := avro.ParseType(wSchema)
+	c.Assert(err, qt.Equals, nil)
 	var x TestRecord
-	err = avro.Unmarshal(data, &x, wSchema)
+	_, err = avro.Unmarshal(data, &x, wType)
 	c.Assert(err, qt.Equals, nil)
 	c.Assert(x, qt.Equals, TestRecord{
 		A: 1,

@@ -69,20 +69,20 @@ func TestCodec(t *testing.T) {
 	// 	1: the schema id
 	//	40: B=20 (zig-zag encoded)
 	//	80: A=40 (ditto)
-	err = codec.Unmarshal(context.Background(), []byte{1, 40, 80}, &x)
+	_, err = codec.Unmarshal(context.Background(), []byte{1, 40, 80}, &x)
 	c.Assert(err, qt.Equals, nil)
 	c.Assert(x, qt.Equals, TestRecord{A: 40, B: 20})
 
 	// Check the record compatibility stuff is working by reading from a
 	// record written with less fields (note: the default value for A is 42).
 	var x1 TestRecord
-	err = codec.Unmarshal(context.Background(), []byte{2, 80}, &x1)
+	_, err = codec.Unmarshal(context.Background(), []byte{2, 80}, &x1)
 	c.Assert(err, qt.Equals, nil)
 	c.Assert(x1, qt.Equals, TestRecord{A: 42, B: 40})
 
 	// There's no default value for A, so it doesn't work that way around.
 	var x2 TestRecord
-	err = codec.Unmarshal(context.Background(), []byte{3, 80}, &x2)
+	_, err = codec.Unmarshal(context.Background(), []byte{3, 80}, &x2)
 	c.Assert(err, qt.ErrorMatches, `cannot unmarshal: Incompatible schemas: field B in reader is not present in writer and has no default value`)
 }
 

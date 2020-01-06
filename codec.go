@@ -2,13 +2,11 @@ package avro
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
 
 	"github.com/actgardner/gogen-avro/compiler"
-	"github.com/actgardner/gogen-avro/schema"
 )
 
 type codecShemaPair struct {
@@ -60,9 +58,9 @@ type Codec struct {
 	// We might be better off with a couple of sync.Maps here, but this is a bit easier on the brain.
 	mu sync.RWMutex
 
-	// writerSchemas holds a cache of the schemas previously encountered when
+	// writerTypes holds a cache of the schemas previously encountered when
 	// decoding messages.
-	writerSchemas map[int64]schema.AvroType
+	writerTypes map[int64]*Type
 
 	// programs holds the programs previously created when decoding.
 	programs map[codecSchemaPair]*decodeProgram
@@ -73,9 +71,9 @@ type Codec struct {
 // message that's marshaled or unmarshaled.
 func NewCodec(g SchemaGetter) *Codec {
 	return &Codec{
-		getter:        g,
-		writerSchemas: make(map[int64]schema.AvroType),
-		programs:      make(map[codecSchemaPair]*decodeProgram),
+		getter:      g,
+		writerTypes: make(map[int64]*Type),
+		programs:    make(map[codecSchemaPair]*decodeProgram),
 	}
 }
 
@@ -85,20 +83,20 @@ func NewCodec(g SchemaGetter) *Codec {
 // It needs the context argument because it might end up
 // fetching schema data over the network via the Codec's
 // associated SchemaGetter.
-func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) error {
+func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Type, error) {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Ptr {
-		return fmt.Errorf("cannot decode into non-pointer value %T", x)
+		return nil, fmt.Errorf("cannot decode into non-pointer value %T", x)
 	}
 	v = v.Elem()
 	vt := v.Type()
 	wID, body := c.getter.SchemaID(data)
 	if wID == 0 && body == nil {
-		return fmt.Errorf("cannot get schema ID from message")
+		return nil, fmt.Errorf("cannot get schema ID from message")
 	}
 	prog, err := c.getProgram(ctx, vt, wID)
 	if err != nil {
-		return fmt.Errorf("cannot unmarshal: %v", err)
+		return nil, fmt.Errorf("cannot unmarshal: %v", err)
 	}
 	return unmarshal(nil, body, prog, v)
 }
@@ -109,19 +107,20 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		c.mu.RUnlock()
 		return prog, nil
 	}
-	wSchema := c.writerSchemas[wID]
+	wType := c.writerTypes[wID]
 	c.mu.RUnlock()
 
-	if es, ok := wSchema.(errorSchema); ok {
-		return nil, es.err
-	}
 	var err error
-	if wSchema == nil {
+	if wType != nil {
+		if es, ok := wType.avroType.(errorSchema); ok {
+			return nil, es.err
+		}
+	} else {
 		// We haven't seen the writer schema before, so try to fetch it.
 		var s string
 		s, err = c.getter.SchemaForID(ctx, wID)
 		if err == nil {
-			wSchema, err = parseSchema([]byte(s))
+			wType, err = ParseType(s)
 		}
 		// TODO look at the SchemaForID error
 		// and return an error without caching it if it's temporary?
@@ -129,7 +128,9 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err != nil {
-		c.writerSchemas[wID] = errorSchema{err: err}
+		c.writerTypes[wID] = &Type{
+			avroType: errorSchema{err: err},
+		}
 		return nil, err
 	}
 	if prog := c.programs[codecSchemaPair{vt, wID}]; prog != nil {
@@ -137,20 +138,22 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		return prog, nil
 	}
 
-	prog, err := compileProgram(vt, wSchema)
+	prog, err := compileProgram(vt, wType)
 	if err != nil {
-		c.writerSchemas[wID] = errorSchema{err: err}
+		c.writerTypes[wID] = &Type{
+			avroType: errorSchema{err: err},
+		}
 		return nil, err
 	}
 	return prog, nil
 }
 
-func compileProgram(vt reflect.Type, wSchema schema.AvroType) (*decodeProgram, error) {
-	rSchema, err := schemaForGoType(vt, wSchema)
+func compileProgram(vt reflect.Type, wType *Type) (*decodeProgram, error) {
+	rType, err := schemaForGoType(vt, wType)
 	if err != nil {
 		return nil, err
 	}
-	prog0, err := compiler.Compile(wSchema, rSchema)
+	prog0, err := compiler.Compile(wType.avroType, rType.avroType)
 	if err != nil {
 		return nil, err
 	}
@@ -159,16 +162,4 @@ func compileProgram(vt reflect.Type, wSchema schema.AvroType) (*decodeProgram, e
 		return nil, fmt.Errorf("analysis failed: %v", err)
 	}
 	return prog1, nil
-}
-
-func schemaForType(t schema.AvroType) string {
-	def, err := t.Definition(make(map[schema.QualifiedName]interface{}))
-	if err != nil {
-		panic(err)
-	}
-	data, err := json.Marshal(def)
-	if err != nil {
-		panic(err)
-	}
-	return string(data)
 }

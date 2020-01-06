@@ -40,7 +40,7 @@ var tests = testutil.RoundTripTest{
                         "type": "string"
                     }
                 ],
-                "namespace": "foo.bar"
+                "namespace": "foo"
             }`,
 	GoType: new(SomeEvent),
 	Subtests: []testutil.RoundTripSubtest{{

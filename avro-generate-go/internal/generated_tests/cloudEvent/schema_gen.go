@@ -31,7 +31,7 @@ type SomeEvent struct {
 // AvroRecord implements the avro.AvroRecord interface.
 func (SomeEvent) AvroRecord() avrotypegen.RecordInfo {
 	return avrotypegen.RecordInfo{
-		Schema: `{"fields":[{"name":"Metadata","type":{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}}],"name":"SomeEvent","namespace":"foo.x","type":"record"}`,
+		Schema: `{"fields":[{"name":"Metadata","type":{"fields":[{"name":"id","type":"string"},{"name":"source","type":"string"},{"name":"time","type":"long"}],"name":"Metadata","namespace":"avro.apache.org","type":"record"}}],"name":"SomeEvent","namespace":"bar","type":"record"}`,
 		Required: []bool{
 			0: true,
 		},

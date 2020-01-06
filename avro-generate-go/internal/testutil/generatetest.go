@@ -53,7 +53,9 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 
 	// Unmarshal the binary data into the Go type.
 	x := reflect.New(reflect.TypeOf(test.GoType).Elem())
-	err = avro.Unmarshal(inData, x.Interface(), test.InSchema)
+	inType, err := avro.ParseType(test.InSchema)
+	c.Assert(err, qt.Equals, nil)
+	_, err = avro.Unmarshal(inData, x.Interface(), inType)
 	c.Assert(err, qt.Equals, nil)
 	pretty.Println("unmarshaled: ", x.Interface())
 
@@ -62,9 +64,9 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 	outData, err := avro.Marshal(x.Elem().Interface())
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("output data: %x", outData)
-	outSchema, err := avro.Schema(x.Elem().Interface())
+	outSchema, err := avro.TypeOf(x.Elem().Interface(), nil)
 	c.Assert(err, qt.Equals, nil)
-	outCodec, err := goavro.NewCodec(outSchema)
+	outCodec, err := goavro.NewCodec(outSchema.String())
 	c.Assert(err, qt.Equals, nil, qt.Commentf("outSchema: %s", outSchema))
 	native, remaining, err := outCodec.NativeFromBinary(outData)
 	c.Assert(err, qt.Equals, nil)

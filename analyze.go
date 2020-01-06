@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/actgardner/gogen-avro/compiler"
-	"github.com/actgardner/gogen-avro/schema"
 	"github.com/actgardner/gogen-avro/vm"
 )
 
@@ -25,6 +24,8 @@ type decodeProgram struct {
 	// in the program, indexed by pc, that gets the default
 	// value for a field.
 	makeDefault []func() interface{}
+
+	readerType *Type
 }
 
 type analyser struct {
@@ -55,13 +56,13 @@ type pathElem struct {
 
 // compileDecoder returns a decoder program to decode into values of the given type
 // Avro values encoded with the given writer schema.
-func compileDecoder(t reflect.Type, writerSchema schema.AvroType) (*decodeProgram, error) {
+func compileDecoder(t reflect.Type, writerType *Type) (*decodeProgram, error) {
 	// First determine the schema for the type.
-	readerSchema, err := schemaForGoType(t, writerSchema)
+	readerType, err := schemaForGoType(t, writerType)
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine schema for %s: %v", t, err)
 	}
-	prog, err := compiler.Compile(writerSchema, readerSchema)
+	prog, err := compiler.Compile(writerType.avroType, readerType.avroType)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create decoder: %v", err)
 	}
@@ -69,6 +70,7 @@ func compileDecoder(t reflect.Type, writerSchema schema.AvroType) (*decodeProgra
 	if err != nil {
 		return nil, fmt.Errorf("analysis failed: %v", err)
 	}
+	prog1.readerType = readerType
 	return prog1, nil
 }
 
