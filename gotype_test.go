@@ -10,8 +10,7 @@ import (
 
 func TestSimpleGoType(t *testing.T) {
 	c := qt.New(t)
-	wSchema := TestRecord{}.AvroRecord().Schema
-	data, _, err := avro.Marshal(TestRecord{
+	data, wType, err := avro.Marshal(TestRecord{
 		A: 1,
 		B: 2,
 	}, nil)
@@ -20,8 +19,6 @@ func TestSimpleGoType(t *testing.T) {
 		B int
 		A int
 	}
-	wType, err := avro.ParseType(wSchema)
-	c.Assert(err, qt.Equals, nil)
 	var x TestRecord
 	_, err = avro.Unmarshal(data, &x, wType)
 	c.Assert(err, qt.Equals, nil)
