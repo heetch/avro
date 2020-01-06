@@ -2,7 +2,7 @@
 
 package recordDefault
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 type Foo struct {
 	F1 int

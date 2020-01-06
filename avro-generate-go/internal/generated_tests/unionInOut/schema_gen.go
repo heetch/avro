@@ -2,7 +2,7 @@
 
 package unionInOut
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 type PrimitiveUnionTestRecord struct {
 	UnionField interface{}

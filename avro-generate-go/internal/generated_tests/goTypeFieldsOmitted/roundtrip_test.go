@@ -5,7 +5,7 @@ package goTypeFieldsOmitted
 import (
 	"testing"
 
-	"github.com/rogpeppe/avro/avro-generate-go/internal/testutil"
+	"github.com/heetch/avro/avro-generate-go/internal/testutil"
 )
 
 var tests = testutil.RoundTripTest{

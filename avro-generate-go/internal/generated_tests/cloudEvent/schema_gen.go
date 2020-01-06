@@ -2,7 +2,7 @@
 
 package cloudEvent
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 type Metadata struct {
 	Id     string `json:"id"`

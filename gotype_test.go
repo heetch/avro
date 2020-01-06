@@ -5,7 +5,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/rogpeppe/avro"
+	"github.com/heetch/avro"
 )
 
 func TestSimpleGoType(t *testing.T) {

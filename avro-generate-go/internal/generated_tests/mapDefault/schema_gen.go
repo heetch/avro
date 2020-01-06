@@ -2,7 +2,7 @@
 
 package mapDefault
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 type R struct {
 	MapOfInt map[string]int `json:"mapOfInt"`

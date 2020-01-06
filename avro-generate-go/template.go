@@ -33,7 +33,7 @@ var genTemplate = template.Must(
 
 package «.Pkg»
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 «range $defName, $def  :=.NS.Definitions»
 	«- if ne $defName .AvroName »

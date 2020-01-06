@@ -9,7 +9,7 @@ import (
 
 	"github.com/actgardner/gogen-avro/schema"
 
-	"github.com/rogpeppe/avro/avrotypegen"
+	"github.com/heetch/avro/avrotypegen"
 )
 
 // avroTypes is effectively a map[reflect.Type]*Type

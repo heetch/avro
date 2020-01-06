@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/rogpeppe/avro/avrotypegen"
+	"github.com/heetch/avro/avrotypegen"
 )
 
 // azTypeInfo is the representation of the above types used

@@ -2,7 +2,7 @@
 
 package avro_test
 
-import "github.com/rogpeppe/avro/avrotypegen"
+import "github.com/heetch/avro/avrotypegen"
 
 type TestRecord struct {
 	A int
