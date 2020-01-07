@@ -14,15 +14,21 @@ import (
 // Set to true for deterministic output.
 const sortMapKeys = false
 
-// Marshal encodes the given value as a message using the Avro binary
-// encoding.
+// Marshal encodes x as a message using the Avro binary
+// encoding, using wType as the Avro type for marshaling.
+// It returns an error if wType does not subsume (see Type.Subsumes)
+// the Avro type derived from x (TypeOf(x, wType))
 //
-// The schema used for the generated value is Schema(x).
+// If wType is nil, TypeOf(x, nil) will be used as the marshal type.
+//
+// Marshal returns the encoded data and the actual type that
+// was used for marshaling (this will be equal to wType if that is
+// non-nil).
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
 func Marshal(x interface{}, wType *Type) (_ []byte, _ *Type, marshalErr error) {
 	xv := reflect.ValueOf(x)
-	at, err := schemaForGoType(xv.Type(), wType)
+	at, err := avroTypeOf(xv.Type(), wType)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot get schema info for %T", x)
 	}
@@ -87,6 +93,8 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 			if len(info.entries) != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.entries), len(def.Fields()), t, def.Name()))
 			}
+			// TODO do name-based field matching rather than positional matching,
+			// enabling the avro type to be compatible but not identical with t.
 			if t.NumField() != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("field count mismatch (%d vs %d; %s vs %s)", t.NumField(), len(def.Fields()), t, def.Name()))
 			}
@@ -96,6 +104,8 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 			}
 			return structEncoder{fields}.encode
 		case *schema.EnumDefinition:
+			// TODO determine mapping between enum defined by Go value
+			// and the schema.
 			return longEncoder
 		case *schema.FixedDefinition:
 			return fixedEncoder{def.SizeBytes()}.encode
@@ -107,6 +117,7 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 		switch t.Kind() {
 		case reflect.Ptr:
 			// It's a union of null and one other type, represented by a Go pointer.
+			// TODO allow more members of union and choose which ones to use.
 			if len(atypes) != 2 {
 				return errorEncoder(fmt.Errorf("unexpected item type count in union"))
 			}
@@ -125,6 +136,7 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
 			}
 		case reflect.Interface:
+			// TODO
 			enc := unionEncoder{
 				nullIndex: -1,
 				choices:   make([]unionEncoderChoice, len(info.entries)),
@@ -149,15 +161,15 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 		return arrayEncoder{typeEncoder(at.ItemType(), t.Elem(), info)}.encode
 	case *schema.BoolField:
 		return boolEncoder
+	case *schema.BytesField:
+		return bytesEncoder
+	case *schema.DoubleField:
+		return doubleEncoder
+	case *schema.FloatField:
+		return floatEncoder
 	case *schema.IntField,
 		*schema.LongField:
 		return longEncoder
-	case *schema.FloatField:
-		return floatEncoder
-	case *schema.DoubleField:
-		return doubleEncoder
-	case *schema.BytesField:
-		return bytesEncoder
 	case *schema.StringField:
 		return stringEncoder
 	default:

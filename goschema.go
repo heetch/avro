@@ -63,14 +63,14 @@ type errorSchema struct {
 //	- the default value for the field is the zero value for the type.
 //	- anonymous struct fields are currently disallowed
 func TypeOf(x interface{}, wType *Type) (*Type, error) {
+	return avroTypeOf(reflect.TypeOf(x), wType)
+}
+
+func avroTypeOf(t reflect.Type, wType *Type) (*Type, error) {
+	// TODO cache Avro type for a given Go type
 	if wType != nil {
 		return nil, fmt.Errorf("TypeOf with writer type not yet supported")
 	}
-	// TODO cache Avro type for a given Go type
-	return schemaForGoType(reflect.TypeOf(x), wType)
-}
-
-func schemaForGoType(t reflect.Type, wType *Type) (*Type, error) {
 	rType0, ok := goTypeToAvroType.Load(t)
 	if ok {
 		rType := rType0.(*Type)

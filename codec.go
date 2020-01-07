@@ -149,7 +149,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 }
 
 func compileProgram(vt reflect.Type, wType *Type) (*decodeProgram, error) {
-	rType, err := schemaForGoType(vt, wType)
+	rType, err := avroTypeOf(vt, wType)
 	if err != nil {
 		return nil, err
 	}
