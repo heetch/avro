@@ -57,7 +57,7 @@ type SingleDecoder struct {
 // message that's marshaled or unmarshaled.
 func NewSingleDecoder(r DecodingRegistry) *SingleDecoder {
 	return &SingleDecoder{
-		registry:      r,
+		registry:    r,
 		writerTypes: make(map[int64]*Type),
 		programs:    make(map[decoderSchemaPair]*decodeProgram),
 	}

@@ -7,12 +7,15 @@ import (
 	"math"
 	"reflect"
 	"sort"
+	"sync"
 
 	"github.com/actgardner/gogen-avro/schema"
 )
 
 // Set to true for deterministic output.
 const sortMapKeys = false
+
+var goTypeToEncoder sync.Map
 
 // Marshal encodes x as a message using the Avro binary
 // encoding, using TypeOf(x) as the Avro type for marshaling.
@@ -21,14 +24,24 @@ const sortMapKeys = false
 // was used for marshaling.
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
-func Marshal(x interface{}) (_ []byte, _ *Type, marshalErr error) {
+func Marshal(x interface{}) ([]byte, *Type, error) {
 	xv := reflect.ValueOf(x)
 	at, err := avroTypeOf(xv.Type())
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot get schema info for %T", x)
 	}
+	data, err := marshalAppend(nil, xv, at)
+	if err != nil {
+		return nil, nil, err
+	}
+	return data, at, nil
+}
+
+func marshalAppend(buf []byte, xv reflect.Value, at *Type) (_ []byte, marshalErr error) {
 	enc := typeEncoder(at.avroType, xv.Type(), azTypeInfo{})
-	var e encodeState
+	e := &encodeState{
+		Buffer: bytes.NewBuffer(buf),
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(*encodeError); ok {
@@ -38,12 +51,12 @@ func Marshal(x interface{}) (_ []byte, _ *Type, marshalErr error) {
 			}
 		}
 	}()
-	enc(&e, xv)
-	return e.Bytes(), at, nil
+	enc(e, xv)
+	return e.Bytes(), nil
 }
 
 type encodeState struct {
-	bytes.Buffer
+	*bytes.Buffer
 	scratch [64]byte
 }
 

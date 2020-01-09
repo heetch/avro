@@ -12,7 +12,7 @@ import (
 
 //go:generate avro-generate-go -t -p avro_test testschema1.avsc
 
-func TestCodec(t *testing.T) {
+func TestSingleDecoder(t *testing.T) {
 	c := qt.New(t)
 	dec := avro.NewSingleDecoder(memRegistry{
 		1: `{
@@ -110,4 +110,13 @@ func (m memRegistry) AppendSchemaID(buf []byte, id int64) []byte {
 		panic("schema ID out of range")
 	}
 	return append(buf, byte(id))
+}
+
+func (m memRegistry) IDForSchema(ctx context.Context, schema string) (int64, error) {
+	for id, s := range m {
+		if s == schema {
+			return id, nil
+		}
+	}
+	return 0, avro.ErrSchemaNotFound
 }
