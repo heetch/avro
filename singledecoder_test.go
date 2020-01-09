@@ -118,5 +118,5 @@ func (m memRegistry) IDForSchema(ctx context.Context, schema string) (int64, err
 			return id, nil
 		}
 	}
-	return 0, avro.ErrSchemaNotFound
+	return 0, fmt.Errorf("schema not found")
 }

@@ -11,7 +11,6 @@ type EncodingRegistry interface {
 	AppendSchemaID(buf []byte, id int64) []byte
 
 	// IDForSchema returns an ID for the given schema.
-	// If the schema wasn't found, it returns ErrSchemaNotFound.
 	IDForSchema(ctx context.Context, schema string) (int64, error)
 }
 
