@@ -13,7 +13,7 @@ func TestSimpleGoType(t *testing.T) {
 	data, wType, err := avro.Marshal(TestRecord{
 		A: 1,
 		B: 2,
-	}, nil)
+	})
 	c.Assert(err, qt.Equals, nil)
 	type TestRecord struct {
 		B int

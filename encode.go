@@ -15,28 +15,19 @@ import (
 const sortMapKeys = false
 
 // Marshal encodes x as a message using the Avro binary
-// encoding, using wType as the Avro type for marshaling.
-// It returns an error if wType does not subsume (see Type.Subsumes)
-// the Avro type derived from x (TypeOf(x, wType))
-//
-// If wType is nil, TypeOf(x, nil) will be used as the marshal type.
+// encoding, using TypeOf(x) as the Avro type for marshaling.
 //
 // Marshal returns the encoded data and the actual type that
-// was used for marshaling (this will be equal to wType if that is
-// non-nil).
+// was used for marshaling.
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
-func Marshal(x interface{}, wType *Type) (_ []byte, _ *Type, marshalErr error) {
+func Marshal(x interface{}) (_ []byte, _ *Type, marshalErr error) {
 	xv := reflect.ValueOf(x)
-	at, err := avroTypeOf(xv.Type(), wType)
+	at, err := avroTypeOf(xv.Type())
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot get schema info for %T", x)
 	}
-	info, err := newAzTypeInfo(xv.Type())
-	if err != nil {
-		return nil, nil, err
-	}
-	enc := typeEncoder(at.avroType, xv.Type(), info)
+	enc := typeEncoder(at.avroType, xv.Type(), azTypeInfo{})
 	var e encodeState
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,6 +64,8 @@ type encodeError struct {
 
 type encoderFunc func(e *encodeState, v reflect.Value)
 
+// typeEncoder returns an encoder that encodes values of type t according
+// to the Avro type at,
 func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
 	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
@@ -84,7 +77,7 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 			}
 			if len(info.entries) == 0 {
 				// The type itself might contribute information.
-				info1, err := newAzTypeInfo(info.ftype)
+				info1, err := newAzTypeInfo(t)
 				if err != nil {
 					return errorEncoder(fmt.Errorf("cannot get info for %s: %v", info.ftype, err))
 				}
@@ -136,7 +129,6 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
 			}
 		case reflect.Interface:
-			// TODO
 			enc := unionEncoder{
 				nullIndex: -1,
 				choices:   make([]unionEncoderChoice, len(info.entries)),
@@ -147,7 +139,7 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 				} else {
 					enc.choices[i] = unionEncoderChoice{
 						typ: entry.ftype,
-						enc: typeEncoder(atypes[i], entry.ftype, info.entries[i]),
+						enc: typeEncoder(atypes[i], entry.ftype, entry),
 					}
 				}
 			}

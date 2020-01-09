@@ -10,43 +10,14 @@ import (
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must
 // have been written with Avro type described by wType,
-// into x, which must be a pointer to some struct type T.
+// into x, which must be a pointer to a struct type.
 //
-// It returns the actual Avro type that was used for unmarshaling.
-//
-// The schema of T must be compatible with wType according to the
+// The reader type used is TypeOf(*x), and
+// must be compatible with wType according to the
 // rules described here:
 // https://avro.apache.org/docs/current/spec.html#Schema+Resolution
 //
-// The reader schema used is TypeOf(*x, wType). When an
-// interface{}-typed value is encountered, it is as if that part of the
-// type was filled in with the writer schema.
-//
-// When decoding Avro values into a Go interface{} type, the decoded Go type for Avro type
-// T, decode(T), is derived according to the following rules (TODO implement this):
-//
-//	- "int" decodes as int32
-//	- "long" decodes as int64
-//	- "float" decodes as float32
-//	- "double" decodes as float64
-//	- "string" decodes as string
-//	- "null" decodes as nil
-//	- {"type": "fixed", "size": N} decodes as [N]byte
-//	- {"type": "array", "items": T} decodes as []decode(T)
-//	- {"type": "map", "values": T} decodes as map[string]decode(T)
-//	- {"type": "record", "fields": [....]} decodes as map[string]interface{}
-//	- ["null", T] decodes as *decode(T).
-//	- [T1, T2, ...] when {decode(T1), decode(T2), ...} are all distinct Go types, decodes as the value itself.
-//	- [T1, T2, ...] otherwise decodes as map[string] interface{} where
-//	the map contains a single key holding the actual union type name as
-//	represented in the Avro JSON encoding and the value holds a value of
-//	type decode(Tn).
-//
-// TODO it might be better to decode in encoding/json-compatible format (e.g. all slices are []interface{} etc).
-//
-// TODO return the actual reader schema value used? This will be Schema(*x)
-// unless x contains interface{} fields. That would allow any unmarshaled value
-// to be marshaled again, even if it contained interface{}-typed values.
+// Unmarshal returns the reader type.
 func Unmarshal(data []byte, x interface{}, wType *Type) (*Type, error) {
 	v := reflect.ValueOf(x)
 	t := v.Type()
@@ -208,6 +179,7 @@ func (d *decoder) eval(target reflect.Value) {
 				// when we append the first element, all empty maps
 				// will also be nil. Perhaps when SetLong is called on the
 				// union type, we should create the map.
+				// The same applies to slices.
 				target.Set(reflect.MakeMap(target.Type()))
 			}
 			target.SetMapIndex(reflect.ValueOf(frame.String), elem)

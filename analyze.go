@@ -58,7 +58,7 @@ type pathElem struct {
 // Avro values encoded with the given writer schema.
 func compileDecoder(t reflect.Type, writerType *Type) (*decodeProgram, error) {
 	// First determine the schema for the type.
-	readerType, err := avroTypeOf(t, writerType)
+	readerType, err := avroTypeOf(t)
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine schema for %s: %v", t, err)
 	}

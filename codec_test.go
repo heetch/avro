@@ -61,7 +61,7 @@ func TestCodec(t *testing.T) {
 	}]
 }`,
 	})
-	data, _, err := avro.Marshal(TestRecord{A: 40, B: 20}, nil)
+	data, _, err := avro.Marshal(TestRecord{A: 40, B: 20})
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("data: %d", data)
 	var x TestRecord
@@ -83,7 +83,7 @@ func TestCodec(t *testing.T) {
 	// There's no default value for A, so it doesn't work that way around.
 	var x2 TestRecord
 	_, err = codec.Unmarshal(context.Background(), []byte{3, 80}, &x2)
-	c.Assert(err, qt.ErrorMatches, `cannot unmarshal: Incompatible schemas: field B in reader is not present in writer and has no default value`)
+	c.Assert(err, qt.ErrorMatches, `cannot unmarshal: cannot create decoder: Incompatible schemas: field B in reader is not present in writer and has no default value`)
 }
 
 // mapGetter implements SchemaGetter by associating a single-byte

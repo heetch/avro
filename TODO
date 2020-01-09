@@ -236,6 +236,6 @@ const (
 // If mode doesn't include Transitive, only the latest schema is checked.
 func (t *Type) Compatible(mode CompatMode, previousSchemas ...*Type) error
 
-// Subsumes reports whether all the information in a value of Avro type t1
-// can be encoded using type t without loss.
-func (t *Type) Subsumes(t1 *Type) bool
+// Subsumes reports whether all the information in a value of Avro type t2
+// can be encoded using type t1 without loss.
+func (t1 *Type) Subsumes(t2 *Type) bool

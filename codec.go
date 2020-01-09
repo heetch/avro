@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-
-	"github.com/actgardner/gogen-avro/compiler"
 )
 
 type codecShemaPair struct {
@@ -138,7 +136,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		return prog, nil
 	}
 
-	prog, err := compileProgram(vt, wType)
+	prog, err := compileDecoder(vt, wType)
 	if err != nil {
 		c.writerTypes[wID] = &Type{
 			avroType: errorSchema{err: err},
@@ -146,20 +144,4 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		return nil, err
 	}
 	return prog, nil
-}
-
-func compileProgram(vt reflect.Type, wType *Type) (*decodeProgram, error) {
-	rType, err := avroTypeOf(vt, wType)
-	if err != nil {
-		return nil, err
-	}
-	prog0, err := compiler.Compile(wType.avroType, rType.avroType)
-	if err != nil {
-		return nil, err
-	}
-	prog1, err := analyzeProgramTypes(prog0, vt)
-	if err != nil {
-		return nil, fmt.Errorf("analysis failed: %v", err)
-	}
-	return prog1, nil
 }

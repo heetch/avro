@@ -61,7 +61,7 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 
 	// Marshal the data back into binary and then into
 	// JSON, and check that it looks like we expect.
-	outData, outSchema, err := avro.Marshal(x.Elem().Interface(), nil)
+	outData, outSchema, err := avro.Marshal(x.Elem().Interface())
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("output data: %x", outData)
 	outCodec, err := goavro.NewCodec(outSchema.String())
