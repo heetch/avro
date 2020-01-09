@@ -68,67 +68,117 @@ Features still to do:
 //
 // By default, it encodes the Avro object container file (OCF) format,
 // writing the schema header when the first value is encoded.
-func NewEncoder(w io.Writer, schema string) *Encoder
+func NewStreamEncoder(w io.Writer, schema string) *StreamEncoder
 
 // Encode writes a message to the encoder.
 // All messages must have the same Avro schema.
-func (enc *Encoder) Encode(x interface{}) error
+func (enc *StreamEncoder) Encode(x interface{}) error
 
 // OmitHeader specifies that no file header should be written,
 // just the encoded values themselves without the schema.
-func (enc *Encoder) OmitHeader()
+func (enc *StreamEncoder) OmitHeader()
 
 // UseJSON causes gthe header and messages to be encoded to the stream
 // in Avro JSON encoding instead of binary.
 // See https://avro.apache.org/docs/1.8.2/spec.html#json_encoding
-func (enc *Encoder) UseJSON()
+func (enc *StreamEncoder) UseJSON()
 
-type Decoder struct {
+type StreamDecoder struct {
 	readerSchema schema.AvroType
 	progs        map[reflect.Type]*program
 }
 
-// NewDecoder returns a new Decoder instance that
+// NewStreamDecoder returns a new StreamDecoder instance that
 // decodes a stream of messages from r.
 // By default it decodes the Avro object container
 // file (OCF) format, setting the schema by reading it
 // from the start of the file.
 // See https://avro.apache.org/docs/1.8.2/spec.html#Object+Container+Files
-func NewDecoder(r io.Reader) *Decoder
+func NewStreamDecoder(r io.Reader) *StreamDecoder
 
 // SetSchema sets the schema used to decode the
 // message stream. If this is called before any messages
 // are read, the decoder will not read the OCF
 // header.
-func (dec *Decoder) SetSchema(schema string) error
+func (dec *StreamDecoder) SetSchema(schema string) error
 
 // SetJSON causes messages to be decoded from the
 // Avro JSON encoding instead of binary.
 // See https://avro.apache.org/docs/1.8.2/spec.html#json_encoding
-func (dec *Decoder) UseJSON()
+func (dec *StreamDecoder) UseJSON()
 
 // Buffered returns a reader of the data remaining in the Decoder's
 // buffer. The reader is valid until the next call to Decode.
-func (dec *Decoder) Buffered() io.Reader
+func (dec *StreamDecoder) Buffered() io.Reader
 
 // Decode decodes the next value into x, which should
 // be a pointer to an Avro-compatible type (see
 // Unmarshal for further details).
-func (dec *Decoder) Decode(x interface{}) error
+func (dec *StreamDecoder) Decode(x interface{}) error
 
+type DecodingRegistry interface {
+	// DecodeSchemaID returns the schema ID header of the message
+	// and the bare message without schema information.
+	// A schema ID is specific to the DecodingRegistry instance - within
+	// a given DecodingRegistry instance (only), a given schema ID
+	// must always correspond to the same schema.
+	//
+	// If the message isn't valid, DecodeSchemaID should return (0, nil).
+	DecodeSchemaID(msg []byte) (int64, []byte)
 
-// Marshal marshals the given value and returns the resulting
-// message.
-func (u *Codec) Marshal(ctx context.Context, x interface{}) ([]byte, error)
+	// SchemaForID returns the schema for the given ID.
+	SchemaForID(ctx context.Context, id int64) (string, error)
+}
 
-// SchemaGetter is used by an Unmarshaler to find information
-// about the schema used to encode a message.
-// One notable implementation is avroregistry.Registry.
-type SchemaGetter interface {
-	...
-	// IDForSchema returns an id for the given schema.
+type SingleEncoder struct {
+
+}
+
+type EncodingRegistry interface {
+	// AppendSchemaID appends the given schema ID header to buf
+	// and returns the resulting slice.
+	AppendSchemaID(buf []byte, id int64) []byte
+
+	// IDForSchema returns an ID for the given schema.
+	// If the schema wasn't found, it returns ErrSchemaNotFound.
 	IDForSchema(ctx context.Context, schema string) (int64, error)
 }
+
+
+// NewSingleEncoder returns a SingleEncoder instance that encodes single
+// messages along with their schema identifier.
+func NewSingleEncoder(r EncodingRegistry) *SingleEncoder
+
+// Marshal returns x marshaled as using the Avro binary encoding,
+// along with an identifier that records the type that it was encoded
+// with.
+func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, error) {
+	xv := reflect.ValueOf(x)
+	avroType, err := avroTypeOf(xv.Type())
+	if err != nil {
+		return nil, err
+	}
+	id, err := enc.registry.IDForSchema(ctx, avroType.String())
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, 0, 100)
+	buf = enc.registry.AppendSchemaID(buf, id)
+	return marshalAppend(buf, xv, avroType)
+}
+
+type SingleDecoder struct {
+}
+
+func NewSingleDecoder(r DecodingRegistry) *SingleDecoder
+
+// Unmarshal unmarshals the given message into x. The body
+// of the message is unmarshaled as with the Unmarshal function.
+//
+// It needs the context argument because it might end up
+// fetching schema data over the network via the Codec's
+// associated SchemaGetter.
+func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Type, error) {
 
 ---------------------------------------------------------
 logical types:

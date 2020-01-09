@@ -7,50 +7,38 @@ import (
 	"sync"
 )
 
-type codecShemaPair struct {
-	reader   reflect.Type
-	writerID int64
-}
-
-// SchemaGetter is used by a Codec to find information
-// about the schemas used to encode a messages.
-// One notable implementation is avroregistry.Registry.
-type SchemaGetter interface {
-	// SchemaID returns the schema ID of the message
+// DecodingRegistry is used by SingleDecoder to find information
+// about schema identifiers in messages.
+type DecodingRegistry interface {
+	// DecodeSchemaID returns the schema ID header of the message
 	// and the bare message without schema information.
-	// A schema ID is specific to the SchemaGetter instance - within
-	// a given SchemaGetter instance (only), a given schema ID
+	// A schema ID is specific to the DecodingRegistry instance - within
+	// a given DecodingRegistry instance (only), a given schema ID
 	// must always correspond to the same schema.
 	//
-	// If the message isn't valid, SchemaID should return (0, nil).
-	SchemaID(msg []byte) (int64, []byte)
-
-	// AppendWithSchemaID appends the message encoded along with the
-	// given schema ID to the given buffer.
-	AppendWithSchemaID(buf []byte, msg []byte, id int64) []byte
+	// If the message isn't valid, DecodeSchemaID should return (0, nil).
+	DecodeSchemaID(msg []byte) (int64, []byte)
 
 	// SchemaForID returns the schema for the given ID.
 	SchemaForID(ctx context.Context, id int64) (string, error)
 }
 
-type codecSchemaPair struct {
+type decoderSchemaPair struct {
 	t        reflect.Type
 	schemaID int64
 }
 
-// Codec encodes and decodes messages in Avro binary format.
+// SingleDecoder decodes messages in Avro binary format.
 // Each message includes a header or wrapper that indicates the schema
 // used to encode the message.
 //
-// A SchemaGetter is used to retrieve the schema for a given message
+// A DecodingRegistry is used to retrieve the schema for a given message
 // or to find the encoding for a given schema.
 //
 // To encode or decode a stream of messages that all use the same
-// schema, use Encoder or Decoder instead.
-//
-// TODO implement Codec.Marshal.
-type Codec struct {
-	getter SchemaGetter
+// schema, use StreamEncoder or StreamDecoder instead.
+type SingleDecoder struct {
+	registry DecodingRegistry
 
 	// mu protects the fields below.
 	// We might be better off with a couple of sync.Maps here, but this is a bit easier on the brain.
@@ -61,17 +49,17 @@ type Codec struct {
 	writerTypes map[int64]*Type
 
 	// programs holds the programs previously created when decoding.
-	programs map[codecSchemaPair]*decodeProgram
+	programs map[decoderSchemaPair]*decodeProgram
 }
 
 // NewCodec returns a new Codec
 // that uses g to determine the schema of each
 // message that's marshaled or unmarshaled.
-func NewCodec(g SchemaGetter) *Codec {
-	return &Codec{
-		getter:      g,
+func NewSingleDecoder(r DecodingRegistry) *SingleDecoder {
+	return &SingleDecoder{
+		registry:      r,
 		writerTypes: make(map[int64]*Type),
-		programs:    make(map[codecSchemaPair]*decodeProgram),
+		programs:    make(map[decoderSchemaPair]*decodeProgram),
 	}
 }
 
@@ -79,16 +67,17 @@ func NewCodec(g SchemaGetter) *Codec {
 // of the message is unmarshaled as with the Unmarshal function.
 //
 // It needs the context argument because it might end up
-// fetching schema data over the network via the Codec's
-// associated SchemaGetter.
-func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Type, error) {
+// fetching schema data over the network via the DecodingRegistry.
+//
+// Unmarshal returns the actual type that was decoded into.
+func (c *SingleDecoder) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Type, error) {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("cannot decode into non-pointer value %T", x)
 	}
 	v = v.Elem()
 	vt := v.Type()
-	wID, body := c.getter.SchemaID(data)
+	wID, body := c.registry.DecodeSchemaID(data)
 	if wID == 0 && body == nil {
 		return nil, fmt.Errorf("cannot get schema ID from message")
 	}
@@ -99,9 +88,9 @@ func (c *Codec) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Typ
 	return unmarshal(nil, body, prog, v)
 }
 
-func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*decodeProgram, error) {
+func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*decodeProgram, error) {
 	c.mu.RLock()
-	if prog := c.programs[codecSchemaPair{vt, wID}]; prog != nil {
+	if prog := c.programs[decoderSchemaPair{vt, wID}]; prog != nil {
 		c.mu.RUnlock()
 		return prog, nil
 	}
@@ -116,7 +105,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 	} else {
 		// We haven't seen the writer schema before, so try to fetch it.
 		var s string
-		s, err = c.getter.SchemaForID(ctx, wID)
+		s, err = c.registry.SchemaForID(ctx, wID)
 		if err == nil {
 			wType, err = ParseType(s)
 		}
@@ -131,7 +120,7 @@ func (c *Codec) getProgram(ctx context.Context, vt reflect.Type, wID int64) (*de
 		}
 		return nil, err
 	}
-	if prog := c.programs[codecSchemaPair{vt, wID}]; prog != nil {
+	if prog := c.programs[decoderSchemaPair{vt, wID}]; prog != nil {
 		// Someone else got there first.
 		return prog, nil
 	}
