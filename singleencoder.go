@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+// EncodingRegistry is used by SingleEncoder to find
+// ids for schemas encoded in messages.
 type EncodingRegistry interface {
 	// AppendSchemaID appends the given schema ID header to buf
 	// and returns the resulting slice.
@@ -14,6 +16,8 @@ type EncodingRegistry interface {
 	IDForSchema(ctx context.Context, schema string) (int64, error)
 }
 
+// SingleEncoder encodes messages in Avro binary format.
+// Each message includes a header or wrapper that indicates the schema.
 type SingleEncoder struct {
 	registry EncodingRegistry
 }
