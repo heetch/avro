@@ -120,6 +120,11 @@ func main() {
 			cmd.Dir = dir
 			err = cmd.Run()
 			check("avro-generate-go "+file, err)
+		} else {
+			// The Go tool seems to require at least some
+			// non-test code, at least when run with coverage engaged.
+			err = ioutil.WriteFile(filepath.Join(dir, "dummy.go"), []byte("package "+test.TestName+"\n"), 0666)
+			check("write dummy", err)
 		}
 		var buf bytes.Buffer
 		err = testCodeTemplate.Execute(&buf, test)

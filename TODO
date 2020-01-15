@@ -17,9 +17,24 @@ Tests still to do:
 
 Features still to do:
 
+- registry support
+	- https://docs.confluent.io/current/schema-registry/serializer-formatter.html
+- use nil for maps and slices instead of pointers
+- make Unmarshal fail if there are extra bytes in the data.
+- support for logical types.
+	- timestamp
+	- we'd like to use time.Time but that won't look correct
+	when converted to JSON
 - String/MarshalText/UnmarshalText methods on enums
-- support normal Go types without AvroRecord methods.
-	- what do we do about interface{} values?
+
+- optimisation:
+	- benchmarks
+- better namespace support
+	- command-line flag to control mapping of namespaces to directories
+- StreamEncoder
+- StreamDecoder
+- think about non-record types at the top level of a schema
+- support normal Go types with interface{} fields.
 		We're filling in the whole thing from a known schema, so we could
 		fill in the holes with pieces from the writer's schema,
 		and record the entire schema at the top level:
@@ -32,24 +47,6 @@ Features still to do:
 		}
 
 		func (d Dynamic) Schema() string
-
-- support for logical types.
-	- we'd like to use time.Time but that won't look correct
-	when converted to JSON
-	-
-- registry support
-	- https://docs.confluent.io/current/schema-registry/serializer-formatter.html
-- use nil for maps and slices instead of pointers
-- optimisation:
-	- cache type to unmarshaler mapping
-	- sync.Pool
-	initially, maybe just have a map of (type, schema) -> program
-- Codec
-- Encoder
-- Decoder
-- think about non-record types at the top level of a schema
-- better namespace support
-	- command-line flag to control mapping of namespaces to directories
 - JSON marshaling and unmarshaling
 	- need to decide whether to use standard Avro JSON format
 	for all cases, even though it doesn't correspond with standard
@@ -60,7 +57,6 @@ Features still to do:
 		(e.g. number vs string vs bool vs object vs null vs array)
 		then encode directly in the value.
 	- could also allow representation of timestamps as RFC3339 strings
-- make Unmarshal fail if there are extra bytes in the data.
 
 // NewEncoder returns a new Encoder instance that encodes
 // a stream of messages into r using the given schema.
@@ -194,8 +190,6 @@ to encode Go-style durations. Use a long.
 
 Also, what about timestamp-nanos, perhaps as a 12 byte fixed type
 (8 bytes of seconds; 4 bytes of nanoseconds).
-
-Of the above types,
 
 
 ---------------------------------------------------------

@@ -9,21 +9,26 @@ import (
 )
 
 func TestSimpleGoType(t *testing.T) {
-	c := qt.New(t)
-	data, wType, err := avro.Marshal(TestRecord{
-		A: 1,
-		B: 2,
-	})
-	c.Assert(err, qt.Equals, nil)
-	type TestRecord struct {
-		B int
-		A int
+	test := func(t *testing.T) {
+		c := qt.New(t)
+		data, wType, err := avro.Marshal(TestRecord{
+			A: 1,
+			B: 2,
+		})
+		c.Assert(err, qt.Equals, nil)
+		type TestRecord struct {
+			B int
+			A int
+		}
+		var x TestRecord
+		_, err = avro.Unmarshal(data, &x, wType)
+		c.Assert(err, qt.Equals, nil)
+		c.Assert(x, qt.Equals, TestRecord{
+			A: 1,
+			B: 2,
+		})
 	}
-	var x TestRecord
-	_, err = avro.Unmarshal(data, &x, wType)
-	c.Assert(err, qt.Equals, nil)
-	c.Assert(x, qt.Equals, TestRecord{
-		A: 1,
-		B: 2,
-	})
+	// Run the test twice to test caching.
+	test(t)
+	test(t)
 }

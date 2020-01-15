@@ -45,5 +45,6 @@ func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, e
 	}
 	buf := make([]byte, 0, 100)
 	buf = enc.registry.AppendSchemaID(buf, id)
-	return marshalAppend(buf, xv, avroType)
+	data, _, err := marshalAppend(buf, xv)
+	return data, err
 }

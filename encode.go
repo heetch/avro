@@ -15,6 +15,11 @@ import (
 // Set to true for deterministic output.
 const sortMapKeys = false
 
+type encoderInfo struct {
+	encode   encoderFunc
+	avroType *Type
+}
+
 var goTypeToEncoder sync.Map
 
 // Marshal encodes x as a message using the Avro binary
@@ -25,20 +30,23 @@ var goTypeToEncoder sync.Map
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
 func Marshal(x interface{}) ([]byte, *Type, error) {
-	xv := reflect.ValueOf(x)
-	at, err := avroTypeOf(xv.Type())
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot get schema info for %T", x)
-	}
-	data, err := marshalAppend(nil, xv, at)
-	if err != nil {
-		return nil, nil, err
-	}
-	return data, at, nil
+	return marshalAppend(nil, reflect.ValueOf(x))
 }
 
-func marshalAppend(buf []byte, xv reflect.Value, at *Type) (_ []byte, marshalErr error) {
-	enc := typeEncoder(at.avroType, xv.Type(), azTypeInfo{})
+func marshalAppend(buf []byte, xv reflect.Value) (_ []byte, _ *Type, marshalErr error) {
+	avroType, enc := typeEncoder0(nil, xv.Type(), azTypeInfo{})
+	if avroType == nil {
+		avroType1, err := avroTypeOf(xv.Type())
+		if err != nil {
+			// Shouldn't be able to happen.
+			return nil, nil, err
+		}
+		avroType = avroType1
+		goTypeToEncoder.Store(xv.Type(), &encoderInfo{
+			avroType: avroType,
+			encode:   enc,
+		})
+	}
 	e := &encodeState{
 		Buffer: bytes.NewBuffer(buf),
 	}
@@ -52,7 +60,7 @@ func marshalAppend(buf []byte, xv reflect.Value, at *Type) (_ []byte, marshalErr
 		}
 	}()
 	enc(e, xv)
-	return e.Bytes(), nil
+	return e.Bytes(), avroType, nil
 }
 
 type encodeState struct {
@@ -77,9 +85,49 @@ type encodeError struct {
 
 type encoderFunc func(e *encodeState, v reflect.Value)
 
+func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+	_, enc := typeEncoder0(at, t, info)
+	return enc
+}
+
+func typeEncoder0(at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, encoderFunc) {
+	// Note: since a Go type can't encode as more than one definition,
+	// we can use a purely Go-type-based cache.
+	enc0, ok := goTypeToEncoder.Load(t)
+	if ok {
+		info := enc0.(*encoderInfo)
+		return info.avroType, info.encode
+	}
+	var at1 *Type
+	if at == nil {
+		// We haven't been given an Avro type, which happens
+		// when definitionEncoder is called at the top level.
+		// Allowing this means we can do just a single cache
+		// lookup rather than two (one for type->avro type, one
+		// for encoder). The need for it wouldn't be there if
+		// Marshal didn't return the Avro type, but that's quite
+		// nice, so here we are.
+		var err error
+		at1, err = avroTypeOf(t)
+		if err != nil {
+			return nil, errorEncoder(err)
+		}
+		at = at1.avroType
+	}
+	enc := typeEncoderUncached(at, t, info)
+	// Note that for non-top-level calls, at1 will
+	// be nil - it can be calculated and cached later
+	// if this type is ever used directly.
+	goTypeToEncoder.LoadOrStore(t, &encoderInfo{
+		avroType: at1,
+		encode:   enc,
+	})
+	return at1, enc
+}
+
 // typeEncoder returns an encoder that encodes values of type t according
 // to the Avro type at,
-func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
 	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
 	case *schema.Reference:
@@ -99,8 +147,6 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 			if len(info.entries) != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.entries), len(def.Fields()), t, def.Name()))
 			}
-			// TODO do name-based field matching rather than positional matching,
-			// enabling the avro type to be compatible but not identical with t.
 			if t.NumField() != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("field count mismatch (%d vs %d; %s vs %s)", t.NumField(), len(def.Fields()), t, def.Name()))
 			}
@@ -110,8 +156,6 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 			}
 			return structEncoder{fields}.encode
 		case *schema.EnumDefinition:
-			// TODO determine mapping between enum defined by Go value
-			// and the schema.
 			return longEncoder
 		case *schema.FixedDefinition:
 			return fixedEncoder{def.SizeBytes()}.encode
@@ -123,7 +167,6 @@ func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFun
 		switch t.Kind() {
 		case reflect.Ptr:
 			// It's a union of null and one other type, represented by a Go pointer.
-			// TODO allow more members of union and choose which ones to use.
 			if len(atypes) != 2 {
 				return errorEncoder(fmt.Errorf("unexpected item type count in union"))
 			}
