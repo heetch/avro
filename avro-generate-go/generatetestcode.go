@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,6 +46,10 @@ var tests = testutil.RoundTripTest{
 			TestName: «printf "%q" $t.TestName»,
 			InDataJSON: «quote $t.InData»,
 			OutDataJSON: «quote $t.OutData»,
+			«with $t.ExpectError -»
+			ExpectError: map[testutil.ErrorType]string{
+			«- range $k, $v := .»«quote $k»: «quote $v»,«end»},
+			«end»
 		}, «end»},
 }
 
@@ -60,18 +65,20 @@ func TestGeneratedCode(t *testing.T) {
 const generateDir = "internal/generated_tests"
 
 type testData struct {
-	TestName   string                 `json:"testName"`
-	InSchema   json.RawMessage        `json:"inSchema"`
-	OutSchema  json.RawMessage        `json:"outSchema"`
-	GoType     string                 `json:"goType"`
-	GoTypeBody string                 `json:"goTypeBody"`
-	Subtests   map[string]subtestData `json:"subtests"`
+	TestName      string                 `json:"testName"`
+	InSchema      json.RawMessage        `json:"inSchema"`
+	OutSchema     json.RawMessage        `json:"outSchema"`
+	GoType        string                 `json:"goType"`
+	GoTypeBody    string                 `json:"goTypeBody"`
+	GenerateError string                 `json:"generateError"`
+	Subtests      map[string]subtestData `json:"subtests"`
 }
 
 type subtestData struct {
-	TestName string          `json:"testName"`
-	InData   json.RawMessage `json:"inData"`
-	OutData  json.RawMessage `json:"outData"`
+	TestName    string            `json:"testName"`
+	InData      json.RawMessage   `json:"inData"`
+	OutData     json.RawMessage   `json:"outData"`
+	ExpectError map[string]string `json:"expectError"`
 }
 
 func mapKeys(m map[string]subtestData) (ks []string) {
@@ -80,12 +87,6 @@ func mapKeys(m map[string]subtestData) (ks []string) {
 	}
 	sort.Strings(ks)
 	return ks
-}
-
-type subtest struct {
-	Name    string
-	InData  json.RawMessage `json:"inData"`
-	OutData json.RawMessage `json:"outData"`
 }
 
 func main() {
@@ -101,10 +102,11 @@ func main() {
 	check("run cue export", err)
 	err = json.Unmarshal(buf.Bytes(), &exported)
 	if err != nil {
-		log.Printf("bad export data: %q", buf.Bytes())
+		log.Fatalf("cannot unmarshal test data: %v\n%s", err, &buf)
 	}
 	check("unmarshal test data", err)
 	os.RemoveAll(generateDir)
+	failed := false
 	for _, test := range exported.Tests {
 		dir := filepath.Join(generateDir, test.TestName)
 		err := os.MkdirAll(dir, 0777)
@@ -114,11 +116,32 @@ func main() {
 			err = ioutil.WriteFile(file, []byte(test.OutSchema), 0666)
 			check("create schema file", err)
 
+			var buf bytes.Buffer
 			cmd := exec.Command("avro-generate-go", "-p", test.TestName, "schema.avsc")
-			cmd.Stderr = os.Stderr
-			cmd.Stdout = os.Stdout
+			cmd.Stderr = &buf
+			cmd.Stdout = &buf
 			cmd.Dir = dir
 			err = cmd.Run()
+			if test.GenerateError != "" {
+				if err == nil {
+					fmt.Fprintf(os.Stderr, "avro-generate-go unexpectedly succeeded in test %s (%s)\n", test.TestName, dir)
+					failed = true
+					continue
+				} else {
+					pat, err := regexp.Compile("^(" + test.GenerateError + "$")
+					check("generateError regexp", err)
+					if !pat.MatchString(buf.String()) {
+						fmt.Fprintf(os.Stderr, "avro-generate-go failed with unexpected error;\ngot %q\nwant %s\n", buf, test.GenerateError)
+						failed = true
+						continue
+					}
+				}
+				// If there's an expected generation error, we don't want the
+				// test directory any more.
+				err := os.RemoveAll(dir)
+				check("remove dir", err)
+				continue
+			}
 			check("avro-generate-go "+file, err)
 		} else {
 			// The Go tool seems to require at least some
@@ -129,10 +152,19 @@ func main() {
 		var buf bytes.Buffer
 		err = testCodeTemplate.Execute(&buf, test)
 		check("generate test code", err)
-		goSource, err := format.Source(buf.Bytes())
-		check("gofmt test code", err)
-		err = ioutil.WriteFile(filepath.Join(dir, "roundtrip_test.go"), goSource, 0666)
+		goSource, fmtErr := format.Source(buf.Bytes())
+		if fmtErr != nil {
+			goSource = buf.Bytes()
+		}
+		outFile := filepath.Join(dir, "roundtrip_test.go")
+		err = ioutil.WriteFile(outFile, goSource, 0666)
 		check("write test go file", err)
+		if fmtErr != nil {
+			check("gofmt test code "+outFile, fmtErr)
+		}
+	}
+	if failed {
+		os.Exit(1)
 	}
 }
 
@@ -143,8 +175,18 @@ func check(what string, err error) {
 	}
 }
 
-func quote(b []byte) string {
-	s := string(b)
+func quote(b interface{}) string {
+	var s string
+	switch b := b.(type) {
+	case []byte:
+		s = string(b)
+	case json.RawMessage:
+		s = string(b)
+	case string:
+		s = b
+	default:
+		panic(fmt.Errorf("cannot quote %T", b))
+	}
 	if !strings.Contains(s, "`") {
 		return "`" + s + "`"
 	}

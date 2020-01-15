@@ -19,6 +19,10 @@ type azTypeInfo struct {
 	// value for a field, or nil if there is no default value.
 	makeDefault func() interface{}
 
+	// isUnion holds whether this info is about a union type
+	// (if not, it's about a struct).
+	isUnion bool
+
 	// Entries holds the possible types that can
 	// be descended in from this type.
 	// For structs (records) this holds an entry
@@ -118,6 +122,7 @@ func newAzTypeInfoFromField(t reflect.Type, required bool, makeDefault func() in
 	if len(unionVals) == 0 {
 		return info, nil
 	}
+	info.isUnion = true
 	info.entries = make([]azTypeInfo, len(unionVals))
 	for i, v := range unionVals {
 		var ut reflect.Type

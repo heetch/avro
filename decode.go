@@ -125,16 +125,9 @@ func (d *decoder) eval(target reflect.Value) {
 			case vm.Boolean:
 				target.SetBool(frame.Boolean)
 			case vm.Int, vm.Long:
-				// This is called on union types to set
-				// the kind of union. TODO remove this hack!
-				func() {
-					defer func() {
-						recover()
-					}()
-					target.SetInt(int64(frame.Int))
-				}()
+				target.SetInt(frame.Int)
 			case vm.Float, vm.Double:
-				target.SetFloat(float64(frame.Float))
+				target.SetFloat(frame.Float)
 			case vm.Bytes:
 				if target.Kind() == reflect.Array {
 					n := reflect.Copy(target, reflect.ValueOf(frame.Bytes))
