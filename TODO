@@ -2,8 +2,6 @@
 
 Tests still to do:
 
-	union with more than two types that includes nil
-	false boolean
 	out of bounds cases
 	fuzzing
 	zero length byte read

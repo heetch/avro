@@ -30,9 +30,12 @@ tests: primitive: {
 		}]
 	}
 	outSchema: inSchema
+}
+
+tests: primitive: subtests: highValues: {
 	inData: {
-		intField:    bits.Lsh(1, 30)
-		longField:   bits.Lsh(1, 62)
+		intField:    bits.Lsh(1, 31) - 1
+		longField:   bits.Lsh(1, 63) - 1
 		floatField:  2e-10
 		doubleField: 2e-50
 		boolField:   true
@@ -40,6 +43,21 @@ tests: primitive: {
 		// https://github.com/linkedin/goavro/issues/192
 		bytesField:  "stuff"
 		stringField: "hello world"
+	}
+	outData: inData
+}
+
+tests: primitive: subtests: lowValues: {
+	inData: {
+		intField:    -bits.Lsh(1, 31)
+		longField:   -bits.Lsh(1, 63)
+		floatField:  -2e-10
+		doubleField: -2e-50
+		boolField:   false
+		// We'd include some binary data in the bytes field except for
+		// https://github.com/linkedin/goavro/issues/192
+		bytesField:  ""
+		stringField: ""
 	}
 	outData: inData
 }

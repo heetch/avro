@@ -45,10 +45,10 @@ var tests = testutil.RoundTripTest{
             }`,
 	GoType: new(R),
 	Subtests: []testutil.RoundTripSubtest{{
-		TestName: "main",
+		TestName: "highValues",
 		InDataJSON: `{
-                        "intField": 1073741824,
-                        "longField": 4611686018427387904,
+                        "intField": 2147483647,
+                        "longField": 9223372036854775807,
                         "floatField": 2E-10,
                         "doubleField": 2E-50,
                         "boolField": true,
@@ -56,13 +56,33 @@ var tests = testutil.RoundTripTest{
                         "stringField": "hello world"
                     }`,
 		OutDataJSON: `{
-                        "intField": 1073741824,
-                        "longField": 4611686018427387904,
+                        "intField": 2147483647,
+                        "longField": 9223372036854775807,
                         "floatField": 2E-10,
                         "doubleField": 2E-50,
                         "boolField": true,
                         "bytesField": "stuff",
                         "stringField": "hello world"
+                    }`,
+	}, {
+		TestName: "lowValues",
+		InDataJSON: `{
+                        "intField": -2147483648,
+                        "longField": -9223372036854775808,
+                        "floatField": -2E-10,
+                        "doubleField": -2E-50,
+                        "boolField": false,
+                        "bytesField": "",
+                        "stringField": ""
+                    }`,
+		OutDataJSON: `{
+                        "intField": -2147483648,
+                        "longField": -9223372036854775808,
+                        "floatField": -2E-10,
+                        "doubleField": -2E-50,
+                        "boolField": false,
+                        "bytesField": "",
+                        "stringField": ""
                     }`,
 	}},
 }

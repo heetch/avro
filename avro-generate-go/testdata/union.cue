@@ -11,8 +11,65 @@ tests: unionInOut: {
 		}]
 	}
 	outSchema: inSchema
+}
+
+tests: unionInOut: subtests: withInt: {
 	inData: UnionField: int: 999
 	outData: inData
+}
+
+tests: unionInOut: subtests: withBoolean: {
+	inData: UnionField: boolean: true
+	outData: inData
+}
+
+tests: unionInOut: subtests: withNull: {
+	inData: UnionField: null
+	outData: inData
+}
+
+tests: unionInSimpleOut: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "UnionField"
+			type: ["int", "long", "float", "double", "string", "boolean", "null"]
+			default: 1234
+		}]
+	}
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "UnionField"
+			type: "string"
+		}]
+	}
+	inData: UnionField: string: "hello"
+	outData: UnionField: "hello"
+}
+
+tests: simpleInUnionOut: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "UnionField"
+			type: "string"
+		}]
+	}
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "UnionField"
+			type: ["int", "long", "float", "double", "string", "boolean", "null"]
+			default: 1234
+		}]
+	}
+	inData: UnionField: "hello"
+	outData: UnionField: string: "hello"
 }
 
 tests: unionIntVsLong: {
