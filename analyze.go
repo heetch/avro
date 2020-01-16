@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/actgardner/gogen-avro/compiler"
 	"github.com/actgardner/gogen-avro/vm"
+)
+
+var (
+	timeType = reflect.TypeOf(time.Time{})
+	byteType = reflect.TypeOf(byte(0))
 )
 
 type decodeProgram struct {
@@ -298,8 +304,6 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 	return nil
 }
 
-var byteType = reflect.TypeOf(byte(0))
-
 func canAssignVMType(operand int, dstType reflect.Type) bool {
 	// Note: the logic in this switch reflects the Set logic in the decoder.eval method.
 	dstKind := dstType.Kind()
@@ -309,7 +313,7 @@ func canAssignVMType(operand int, dstType reflect.Type) bool {
 	case vm.Boolean:
 		return dstKind == reflect.Bool
 	case vm.Int, vm.Long:
-		return reflect.Int <= dstKind && dstKind <= reflect.Int64
+		return dstType == timeType || reflect.Int <= dstKind && dstKind <= reflect.Int64
 	case vm.Float, vm.Double:
 		return dstKind == reflect.Float64 || dstKind == reflect.Float32
 	case vm.Bytes:

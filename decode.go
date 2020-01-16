@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	"github.com/actgardner/gogen-avro/vm"
 )
@@ -124,7 +125,19 @@ func (d *decoder) eval(target reflect.Value) {
 			case vm.Null:
 			case vm.Boolean:
 				target.SetBool(frame.Boolean)
-			case vm.Int, vm.Long:
+			case vm.Long:
+				// TODO support timestamp-millis.
+				// Unfortunately we can't tell whether the instruction
+				// is setting milliseconds or microseconds. We'll need
+				// need more information from the VM to be able to
+				// do that, so support only timestamp-micros for now.
+				if target.Type() == timeType {
+					// timestamp-micros
+					target.Set(reflect.ValueOf(time.Unix(frame.Int/1e6, frame.Int%1e6*1e3)))
+					break
+				}
+				target.SetInt(frame.Int)
+			case vm.Int:
 				target.SetInt(frame.Int)
 			case vm.Float, vm.Double:
 				target.SetFloat(frame.Float)

@@ -2,7 +2,9 @@
 
 package simpleInUnionOut
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type R struct {
 	UnionField interface{}

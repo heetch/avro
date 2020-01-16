@@ -14,6 +14,11 @@ import (
 	"github.com/actgardner/gogen-avro/schema"
 )
 
+const (
+	timestampMicros = "timestamp-micros"
+	timestampMillis = "timestamp-millis"
+)
+
 func generate(w io.Writer, s []byte, pkg string) error {
 	ns := parser.NewNamespace(false)
 	sType, err := parseSchema(ns, s)
@@ -29,10 +34,26 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		// is represented by an interface type in Go.
 		return fmt.Errorf("cannot generate code for a schema which hasn't got a name (%T)", sType)
 	}
-	if err := genTemplate.Execute(w, templateParams{
-		NS:  ns,
-		Pkg: pkg,
+	imports = make(map[string]bool)
+	addImport("github.com/heetch/avro/avrotypegen")
+	var body bytes.Buffer
+	if err := genTemplate.Execute(&body, templateParams{
+		NS: ns,
 	}); err != nil {
+		return err
+	}
+	var importList []string
+	for imp := range imports {
+		importList = append(importList, imp)
+	}
+	sort.Strings(importList)
+	if err := headerTemplate.Execute(w, headerTemplateParams{
+		Pkg:     pkg,
+		Imports: importList,
+	}); err != nil {
+		return fmt.Errorf("cannot execute header template: %v", err)
+	}
+	if _, err := w.Write(body.Bytes()); err != nil {
 		return err
 	}
 	return nil
@@ -416,7 +437,13 @@ func goType(t schema.AvroType) typeInfo {
 		// Note: Go int is at least 32 bits.
 		info.GoType = "int"
 	case *schema.LongField:
-		info.GoType = "int64"
+		// TODO support timestampMillis
+		if logicalType(t) == timestampMicros {
+			info.GoType = "time.Time"
+			addImport("time")
+		} else {
+			info.GoType = "int64"
+		}
 	case *schema.FloatField:
 		info.GoType = "float32"
 	case *schema.DoubleField:
@@ -480,4 +507,30 @@ func goType(t schema.AvroType) typeInfo {
 func isNullField(t schema.AvroType) bool {
 	_, ok := t.(*schema.NullField)
 	return ok
+}
+
+func logicalType(t schema.AvroType) string {
+	// Until https://github.com/actgardner/gogen-avro/issues/119
+	// is fixed, we can't access metadata in general without a
+	// race condition, so implement logicalType only
+	// for the types that we currently care about, which
+	// don't mutate themselves when Definition is called.
+	switch t := t.(type) {
+	case *schema.LongField, *schema.IntField:
+		defn, _ := t.Definition(nil)
+		defn1, _ := defn.(map[string]interface{})
+		lt, _ := defn1["logicalType"].(string)
+		return lt
+	}
+	return ""
+}
+
+var imports map[string]bool
+
+// addImport adds a package to the required imports.
+// This is seriously sleazy, but easy to do for the time being
+// without refactoring the way that templates work.
+// TODO avoid the global mutable variable.
+func addImport(pkg string) {
+	imports[pkg] = true
 }

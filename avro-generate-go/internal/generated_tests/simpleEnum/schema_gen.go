@@ -2,7 +2,9 @@
 
 package simpleEnum
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type MyEnum int
 

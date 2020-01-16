@@ -2,7 +2,9 @@
 
 package primitive
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type R struct {
 	IntField    int     `json:"intField"`

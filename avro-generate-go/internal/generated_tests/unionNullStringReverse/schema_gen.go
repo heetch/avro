@@ -2,7 +2,9 @@
 
 package unionNullStringReverse
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type R struct {
 	OptionalString *string
