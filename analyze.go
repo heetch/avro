@@ -28,7 +28,7 @@ type decodeProgram struct {
 	readerType *Type
 }
 
-type analyser struct {
+type analyzer struct {
 	prog        *vm.Program
 	pcInfo      []pcInfo
 	enter       []func(reflect.Value) (reflect.Value, bool)
@@ -79,7 +79,7 @@ func compileDecoder(t reflect.Type, writerType *Type) (*decodeProgram, error) {
 // type) and returns a program with a populated "enter" field allowing
 // the VM to correctly create union and field values for Enter instructions.
 func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, error) {
-	a := &analyser{
+	a := &analyzer{
 		prog:        prog,
 		pcInfo:      make([]pcInfo, len(prog.Instructions)),
 		enter:       make([]func(reflect.Value) (reflect.Value, bool), len(prog.Instructions)),
@@ -119,7 +119,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 	return prog1, nil
 }
 
-func (a *analyser) eval(stack []int, path []pathElem) (retErr error) {
+func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 	debugf("eval %v; path %s{", stack, pathStr(path))
 	defer func() {
 		debugf("} -> %v", retErr)
@@ -149,10 +149,21 @@ func (a *analyser) eval(stack []int, path []pathElem) (retErr error) {
 		elem := path[len(path)-1]
 		switch inst := a.prog.Instructions[pc]; inst.Op {
 		case vm.Set:
+			if elem.info.isUnion {
+				// Set on a union type is just to set the type of the union,
+				// which is implicit with the next Enter, so we want to just
+				// ignore the instruction, so replace it with a jump to the next instruction,
+				// as there's no vm.Nop available.
+				a.prog.Instructions[pc] = vm.Instruction{
+					Op:      vm.Jump,
+					Operand: pc + 1,
+				}
+				break
+			}
 			// TODO: sanity-check that if it's Set(Bytes), the previous
 			// instruction was Read(Bytes) (i.e. frame.Bytes hasn't been invalidated).
 			if !canAssignVMType(inst.Operand, elem.ftype) {
-				return fmt.Errorf("cannot assign %v to %s", inst.Operand, elem.ftype)
+				return fmt.Errorf("cannot assign %v to %s", operandString(inst.Operand), elem.ftype)
 			}
 		case vm.Enter:
 			elem := &path[len(path)-1]
@@ -287,9 +298,30 @@ func (a *analyser) eval(stack []int, path []pathElem) (retErr error) {
 	return nil
 }
 
-func canAssignVMType(operand int, t reflect.Type) bool {
-	// TODO check
-	return true
+var byteType = reflect.TypeOf(byte(0))
+
+func canAssignVMType(operand int, dstType reflect.Type) bool {
+	// Note: the logic in this switch reflects the Set logic in the decoder.eval method.
+	dstKind := dstType.Kind()
+	switch operand {
+	case vm.Null:
+		return true
+	case vm.Boolean:
+		return dstKind == reflect.Bool
+	case vm.Int, vm.Long:
+		return reflect.Int <= dstKind && dstKind <= reflect.Int64
+	case vm.Float, vm.Double:
+		return dstKind == reflect.Float64 || dstKind == reflect.Float32
+	case vm.Bytes:
+		if dstKind == reflect.Array {
+			return dstType.Elem() == byteType
+		}
+		return dstKind == reflect.Slice && dstType.Elem() == byteType
+	case vm.String:
+		return dstKind == reflect.String
+	default:
+		return false
+	}
 }
 
 func equalPathRef(p1, p2 []pathElem) bool {
@@ -310,4 +342,25 @@ func pathStr(ps []pathElem) string {
 	}
 	buf.WriteString("}")
 	return buf.String()
+}
+
+var operandStrings = []string{
+	vm.Unused:     "unused",
+	vm.Null:       "null",
+	vm.Boolean:    "boolean",
+	vm.Int:        "int",
+	vm.Long:       "long",
+	vm.Float:      "float",
+	vm.Double:     "double",
+	vm.Bytes:      "bytes",
+	vm.String:     "string",
+	vm.UnionElem:  "unionelem",
+	vm.UnusedLong: "unusedlong",
+}
+
+func operandString(op int) string {
+	if op < 0 || op >= len(operandStrings) {
+		return fmt.Sprintf("unknown%d", op)
+	}
+	return operandStrings[op]
 }

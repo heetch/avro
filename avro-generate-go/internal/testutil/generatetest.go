@@ -20,10 +20,18 @@ type RoundTripTest struct {
 	Subtests []RoundTripSubtest
 }
 
+type ErrorType string
+
+const (
+	MarshalError ErrorType = "marshal"
+	UnmarshalError ErrorType = "unmarshal"
+)
+
 type RoundTripSubtest struct {
 	TestName    string
 	InDataJSON  string
 	OutDataJSON string
+	ExpectError map[ErrorType]string
 }
 
 func (test RoundTripTest) Test(t *testing.T) {
@@ -56,13 +64,13 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 	inType, err := avro.ParseType(test.InSchema)
 	c.Assert(err, qt.Equals, nil)
 	_, err = avro.Unmarshal(inData, x.Interface(), inType)
-	c.Assert(err, qt.Equals, nil)
+	subtest.checkError(c, UnmarshalError, err, qt.Commentf("result data: %v", qt.Format(x.Interface())))
 	pretty.Println("unmarshaled: ", x.Interface())
 
 	// Marshal the data back into binary and then into
 	// JSON, and check that it looks like we expect.
 	outData, outSchema, err := avro.Marshal(x.Elem().Interface())
-	c.Assert(err, qt.Equals, nil)
+	subtest.checkError(c, MarshalError, err)
 	c.Logf("output data: %x", outData)
 	outCodec, err := goavro.NewCodec(outSchema.String())
 	c.Assert(err, qt.Equals, nil, qt.Commentf("outSchema: %s", outSchema))
@@ -77,6 +85,16 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 	c.Assert(err, qt.Equals, nil)
 	c.Check(nativeJSON, qt.JSONEquals, json.RawMessage(subtest.OutDataJSON))
 	c.Check(remaining, qt.HasLen, 0)
+}
+
+func (subtest RoundTripSubtest) checkError(c *qt.C, kind ErrorType, err error, extra ...interface{}) {
+	if expectErr := subtest.ExpectError[kind]; expectErr != "" {
+		args := append([]interface{}{expectErr}, extra...)
+		c.Assert(err, qt.ErrorMatches, args...)
+		c.SkipNow()
+	}
+	args := append([]interface{}{nil}, extra...)
+	c.Assert(err, qt.Equals, args...)
 }
 
 func unmarshalJSON(c *qt.C, s string) interface{} {

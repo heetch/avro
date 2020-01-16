@@ -61,3 +61,25 @@ tests: primitive: subtests: lowValues: {
 	}
 	outData: inData
 }
+
+tests: primitiveIncompatible: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "f"
+			type: "int"
+		}]
+	}
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "f"
+			type: "string"
+		}]
+	}
+	inData: f: 2134
+	outData: null
+	expectError: unmarshal: "analysis failed: eval: cannot assign int to string"
+}

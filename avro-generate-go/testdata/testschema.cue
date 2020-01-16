@@ -14,17 +14,27 @@ roundTripTest :: {
 	outSchema?:  avro.Schema
 	goType:      *outSchema.name | string
 	goTypeBody?: string
+	// generateError holds the error expected from invoking avro-generate-go.
+	// If this is specified, there will be no generated test package.
+	generateError?: string
 	inData?:     _
 	outData?:    _
+	expectError?: [errorKind]: string
 	subtests: [name=_]: {
 		testName: name
 		inData:   _
 		outData:  _
+		expectError?: [errorKind]: string
 	}
 	if inData != _|_ {
 		subtests: main: {
 			"inData":  inData
 			"outData": outData
+			if expectError != _|_ {
+				"expectError": expectError
+			}
 		}
 	}
 }
+
+errorKind :: "unmarshal" | "marshal"
