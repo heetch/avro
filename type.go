@@ -3,9 +3,9 @@ package avro
 import (
 	"fmt"
 
-	"github.com/actgardner/gogen-avro/parser"
-	"github.com/actgardner/gogen-avro/resolver"
-	"github.com/actgardner/gogen-avro/schema"
+	"github.com/rogpeppe/gogen-avro/v7/parser"
+	"github.com/rogpeppe/gogen-avro/v7/resolver"
+	"github.com/rogpeppe/gogen-avro/v7/schema"
 )
 
 // Type represents an Avro schema type.

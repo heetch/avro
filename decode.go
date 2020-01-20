@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/actgardner/gogen-avro/vm"
+	"github.com/rogpeppe/gogen-avro/v7/vm"
 )
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must

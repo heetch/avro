@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/actgardner/gogen-avro/schema"
+	"github.com/rogpeppe/gogen-avro/v7/schema"
 
 	"github.com/heetch/avro/avrotypegen"
 )
