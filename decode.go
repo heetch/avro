@@ -20,12 +20,18 @@ import (
 //
 // Unmarshal returns the reader type.
 func Unmarshal(data []byte, x interface{}, wType *Type) (*Type, error) {
+	return globalNames.Unmarshal(data, x, wType)
+}
+
+// Unmarshal is like the Unmarshal function except that names
+// in the schema for x are renamed according to names.
+func (names *Names) Unmarshal(data []byte, x interface{}, wType *Type) (*Type, error) {
 	v := reflect.ValueOf(x)
 	t := v.Type()
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("destination is not a pointer %s", t)
 	}
-	prog, err := compileDecoder(t.Elem(), wType)
+	prog, err := compileDecoder(names, t.Elem(), wType)
 	if err != nil {
 		return nil, err
 	}

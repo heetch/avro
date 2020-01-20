@@ -40,6 +40,8 @@ type decoderSchemaPair struct {
 type SingleDecoder struct {
 	registry DecodingRegistry
 
+	names *Names
+
 	// mu protects the fields below.
 	// We might be better off with a couple of sync.Maps here, but this is a bit easier on the brain.
 	mu sync.RWMutex
@@ -52,14 +54,21 @@ type SingleDecoder struct {
 	programs map[decoderSchemaPair]*decodeProgram
 }
 
-// NewCodec returns a new Codec
-// that uses g to determine the schema of each
-// message that's marshaled or unmarshaled.
-func NewSingleDecoder(r DecodingRegistry) *SingleDecoder {
+// NewSingleDecoder returns a new SingleDecoder that uses g to determine
+// the schema of each message that's marshaled or unmarshaled.
+//
+// Go values unmarshaled through Unmarshal will have their Avro schemas
+// translated with the given Names instance. If names is nil, the global
+// namespace will be used.
+func NewSingleDecoder(r DecodingRegistry, names *Names) *SingleDecoder {
+	if names == nil {
+		names = globalNames
+	}
 	return &SingleDecoder{
 		registry:    r,
 		writerTypes: make(map[int64]*Type),
 		programs:    make(map[decoderSchemaPair]*decodeProgram),
+		names:       names,
 	}
 }
 
@@ -125,7 +134,7 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 		return prog, nil
 	}
 
-	prog, err := compileDecoder(vt, wType)
+	prog, err := compileDecoder(c.names, vt, wType)
 	if err != nil {
 		c.writerTypes[wID] = &Type{
 			avroType: errorSchema{err: err},

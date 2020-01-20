@@ -60,7 +60,7 @@ func TestSingleDecoder(t *testing.T) {
 		}
 	}]
 }`,
-	})
+	}, nil)
 	data, _, err := avro.Marshal(TestRecord{A: 40, B: 20})
 	c.Assert(err, qt.Equals, nil)
 	c.Logf("data: %d", data)

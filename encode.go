@@ -7,7 +7,6 @@ import (
 	"math"
 	"reflect"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/rogpeppe/gogen-avro/v7/schema"
@@ -21,8 +20,6 @@ type encoderInfo struct {
 	avroType *Type
 }
 
-var goTypeToEncoder sync.Map
-
 // Marshal encodes x as a message using the Avro binary
 // encoding, using TypeOf(x) as the Avro type for marshaling.
 //
@@ -31,19 +28,25 @@ var goTypeToEncoder sync.Map
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
 func Marshal(x interface{}) ([]byte, *Type, error) {
-	return marshalAppend(nil, reflect.ValueOf(x))
+	return marshalAppend(globalNames, nil, reflect.ValueOf(x))
 }
 
-func marshalAppend(buf []byte, xv reflect.Value) (_ []byte, _ *Type, marshalErr error) {
-	avroType, enc := typeEncoder0(nil, xv.Type(), azTypeInfo{})
+// Marshal is like the Marshal function except that names
+// in the schema for x are renamed according to names.
+func (names *Names) Marshal(x interface{}) ([]byte, *Type, error) {
+	return marshalAppend(names, nil, reflect.ValueOf(x))
+}
+
+func marshalAppend(names *Names, buf []byte, xv reflect.Value) (_ []byte, _ *Type, marshalErr error) {
+	avroType, enc := typeEncoder0(names, nil, xv.Type(), azTypeInfo{})
 	if avroType == nil {
-		avroType1, err := avroTypeOf(xv.Type())
+		avroType1, err := avroTypeOf(names, xv.Type())
 		if err != nil {
 			// Shouldn't be able to happen.
 			return nil, nil, err
 		}
 		avroType = avroType1
-		goTypeToEncoder.Store(xv.Type(), &encoderInfo{
+		names.goTypeToEncoder.Store(xv.Type(), &encoderInfo{
 			avroType: avroType,
 			encode:   enc,
 		})
@@ -86,15 +89,15 @@ type encodeError struct {
 
 type encoderFunc func(e *encodeState, v reflect.Value)
 
-func typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
-	_, enc := typeEncoder0(at, t, info)
+func typeEncoder(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+	_, enc := typeEncoder0(names, at, t, info)
 	return enc
 }
 
-func typeEncoder0(at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, encoderFunc) {
+func typeEncoder0(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, encoderFunc) {
 	// Note: since a Go type can't encode as more than one definition,
 	// we can use a purely Go-type-based cache.
-	enc0, ok := goTypeToEncoder.Load(t)
+	enc0, ok := names.goTypeToEncoder.Load(t)
 	if ok {
 		info := enc0.(*encoderInfo)
 		return info.avroType, info.encode
@@ -109,17 +112,17 @@ func typeEncoder0(at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, e
 		// Marshal didn't return the Avro type, but that's quite
 		// nice, so here we are.
 		var err error
-		at1, err = avroTypeOf(t)
+		at1, err = avroTypeOf(names, t)
 		if err != nil {
 			return nil, errorEncoder(err)
 		}
 		at = at1.avroType
 	}
-	enc := typeEncoderUncached(at, t, info)
+	enc := typeEncoderUncached(names, at, t, info)
 	// Note that for non-top-level calls, at1 will
 	// be nil - it can be calculated and cached later
 	// if this type is ever used directly.
-	goTypeToEncoder.LoadOrStore(t, &encoderInfo{
+	names.goTypeToEncoder.LoadOrStore(t, &encoderInfo{
 		avroType: at1,
 		encode:   enc,
 	})
@@ -128,7 +131,7 @@ func typeEncoder0(at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, e
 
 // typeEncoder returns an encoder that encodes values of type t according
 // to the Avro type at,
-func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
 	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
 	case *schema.Reference:
@@ -153,7 +156,7 @@ func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) en
 			}
 			fields := make([]encoderFunc, len(def.Fields()))
 			for i, f := range def.Fields() {
-				fields[i] = typeEncoder(f.Type(), t.Field(i).Type, info.entries[i])
+				fields[i] = typeEncoder(names, f.Type(), t.Field(i).Type, info.entries[i])
 			}
 			return structEncoder{fields}.encode
 		case *schema.EnumDefinition:
@@ -175,12 +178,12 @@ func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) en
 			case info.entries[0].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{0, 1},
-					encodeElem: typeEncoder(atypes[1], info.entries[1].ftype, info.entries[1]),
+					encodeElem: typeEncoder(names, atypes[1], info.entries[1].ftype, info.entries[1]),
 				}.encode
 			case info.entries[1].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{1, 0},
-					encodeElem: typeEncoder(atypes[0], info.entries[0].ftype, info.entries[0]),
+					encodeElem: typeEncoder(names, atypes[0], info.entries[0].ftype, info.entries[0]),
 				}.encode
 			default:
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
@@ -196,7 +199,7 @@ func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) en
 				} else {
 					enc.choices[i] = unionEncoderChoice{
 						typ: entry.ftype,
-						enc: typeEncoder(atypes[i], entry.ftype, entry),
+						enc: typeEncoder(names, atypes[i], entry.ftype, entry),
 					}
 				}
 			}
@@ -205,9 +208,9 @@ func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) en
 			return errorEncoder(fmt.Errorf("union type is not pointer or interface"))
 		}
 	case *schema.MapField:
-		return mapEncoder{typeEncoder(at.ItemType(), t.Elem(), info)}.encode
+		return mapEncoder{typeEncoder(names, at.ItemType(), t.Elem(), info)}.encode
 	case *schema.ArrayField:
-		return arrayEncoder{typeEncoder(at.ItemType(), t.Elem(), info)}.encode
+		return arrayEncoder{typeEncoder(names, at.ItemType(), t.Elem(), info)}.encode
 	case *schema.BoolField:
 		return boolEncoder
 	case *schema.BytesField:
@@ -243,7 +246,7 @@ func logicalType(t schema.AvroType) string {
 	// don't mutate themselves when Definition is called.
 	switch t := t.(type) {
 	case *schema.LongField, *schema.IntField:
-		defn, _ := t.Definition(nil)
+		defn, _ := t.Definition(emptyScope())
 		defn1, _ := defn.(map[string]interface{})
 		lt, _ := defn1["logicalType"].(string)
 		return lt
