@@ -91,7 +91,7 @@ tests: unionIntVsLong: {
 			default: 1234
 		}]
 	}
-	inData: F: int: 999
+	inData: F: int:   999
 	outData: F: long: 999
 }
 

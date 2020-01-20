@@ -1,27 +1,5 @@
 package roundtrip
 
-tests: recordWithDefaultNotPresent: {
-	inSchema: {
-		type: "record"
-		name: "R"
-		fields: [{
-			name: "A"
-			type: "int"
-			default: 99
-		}]
-	}
-	outSchema: {
-		type: "record"
-		name: "R"
-		fields: [{
-			name: "A"
-			type: "int"
-		}]
-	}
-	inData: {}
-	outData: A: 99
-}
-
 tests: largeRecord: {
 	inSchema: {
 		type:      "record"
@@ -158,13 +136,13 @@ tests: largeRecord: {
 	}
 	goType:    "Sample"
 	outSchema: inSchema
-	inData: header: "headerworks.Data0": hostname: string: "myhost.com"
-	outData: {
-		body: null
+	inData: {
 		header: "headerworks.Data0": {
 			hostname: string: "myhost.com"
 			trace: null
 			uuid:  null
 		}
+		body: null
 	}
+	outData: inData
 }

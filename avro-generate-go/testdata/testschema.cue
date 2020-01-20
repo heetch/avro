@@ -17,8 +17,8 @@ roundTripTest :: {
 	// generateError holds the error expected from invoking avro-generate-go.
 	// If this is specified, there will be no generated test package.
 	generateError?: string
-	inData?:     _
-	outData?:    _
+	inData?:        _
+	outData?:       _
 	expectError?: [errorKind]: string
 	subtests: [name=_]: {
 		testName: name
