@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/actgardner/gogen-avro/compiler"
-	"github.com/actgardner/gogen-avro/vm"
+	"github.com/rogpeppe/gogen-avro/v7/compiler"
+	"github.com/rogpeppe/gogen-avro/v7/vm"
 )
 
 type decodeProgram struct {

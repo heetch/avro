@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/actgardner/gogen-avro/parser"
+	"github.com/rogpeppe/gogen-avro/v7/parser"
 )
 
 type templateParams struct {
