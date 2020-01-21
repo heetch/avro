@@ -2,7 +2,9 @@
 
 package largeRecord
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 // Common information related to the event which must be included in any clean event
 

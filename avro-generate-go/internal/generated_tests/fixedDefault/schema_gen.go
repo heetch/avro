@@ -2,7 +2,9 @@
 
 package fixedDefault
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type R struct {
 	FixedField Five `json:"fixedField"`

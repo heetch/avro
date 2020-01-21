@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/rogpeppe/gogen-avro/v7/schema"
 )
@@ -215,13 +216,56 @@ func typeEncoderUncached(at schema.AvroType, t reflect.Type, info azTypeInfo) en
 		return doubleEncoder
 	case *schema.FloatField:
 		return floatEncoder
-	case *schema.IntField,
-		*schema.LongField:
+	case *schema.IntField:
+		return longEncoder
+	case *schema.LongField:
+		if t == timeType {
+			if lt := logicalType(at); lt == timestampMicros {
+				return timestampMicrosEncoder
+			} else {
+				// TODO timestamp-millis support.
+				return errorEncoder(fmt.Errorf("cannot encode time.Time as long with logical type %q", lt))
+			}
+		}
 		return longEncoder
 	case *schema.StringField:
 		return stringEncoder
 	default:
 		return errorEncoder(fmt.Errorf("unknown avro schema type %T", at))
+	}
+}
+
+func logicalType(t schema.AvroType) string {
+	// Until https://github.com/actgardner/gogen-avro/issues/119
+	// is fixed, we can't access metadata in general without a
+	// race condition, so implement logicalType only
+	// for the types that we currently care about, which
+	// don't mutate themselves when Definition is called.
+	switch t := t.(type) {
+	case *schema.LongField, *schema.IntField:
+		defn, _ := t.Definition(nil)
+		defn1, _ := defn.(map[string]interface{})
+		lt, _ := defn1["logicalType"].(string)
+		return lt
+	}
+	return ""
+}
+
+func timestampMillisEncoder(e *encodeState, v reflect.Value) {
+	t := v.Interface().(time.Time)
+	if t.IsZero() {
+		e.writeLong(0)
+	} else {
+		e.writeLong(t.Unix()*1e3 + int64(t.Nanosecond())/int64(time.Millisecond))
+	}
+}
+
+func timestampMicrosEncoder(e *encodeState, v reflect.Value) {
+	t := v.Interface().(time.Time)
+	if t.IsZero() {
+		e.writeLong(0)
+	} else {
+		e.writeLong(t.Unix()*1e6 + int64(t.Nanosecond())/int64(time.Microsecond))
 	}
 }
 

@@ -12,6 +12,11 @@ import (
 	"github.com/heetch/avro/avrotypegen"
 )
 
+const (
+	timestampMicros = "timestamp-micros"
+	timestampMillis = "timestamp-millis"
+)
+
 // avroTypes is effectively a map[reflect.Type]*Type
 // that holds Avro types for Go types that specify the schema
 // entirely. Go types that don't fully specify a schema must be resolved
@@ -44,6 +49,7 @@ type errorSchema struct {
 //	- float32 encodes as "float"
 //	- float64 encodes as "double"
 //	- string encodes as "string"
+//	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
 //	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
 //	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
 //	- []T encodes as {"type": "array", "items": TypeOf(T)}
@@ -176,6 +182,12 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			"values": values,
 		}, nil
 	case reflect.Struct:
+		if t == timeType {
+			return map[string]interface{}{
+				"type":        "long",
+				"logicalType": timestampMicros,
+			}, nil
+		}
 		name := t.Name()
 		if name == "" {
 			return nil, fmt.Errorf("unnamed struct type")

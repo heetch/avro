@@ -1,0 +1,13 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "T",
+                        "type": {
+                            "type": "long",
+                            "logicalType": "timestamp-micros"
+                        }
+                    }
+                ]
+            }

@@ -2,7 +2,9 @@
 
 package enumDefault
 
-import "github.com/heetch/avro/avrotypegen"
+import (
+	"github.com/heetch/avro/avrotypegen"
+)
 
 type Foo int
 

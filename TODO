@@ -16,7 +16,7 @@ Tests still to do:
 Features still to do:
 
 - registry support
-	- https://docs.confluent.io/current/schema-registry/serializer-formatter.html
+	- https://docs.confluent.io/current/schema-registry/serializer-formatter.html#wire-format
 - use nil for maps and slices instead of pointers
 - make Unmarshal fail if there are extra bytes in the data.
 - support for logical types.
