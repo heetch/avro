@@ -137,10 +137,11 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	if syms := enumSymbols(t); len(syms) > 0 {
 		// It looks like an enum.
 		// TODO full names.
+		// TODO should we include a default here?
 		def := map[string]interface{}{
 			"name":    t.Name(),
+			"type":    "enum",
 			"symbols": syms,
-			"default": syms[0],
 		}
 		gts.defs[t] = goTypeDef{
 			name:   t.Name(),
@@ -216,7 +217,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			}
 			fields = append(fields, map[string]interface{}{
 				"name":    name,
-				"default": defaultForType(f.Type),
+				"default": gts.defaultForType(f.Type),
 				"type":    ftype,
 			})
 		}
@@ -298,6 +299,7 @@ func enumSymbols(t reflect.Type) []string {
 	}
 	v := reflect.New(t)
 	vs := v.Interface().(fmt.Stringer) // Note: pointer type will also include String method.
+	v = v.Elem()
 	setInt := v.SetInt
 	getIntVal := v.Int
 	if isUnsignedInt {
@@ -325,7 +327,7 @@ func enumSymbols(t reflect.Type) []string {
 	// so we use a bracket as an indicator of "out of bounds".
 	// TODO we could look for the numeric value of the enum too
 	// to cover more formats.
-	if ok && !strings.Contains(sym, "(") {
+	if ok && sym != "" && !strings.Contains(sym, "(") {
 		// If -1 is OK, then our heuristic isn't going to work.
 		return nil
 	}
@@ -350,7 +352,7 @@ func enumSymbols(t reflect.Type) []string {
 	return nil
 }
 
-func defaultForType(t reflect.Type) interface{} {
+func (gts *goTypeSchema) defaultForType(t reflect.Type) interface{} {
 	// TODO perhaps a Go slice/map should accept a union
 	// of null and array/map?
 	switch t.Kind() {
@@ -360,7 +362,20 @@ func defaultForType(t reflect.Type) interface{} {
 		return reflect.MakeMap(t).Interface()
 	case reflect.Array:
 		return strings.Repeat("\u0000", t.Len())
+	case reflect.Struct:
+		if t == timeType {
+			return 0
+		}
+		// TODO support other struct types better - we're using
+		// default JSON marshaling here, and that won't work
+		// with enum types or time.Time.
+		fallthrough
 	default:
+		if def, ok := gts.defs[t]; ok {
+			if o, ok := def.schema.(map[string]interface{}); ok && o["type"] == "enum" {
+				return reflect.Zero(t).Interface().(fmt.Stringer).String()
+			}
+		}
 		return reflect.Zero(t).Interface()
 	}
 }

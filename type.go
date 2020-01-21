@@ -20,7 +20,7 @@ func ParseType(s string) (*Type, error) {
 	ns := parser.NewNamespace(false)
 	avroType, err := ns.TypeForSchema([]byte(s))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid schema %q: %v", s, err)
 	}
 	for _, def := range ns.Roots {
 		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
