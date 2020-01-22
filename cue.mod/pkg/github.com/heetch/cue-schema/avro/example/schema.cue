@@ -1,6 +1,9 @@
-package avro
+package example
+import (
+	"github.com/heetch/cue-schema/avro"
+)
 
-cloudEvent: Schema & {
+cloudEvent: avro.Schema & {
 	type:      "record"
 	name:      "SomeEvent"
 	namespace: "foo.bar"
@@ -30,18 +33,18 @@ cloudEvent: Schema & {
 	}]
 }
 
-fixedType: Schema & {
+fixedType: avro.Schema & {
 	type: "fixed"
 	name: "five"
 	size: 5
 }
 
-locicalType: Schema & {
+locicalType: avro.Schema & {
 	type:        "long"
 	logicalType: "timestamp-micros"
 }
 
-anyType: Schema & [
+anyType: avro.Schema & [
 		"bytes",
 		"null",
 		"boolean",
@@ -57,7 +60,7 @@ anyType: Schema & [
 	},
 ]
 
-heetchEventSchema: Schema & {
+heetchEventSchema: avro.Schema & {
 	type: "record"
 	name: "CloudEvent"
 	doc:  "Avro Event Format for Heetch Events"
@@ -76,13 +79,13 @@ heetchEventSchema: Schema & {
 	]
 }
 
-exampleHeetchEvent: Protocol & {
+exampleHeetchEvent: avro.Protocol & {
 	namespace: "com.heetch"
 	protocol:  "heetch"
 	types: [heetchEventSchema]
 }
 
-exampleProtocol: Protocol & {
+exampleProtocol: avro.Protocol & {
 	namespace: "com.acme"
 	protocol:  "HelloWorld"
 	doc:       "Protocol Greetings"
@@ -103,7 +106,7 @@ exampleProtocol: Protocol & {
 	}
 }
 
-exampleTODOApp : Schema & {
+exampleTODOApp : avro.Schema & {
 	type:      "record"
 	name:      "User"
 	namespace: "com.example.avro"
