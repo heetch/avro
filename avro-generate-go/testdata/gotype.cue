@@ -26,7 +26,6 @@ tests: goTypeMultipleFields: {
 	outData: inData
 }
 
-
 tests: goTypePointer: {
 	inSchema: {
 		name: "R"

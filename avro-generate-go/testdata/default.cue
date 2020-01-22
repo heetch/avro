@@ -1,5 +1,7 @@
 package roundtrip
 
+// Some implementations don't like records with no fields in,
+// so we'll use a record with one arbitrary field instead.
 emptyRecord :: {
 	type: "record"
 	name: string
@@ -9,6 +11,8 @@ emptyRecord :: {
 		default: 0
 	}]
 }
+
+emptyRecordData :: "_": 0
 
 tests: primitiveDefaults: {
 	inSchema: emptyRecord
@@ -42,7 +46,7 @@ tests: primitiveDefaults: {
 			default: true
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: {
 		int:     1111
 		long:    2222
@@ -68,7 +72,7 @@ tests: arrayDefault: {
 			default: [2, 3, 4]
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: arrayOfInt: [2, 3, 4]
 }
 
@@ -91,7 +95,7 @@ tests: mapDefault: {
 			}
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: mapOfInt: {
 		a: 2
 		b: 5
@@ -128,7 +132,7 @@ tests: recordDefault: {
 			}
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: recordField: {
 		F1: 44
 		F2: "whee"
@@ -152,7 +156,7 @@ tests: enumDefault: {
 			default: "b"
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: enumField: "b"
 }
 
@@ -172,6 +176,6 @@ tests: fixedDefault: {
 			default: "hello"
 		}]
 	}
-	inData: {}
+	inData: emptyRecordData
 	outData: fixedField: "hello"
 }

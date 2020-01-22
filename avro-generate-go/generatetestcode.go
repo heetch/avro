@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/heetch/avro/avro-generate-go/internal/avrotestdata"
 )
 
 var testCodeTemplate = template.Must(
@@ -64,24 +66,7 @@ func TestGeneratedCode(t *testing.T) {
 
 const generateDir = "internal/generated_tests"
 
-type testData struct {
-	TestName      string                 `json:"testName"`
-	InSchema      json.RawMessage        `json:"inSchema"`
-	OutSchema     json.RawMessage        `json:"outSchema"`
-	GoType        string                 `json:"goType"`
-	GoTypeBody    string                 `json:"goTypeBody"`
-	GenerateError string                 `json:"generateError"`
-	Subtests      map[string]subtestData `json:"subtests"`
-}
-
-type subtestData struct {
-	TestName    string            `json:"testName"`
-	InData      json.RawMessage   `json:"inData"`
-	OutData     json.RawMessage   `json:"outData"`
-	ExpectError map[string]string `json:"expectError"`
-}
-
-func mapKeys(m map[string]subtestData) (ks []string) {
+func mapKeys(m map[string]avrotestdata.Subtest) (ks []string) {
 	for k := range m {
 		ks = append(ks, k)
 	}
@@ -90,24 +75,13 @@ func mapKeys(m map[string]subtestData) (ks []string) {
 }
 
 func main() {
-	var exported struct {
-		Tests map[string]testData `json:"tests"`
-	}
-	var buf bytes.Buffer
-	cmd := exec.Command("cue", "export")
-	cmd.Dir = "./testdata"
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = &buf
-	err := cmd.Run()
-	check("run cue export", err)
-	err = json.Unmarshal(buf.Bytes(), &exported)
+	tests, err := avrotestdata.Load("./testdata")
 	if err != nil {
-		log.Fatalf("cannot unmarshal test data: %v\n%s", err, &buf)
+		log.Fatalf("cannot load test data: %v", err)
 	}
-	check("unmarshal test data", err)
 	os.RemoveAll(generateDir)
 	failed := false
-	for _, test := range exported.Tests {
+	for _, test := range tests {
 		dir := filepath.Join(generateDir, test.TestName)
 		err := os.MkdirAll(dir, 0777)
 		check("mkdir", err)

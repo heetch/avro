@@ -7,12 +7,12 @@ tests: timestampMicros: {
 		fields: [{
 			name: "T"
 			type: {
-				type: "long"
+				type:        "long"
 				logicalType: "timestamp-micros"
 			}
 		}]
 	}
-	outSchema: inSchema,
+	outSchema: inSchema
 	inData: T: 1579176162000001
 	outData: inData
 }

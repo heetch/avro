@@ -31,7 +31,7 @@ tests: cloudEvent: {
 	outSchema: {
 		name:      "SomeEvent"
 		namespace: "bar"
-		type: "record"
+		type:      "record"
 		fields: [{
 			name: "Metadata"
 			type: {
