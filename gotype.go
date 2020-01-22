@@ -215,6 +215,9 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			// TODO  experiment by making optional only the fields that
 			// specify omitempty.
 			name, _ := jsonFieldName(f)
+			if name == "" {
+				continue
+			}
 			ftype, err := gts.schemaForGoType(f.Type)
 			if err != nil {
 				return nil, err
@@ -401,7 +404,7 @@ func jsonFieldName(f reflect.StructField) (name string, omitEmpty bool) {
 	switch {
 	case parts[0] == "":
 		return f.Name, omitEmpty
-	case parts[1] == "-":
+	case parts[0] == "-":
 		return "", omitEmpty
 	}
 	return parts[0], omitEmpty

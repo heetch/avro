@@ -194,8 +194,9 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			var enter func(v reflect.Value) (reflect.Value, bool)
 			switch elem.ftype.Kind() {
 			case reflect.Struct:
+				fieldIndex := info.fieldIndex
 				enter = func(v reflect.Value) (reflect.Value, bool) {
-					return v.Field(index), true
+					return v.Field(fieldIndex), true
 				}
 			case reflect.Interface:
 				enter = func(v reflect.Value) (reflect.Value, bool) {

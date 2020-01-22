@@ -15,6 +15,10 @@ type azTypeInfo struct {
 	// ftype holds the Go type used for this Avro type (or nil for null).
 	ftype reflect.Type
 
+	// fieldIndex holds the index of the field if this entry is about
+	// a struct field.
+	fieldIndex int
+
 	// makeDefault is a function that returns the default
 	// value for a field, or nil if there is no default value.
 	makeDefault func() interface{}
@@ -37,7 +41,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	case reflect.Struct:
 		info := azTypeInfo{
 			ftype:   t,
-			entries: make([]azTypeInfo, t.NumField()),
+			entries: make([]azTypeInfo, 0, t.NumField()),
 		}
 		// Note that RecordInfo is defined in such a way that
 		// the zero value gives useful defaults for a normal Go
@@ -57,6 +61,9 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 				// TODO consider struct embedding.
 				return azTypeInfo{}, fmt.Errorf("anonymous fields not supported")
 			}
+			if name, _ := jsonFieldName(f); name == "" {
+				continue
+			}
 			var required bool
 			var makeDefault func() interface{}
 			var unionVals []interface{}
@@ -69,11 +76,11 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			if i < len(r.Unions) {
 				unionVals = r.Unions[i]
 			}
-			entry, err := newAzTypeInfoFromField(f.Type, required, makeDefault, unionVals)
+			entry, err := newAzTypeInfoFromField(f, required, makeDefault, unionVals)
 			if err != nil {
 				return azTypeInfo{}, err
 			}
-			info.entries[i] = entry
+			info.entries = append(info.entries, entry)
 		}
 		debugf("-> record, %d entries", len(info.entries))
 		return info, nil
@@ -86,7 +93,8 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(t reflect.Type, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+	t := f.Type
 	if t.Kind() == reflect.Ptr && len(unionVals) == 0 {
 		// It's a pointer but there's no explicit union entry, which means that
 		// the union defaults to ["null", type]
@@ -117,6 +125,7 @@ func newAzTypeInfoFromField(t reflect.Type, required bool, makeDefault func() in
 	}
 	info := azTypeInfo{
 		ftype:       t,
+		fieldIndex:  f.Index[0],
 		makeDefault: makeDefault,
 	}
 	if len(unionVals) == 0 {
