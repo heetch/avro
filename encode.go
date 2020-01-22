@@ -125,6 +125,20 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 			if len(info.entries) != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.entries), len(def.Fields()), t, def.Name()))
 			}
+			// To avoid an infinite loop on recursive types, make an
+			// entry in the type-encoder map which will use the real
+			// encoder function when after it's determined. This
+			// indirect function will only be used for recursive
+			// types.
+			//
+			// Credit to encoding/json for this idiom. We don't need
+			// the sync.WaitGroup that encoding/json uses because
+			// we're not concurrently populating a shared cache
+			// here.
+			var enc encoderFunc
+			b.typeEncoders[t] = func(e *encodeState, v reflect.Value) {
+				enc(e, v)
+			}
 			fieldEncoders := make([]encoderFunc, len(def.Fields()))
 			indexes := make([]int, len(def.Fields()))
 			for i, f := range def.Fields() {
@@ -132,10 +146,11 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.entries[i])
 				indexes[i] = fieldIndex
 			}
-			return structEncoder{
+			enc = structEncoder{
 				fieldEncoders: fieldEncoders,
 				fieldIndexes:  indexes,
 			}.encode
+			return enc
 		case *schema.EnumDefinition:
 			return longEncoder
 		case *schema.FixedDefinition:
