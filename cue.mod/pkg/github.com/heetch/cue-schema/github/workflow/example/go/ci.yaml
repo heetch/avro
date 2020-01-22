@@ -1,0 +1,42 @@
+jobs:
+  test:
+    runs-on: ${{ matrix.platform }}
+    services:
+      kafka:
+        env:
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+          KAFKA_BROKER_ID: "1"
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        image: confluentinc/cp-kafka:latest
+      postgres:
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        image: postgres:10.8
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+          --health-retries 5
+        ports:
+        - 5432:5432
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Checkout code
+      uses: actions/checkout@v1
+    - name: Test
+      run: go test ./...
+    strategy:
+      matrix:
+        go-version:
+        - go1.13.4
+        platform:
+        - ubuntu-latest
+name: My CI caboodle
+"on":
+- push
+- pull_request
