@@ -18,7 +18,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/heetch/avro/avro-generate-go/internal/avrotestdata"
+	"github.com/heetch/avro/cmd/avro-generate-go/internal/avrotestdata"
 )
 
 var testCodeTemplate = template.Must(
