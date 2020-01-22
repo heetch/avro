@@ -151,14 +151,17 @@ func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info 
 			if len(info.entries) != len(def.Fields()) {
 				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.entries), len(def.Fields()), t, def.Name()))
 			}
-			if t.NumField() != len(def.Fields()) {
-				return errorEncoder(fmt.Errorf("field count mismatch (%d vs %d; %s vs %s)", t.NumField(), len(def.Fields()), t, def.Name()))
-			}
-			fields := make([]encoderFunc, len(def.Fields()))
+			fieldEncoders := make([]encoderFunc, len(def.Fields()))
+			indexes := make([]int, len(def.Fields()))
 			for i, f := range def.Fields() {
-				fields[i] = typeEncoder(names, f.Type(), t.Field(i).Type, info.entries[i])
+				fieldIndex := info.entries[i].fieldIndex
+				fieldEncoders[i] = typeEncoder(names, f.Type(), t.Field(fieldIndex).Type, info.entries[i])
+				indexes[i] = fieldIndex
 			}
-			return structEncoder{fields}.encode
+			return structEncoder{
+				fieldEncoders: fieldEncoders,
+				fieldIndexes:  indexes,
+			}.encode
 		case *schema.EnumDefinition:
 			return longEncoder
 		case *schema.FixedDefinition:
@@ -373,12 +376,13 @@ func stringEncoder(e *encodeState, v reflect.Value) {
 }
 
 type structEncoder struct {
-	fields []encoderFunc
+	fieldIndexes  []int
+	fieldEncoders []encoderFunc
 }
 
 func (se structEncoder) encode(e *encodeState, v reflect.Value) {
-	for i, enc := range se.fields {
-		enc(e, v.Field(i))
+	for i, index := range se.fieldIndexes {
+		se.fieldEncoders[i](e, v.Field(index))
 	}
 }
 

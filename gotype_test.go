@@ -2,6 +2,7 @@ package avro_test
 
 import (
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,22 +19,98 @@ func TestSimpleGoType(t *testing.T) {
 			A: 1,
 			B: 2,
 		})
-		c.Assert(err, qt.Equals, nil)
+		if !c.Check(err, qt.Equals, nil) {
+			return
+		}
 		type TestRecord struct {
 			B int
 			A int
 		}
 		var x TestRecord
 		_, err = avro.Unmarshal(data, &x, wType)
-		c.Assert(err, qt.Equals, nil)
-		c.Assert(x, qt.Equals, TestRecord{
+		if !c.Check(err, qt.Equals, nil) {
+			return
+		}
+		c.Check(x, qt.Equals, TestRecord{
 			A: 1,
 			B: 2,
 		})
 	}
-	// Run the test twice to test caching.
-	test(t)
-	test(t)
+	// Run the test twice concurrently to test caching and potential race conditions.
+	var wg sync.WaitGroup
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			test(t)
+		}()
+	}
+	wg.Wait()
+}
+
+func TestGoTypeWithOmittedFields(t *testing.T) {
+	c := qt.New(t)
+	type R struct {
+		omit1 int
+		A     int
+		omit2 int
+		Omit3 int `json:"-"`
+		B     string
+	}
+	data, wType, err := avro.Marshal(R{
+		A: 1,
+		B: "hello",
+	})
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(wType.String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "R",
+		"fields": [{
+			"default": 0,
+			"name": "A",
+			"type": "long"
+		}, {
+			"default": "",
+			"name": "B",
+			"type": "string"
+		}]
+	}`))
+
+	var r R
+	_, err = avro.Unmarshal(data, &r, wType)
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(r, qt.Equals, R{A: 1, B: "hello"})
+}
+
+func TestGoTypeWithJSONTags(t *testing.T) {
+	c := qt.New(t)
+	type R struct {
+		A int    `json:"something"`
+		B string `json:"other,omitempty"`
+	}
+	data, wType, err := avro.Marshal(R{
+		A: 1,
+		B: "hello",
+	})
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(wType.String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "R",
+		"fields": [{
+			"default": 0,
+			"name": "something",
+			"type": "long"
+		}, {
+			"default": "",
+			"name": "other",
+			"type": "string"
+		}]
+	}`))
+
+	var r R
+	_, err = avro.Unmarshal(data, &r, wType)
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(r, qt.Equals, R{A: 1, B: "hello"})
 }
 
 func TestGoTypeWithTime(t *testing.T) {
