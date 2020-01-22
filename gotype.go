@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/rogpeppe/gogen-avro/v7/schema"
 
@@ -17,15 +16,9 @@ const (
 	timestampMillis = "timestamp-millis"
 )
 
-// avroTypes is effectively a map[reflect.Type]*Type
-// that holds Avro types for Go types that specify the schema
-// entirely. Go types that don't fully specify a schema must be resolved
-// with respect to a given writer schema and so cannot live in
-// here.
-//
-// If there's an error translating a type, it's stored here as
-// an errorSchema.
-var goTypeToAvroType sync.Map
+// globalNames holds the default namespace which maps all Go types
+// to their Go names.
+var globalNames = new(Names)
 
 // errorSchema is a hack - it pretends to be an AvroType
 // so that it can be held as a schema map value.
@@ -66,11 +59,11 @@ type errorSchema struct {
 //	- the default value for the field is the zero value for the type.
 //	- anonymous struct fields are disallowed (this restriction may be lifted in the future).
 func TypeOf(x interface{}) (*Type, error) {
-	return avroTypeOf(reflect.TypeOf(x))
+	return globalNames.TypeOf(x)
 }
 
-func avroTypeOf(t reflect.Type) (*Type, error) {
-	rType0, ok := goTypeToAvroType.Load(t)
+func avroTypeOf(names *Names, t reflect.Type) (*Type, error) {
+	rType0, ok := names.goTypeToAvroType.Load(t)
 	if ok {
 		rType := rType0.(*Type)
 		if es, ok := rType.avroType.(errorSchema); ok {
@@ -78,24 +71,25 @@ func avroTypeOf(t reflect.Type) (*Type, error) {
 		}
 		return rType, nil
 	}
-	rType, err := avroTypeOfUncached(t)
+	rType, err := avroTypeOfUncached(names, t)
 	if err != nil {
 		// TODO if the error was because it needs the writer schema,
 		// invoke schemaForGoType1(t, wSchema).
 		// Perhaps the caller should pass in a cache so we can
 		// store the result without using the global cache.
-		goTypeToAvroType.LoadOrStore(t, &Type{
+		names.goTypeToAvroType.LoadOrStore(t, &Type{
 			avroType: errorSchema{err: err},
 		})
 		return nil, err
 	}
-	goTypeToAvroType.LoadOrStore(t, rType)
+	names.goTypeToAvroType.LoadOrStore(t, rType)
 	return rType, nil
 }
 
-func avroTypeOfUncached(t reflect.Type) (*Type, error) {
+func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	gts := &goTypeSchema{
-		defs: make(map[reflect.Type]goTypeDef),
+		names: names,
+		defs:  make(map[reflect.Type]goTypeDef),
 	}
 	// TODO pass in wType so that we can determine a schema
 	// even for partially specified Go types (e.g. interface{} values)
@@ -107,7 +101,20 @@ func avroTypeOfUncached(t reflect.Type) (*Type, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal generated schema: %v", err)
 	}
-	return ParseType(string(data))
+	at, err := ParseType(string(data))
+	if err != nil {
+		return nil, err
+	}
+	// TODO if names has no renames, return at unchanged.
+	data1, err := json.Marshal(names.renameSchema(at.avroType))
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal generated renamed schema: %v", err)
+	}
+	at, err = ParseType(string(data1))
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse generated renamed type: %v", err)
+	}
+	return at, nil
 }
 
 type goTypeDef struct {
@@ -116,7 +123,8 @@ type goTypeDef struct {
 }
 
 type goTypeSchema struct {
-	defs map[reflect.Type]goTypeDef
+	names *Names
+	defs  map[reflect.Type]goTypeDef
 }
 
 func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
@@ -125,29 +133,21 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		// We've already defined a name for this type, so use it.
 		return d.name, nil
 	}
-
+	if t == nil {
+		return "null", nil
+	}
 	if r, ok := reflect.Zero(t).Interface().(avrotypegen.AvroRecord); ok {
 		// It's a generated type which comes with its own schema.
-		// TODO the schema might refer to names that are used the
-		// go type - we should de-duplicate those entries (probably
-		// by name but also making sure that the names actually match).
-		return gts.define(t, json.RawMessage(r.AvroRecord().Schema))
+		return gts.define(t, json.RawMessage(r.AvroRecord().Schema), "")
 	}
-
 	if syms := enumSymbols(t); len(syms) > 0 {
 		// It looks like an enum.
 		// TODO full names.
 		// TODO should we include a default here?
-		def := map[string]interface{}{
-			"name":    t.Name(),
+		return gts.define(t, map[string]interface{}{
 			"type":    "enum",
 			"symbols": syms,
-		}
-		gts.defs[t] = goTypeDef{
-			name:   t.Name(),
-			schema: def,
-		}
-		return def, nil
+		}, "")
 	}
 	switch t.Kind() {
 	case reflect.String:
@@ -161,6 +161,9 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	case reflect.Float64:
 		return "double", nil
 	case reflect.Slice:
+		if t.Elem() == byteType {
+			return "bytes", nil
+		}
 		items, err := gts.schemaForGoType(t.Elem())
 		if err != nil {
 			return nil, err
@@ -189,17 +192,17 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 				"logicalType": timestampMicros,
 			}, nil
 		}
-		name := t.Name()
-		if name == "" {
-			return nil, fmt.Errorf("unnamed struct type")
+		// Define the struct type before filling in the definition
+		// so that we'll find the definition if there's a recursive type.
+		// The map returned by the define method holds a reference
+		// to the same object held in gts.defs, so changing it
+		// below will update the final definition.
+		def, err := gts.define(t, map[string]interface{}{
+			"type": "record",
+		}, "")
+		if err != nil {
+			return nil, err
 		}
-		for _, def := range gts.defs {
-			if def.name == name {
-				// TODO use package path to disambiguate.
-				return nil, fmt.Errorf("duplicate struct type name %q", name)
-			}
-		}
-
 		var fields []interface{}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
@@ -208,8 +211,9 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			}
 			// Technically in Go, every field is optional because
 			// that's the way that the encoding/json package works,
-			// so we'll make them all optional, but we could experiment by making optional
-			// only the fields that specify omitempty.
+			// so we'll make them all optional.
+			// TODO  experiment by making optional only the fields that
+			// specify omitempty.
 			name, _ := jsonFieldName(f)
 			ftype, err := gts.schemaForGoType(f.Type)
 			if err != nil {
@@ -221,24 +225,16 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 				"type":    ftype,
 			})
 		}
-		return gts.define(t, map[string]interface{}{
-			"name":   name,
-			"type":   "record",
-			"fields": fields,
-		})
+		def["fields"] = fields
+		return def, nil
 	case reflect.Array:
 		if t.Elem() != reflect.TypeOf(byte(0)) {
 			return nil, fmt.Errorf("the only array type supported is [...]byte, not %s", t)
 		}
-		name := t.Name()
-		if name == "" {
-			name = fmt.Sprintf("go.Fixed%d", t.Len())
-		}
 		return gts.define(t, map[string]interface{}{
-			"name": name,
 			"type": "fixed",
 			"size": t.Len(),
-		})
+		}, fmt.Sprintf("go.Fixed%d", t.Len()))
 	case reflect.Ptr:
 		if t.Elem().Kind() == reflect.Ptr {
 			return nil, fmt.Errorf("can only cope with a single level of pointer indirection")
@@ -259,7 +255,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	}
 }
 
-func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}) (interface{}, error) {
+func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName string) (map[string]interface{}, error) {
 	def, ok := def0.(map[string]interface{})
 	if !ok {
 		if err := json.Unmarshal(def0.(json.RawMessage), &def); err != nil {
@@ -268,7 +264,12 @@ func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}) (interface{}, 
 	}
 	name, _ := def["name"].(string)
 	if name == "" {
-		return nil, fmt.Errorf("definition with empty name")
+		if name = t.Name(); name == "" {
+			if name = defaultName; name == "" {
+				return nil, fmt.Errorf("cannot use unnamed type %s as Avro type", t)
+			}
+		}
+		def["name"] = name
 	}
 	for _, def := range gts.defs {
 		if def.name == name {

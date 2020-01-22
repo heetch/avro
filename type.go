@@ -24,7 +24,7 @@ func ParseType(s string) (*Type, error) {
 	}
 	for _, def := range ns.Roots {
 		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
-			return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
+			return nil, fmt.Errorf("cannot resolve references in schema\n%s\n: %v", s, err)
 		}
 	}
 	return &Type{
@@ -35,4 +35,14 @@ func ParseType(s string) (*Type, error) {
 
 func (t *Type) String() string {
 	return t.schema
+}
+
+// name returns the fully qualified Avro name for the type,
+// or the empty string if it's not a definition.
+func (t *Type) name() string {
+	ref, ok := t.avroType.(*schema.Reference)
+	if !ok {
+		return ""
+	}
+	return ref.TypeName.String()
 }

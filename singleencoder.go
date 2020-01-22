@@ -20,13 +20,22 @@ type EncodingRegistry interface {
 // Each message includes a header or wrapper that indicates the schema.
 type SingleEncoder struct {
 	registry EncodingRegistry
+	names    *Names
 }
 
 // NewSingleEncoder returns a SingleEncoder instance that encodes single
 // messages along with their schema identifier.
-func NewSingleEncoder(r EncodingRegistry) *SingleEncoder {
+//
+// Go values unmarshaled through Marshal will have their Avro schemas
+// translated with the given Names instance. If names is nil, the global
+// namespace will be used.
+func NewSingleEncoder(r EncodingRegistry, names *Names) *SingleEncoder {
+	if names == nil {
+		names = globalNames
+	}
 	return &SingleEncoder{
 		registry: r,
+		names:    names,
 	}
 }
 
@@ -35,7 +44,7 @@ func NewSingleEncoder(r EncodingRegistry) *SingleEncoder {
 // with.
 func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, error) {
 	xv := reflect.ValueOf(x)
-	avroType, err := avroTypeOf(xv.Type())
+	avroType, err := avroTypeOf(enc.names, xv.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +54,6 @@ func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, e
 	}
 	buf := make([]byte, 0, 100)
 	buf = enc.registry.AppendSchemaID(buf, id)
-	data, _, err := marshalAppend(buf, xv)
+	data, _, err := marshalAppend(enc.names, buf, xv)
 	return data, err
 }
