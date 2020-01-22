@@ -48,7 +48,7 @@ var genTemplate = template.Must(
 		Funcs(templateFuncs).
 		Parse(`
 «range $defName, $def  :=.NS.Definitions»
-	«- if ne $defName .AvroName »
+	«- if ne $defName.String .AvroName.String »
 		// Alias «$defName» = «.AvroName»
 	«- else if eq (typeof .) "RecordDefinition"»
 		«- doc "// " .»

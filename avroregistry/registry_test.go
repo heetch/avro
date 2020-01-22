@@ -139,7 +139,7 @@ func TestRetryOnError(t *testing.T) {
 	c.Assert(err, qt.Equals, nil)
 	t0 := time.Now()
 	err = registry.SetCompatibility(context.Background(), avro.BackwardTransitive)
-	c.Assert(err, qt.ErrorMatches, `Put "http://0.1.2.3/config/subject": dial tcp 0.1.2.3:80: connect: .*`)
+	c.Assert(err, qt.ErrorMatches, `Put "?http://0.1.2.3/config/subject"?: dial tcp 0.1.2.3:80: connect: .*`)
 	if d := time.Since(t0); d < 30*time.Millisecond {
 		c.Errorf("retry duration too small, want >=30ms got %v", d)
 	}
@@ -190,7 +190,7 @@ func newTestRegistry(c *qt.C) *avroregistry.Registry {
 		RetryStrategy: noRetry,
 	})
 	c.Assert(err, qt.Equals, nil)
-	c.Cleanup(func() {
+	c.Defer(func() {
 		err := registry.DeleteSubject(ctx)
 		c.Check(err, qt.Equals, nil)
 	})
