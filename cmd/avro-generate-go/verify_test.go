@@ -8,7 +8,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/heetch/avro/avro-generate-go/internal/avrotestdata"
+	"github.com/heetch/avro/cmd/avro-generate-go/internal/avrotestdata"
 )
 
 // Note: external command is called with three args:

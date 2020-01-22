@@ -161,11 +161,14 @@ var tests = testutil.RoundTripTest{
 	Subtests: []testutil.RoundTripSubtest{{
 		TestName: "main",
 		InDataJSON: `{
+                        "body": null,
                         "header": {
                             "headerworks.Data0": {
                                 "hostname": {
                                     "string": "myhost.com"
-                                }
+                                },
+                                "trace": null,
+                                "uuid": null
                             }
                         }
                     }`,
