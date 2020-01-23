@@ -31,5 +31,20 @@ type RecordInfo struct {
 	// and holds slice with one value for each member
 	// of the union, of type *T, where T is the type used
 	// for that member of the union.
-	Unions [][]interface{}
+	Unions []UnionInfo
+}
+
+type UnionInfo struct {
+	// Type holds a value of type *T where T is
+	// the type described by the TypeInfo,
+	// except when the TypeInfo represents the null
+	// type, in which case Type will be nil.
+	Type interface{}
+
+	// When the UnionInfo describes a union,
+	// Union holds an entry for each member
+	// of the union.
+	// The info can be omitted if Type is a pointer
+	// and the union is ["null", T].
+	Union []UnionInfo
 }

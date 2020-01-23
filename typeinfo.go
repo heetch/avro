@@ -66,7 +66,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			}
 			var required bool
 			var makeDefault func() interface{}
-			var unionVals []interface{}
+			var unionInfo avrotypegen.UnionInfo
 			if i < len(r.Required) {
 				required = r.Required[i]
 			}
@@ -74,12 +74,9 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 				makeDefault = r.Defaults[i]
 			}
 			if i < len(r.Unions) {
-				unionVals = r.Unions[i]
+				unionInfo = r.Unions[i]
 			}
-			entry, err := newAzTypeInfoFromField(f, required, makeDefault, unionVals)
-			if err != nil {
-				return azTypeInfo{}, err
-			}
+			entry := newAzTypeInfoFromField(f, required, makeDefault, unionInfo)
 			info.entries = append(info.entries, entry)
 		}
 		debugf("-> record, %d entries", len(info.entries))
@@ -93,15 +90,16 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() interface{}, unionVals []interface{}) (azTypeInfo, error) {
+func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() interface{}, unionInfo avrotypegen.UnionInfo) azTypeInfo {
 	t := f.Type
-	if t.Kind() == reflect.Ptr && len(unionVals) == 0 {
+	if t.Kind() == reflect.Ptr && len(unionInfo.Union) == 0 {
 		// It's a pointer but there's no explicit union entry, which means that
 		// the union defaults to ["null", type]
-		unionVals = []interface{}{
-			nil,
-			reflect.New(t.Elem()).Interface(),
-		}
+		unionInfo.Union = []avrotypegen.UnionInfo{{
+			Type: nil,
+		}, {
+			Type: reflect.New(t.Elem()).Interface(),
+		}}
 	}
 	// Make an appropriate makeDefault function, even when one isn't explicitly specified.
 	switch {
@@ -109,10 +107,14 @@ func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault fu
 		// Keep to the letter of the contract (makeDefault should always
 		// be nil in this case anyway).
 		makeDefault = nil
-	case makeDefault == nil && len(unionVals) > 0:
+	case makeDefault == nil && len(unionInfo.Union) > 0:
+		// It's a ["null", T] union - we can infer the default
+		// value from the field type. The default value is the
+		// zero value of the first member of the union.
 		var v interface{}
-		if unionVals[0] != nil {
-			v = reflect.Zero(reflect.TypeOf(unionVals[0]).Elem()).Interface()
+		firstMemberType := unionInfo.Union[0].Type
+		if firstMemberType != nil {
+			v = reflect.Zero(reflect.TypeOf(firstMemberType).Elem()).Interface()
 		}
 		makeDefault = func() interface{} {
 			return v
@@ -128,21 +130,26 @@ func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault fu
 		fieldIndex:  f.Index[0],
 		makeDefault: makeDefault,
 	}
-	if len(unionVals) == 0 {
-		return info, nil
+	setUnionInfo(&info, unionInfo)
+	return info
+}
+
+func setUnionInfo(info *azTypeInfo, unionInfo avrotypegen.UnionInfo) {
+	if len(unionInfo.Union) == 0 {
+		return
 	}
 	info.isUnion = true
-	info.entries = make([]azTypeInfo, len(unionVals))
-	for i, v := range unionVals {
+	info.entries = make([]azTypeInfo, len(unionInfo.Union))
+	for i, u := range unionInfo.Union {
 		var ut reflect.Type
-		if v != nil {
-			ut = reflect.TypeOf(v).Elem()
+		if u.Type != nil {
+			ut = reflect.TypeOf(u.Type).Elem()
 		}
 		info.entries[i] = azTypeInfo{
 			ftype: ut,
 		}
+		setUnionInfo(&info.entries[i], u)
 	}
-	return info, nil
 }
 
 const debugging = false

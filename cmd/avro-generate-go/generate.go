@@ -141,33 +141,54 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 	doneUnions := false
 	for i, f := range t.Fields() {
 		info := goType(f.Type())
-		if len(info.Union) == 0 || (len(info.Union) == 2 && info.Union[0].GoType == "nil") {
-			// Either there's no union or the union is ["null", T] (the default union type for a
-			// pointer).
+		if canOmitUnionInfo(info) {
 			continue
 		}
 		if !doneUnions {
-			fprintf(w, "Unions: [][]interface{}{\n")
+			fprintf(w, "Unions: []avrotypegen.UnionInfo{\n")
 			doneUnions = true
 		}
-		fprintf(w, "%d: {", i)
-		for i, u := range info.Union {
-			if i > 0 {
-				fprintf(w, ", ")
-			}
-			if u.GoType == "nil" {
-				fprintf(w, "nil")
-			} else {
-				fprintf(w, "new(%s)", u.GoType)
-			}
-		}
-		fprintf(w, "},\n")
+		fprintf(w, "%d: ", i)
+		writeUnionInfo(w, info)
+		fprintf(w, ",\n")
 	}
 	if doneUnions {
 		fprintf(w, "},\n")
 	}
 	fprintf(w, "}")
 	return w.String()
+}
+
+// canOmitUnionInfo reports whether the info for the
+// given union can be omitted from the UnionInfo.
+func canOmitUnionInfo(u typeInfo) bool {
+	// Check that either there's no union or the union is ["null", T]
+	// (the default union type for a pointer) and the Go type is also
+	// a pointer, meaning the avro package can infer that it's a
+	// pointer union.
+	return len(u.Union) == 0 || (len(u.Union) == 2 && u.Union[0].GoType == "nil" && u.GoType[0] == '*')
+}
+
+func writeUnionInfo(w io.Writer, info typeInfo) {
+	fprintf(w, "{\n")
+	if info.GoType == "nil" {
+		// Technically we could omit this, but it
+		// looks nicer if we don't.
+		fprintf(w, "Type: nil,\n")
+	} else {
+		fprintf(w, "Type: new(%s),\n", info.GoType)
+	}
+	if len(info.Union) > 0 {
+		fprintf(w, "Union: []avrotypegen.UnionInfo{")
+		for i, u := range info.Union {
+			if i > 0 {
+				fprintf(w, ", ")
+			}
+			writeUnionInfo(w, u)
+		}
+		fprintf(w, "},\n")
+	}
+	fprintf(w, "}")
 }
 
 // isZeroDefault reports whether x is the zero default value of type t.

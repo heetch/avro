@@ -19,8 +19,25 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 				return 1234
 			},
 		},
-		Unions: [][]interface{}{
-			0: {new(int), new(int64), new(float32), new(float64), new(string), new(bool), nil},
+		Unions: []avrotypegen.UnionInfo{
+			0: {
+				Type: new(interface{}),
+				Union: []avrotypegen.UnionInfo{{
+					Type: new(int),
+				}, {
+					Type: new(int64),
+				}, {
+					Type: new(float32),
+				}, {
+					Type: new(float64),
+				}, {
+					Type: new(string),
+				}, {
+					Type: new(bool),
+				}, {
+					Type: nil,
+				}},
+			},
 		},
 	}
 }

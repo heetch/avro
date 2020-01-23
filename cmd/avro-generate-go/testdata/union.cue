@@ -193,3 +193,52 @@ tests: sharedUnion: {
 	}
 	outData: inData
 }
+
+tests: nestedUnion: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "F"
+			type: {
+				type: "array"
+				items: [
+					"int",
+					{
+						"type": "array"
+						"items": [
+							"null",
+							"string",
+						],
+					}
+				]
+			}
+		}]
+	}
+	outSchema: inSchema
+	inData: F: [{int: 1}, {array: [null, {string: "hello"}]}]
+	outData: inData
+}
+
+tests: nestedUnionNestedArray: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "F"
+			type: {
+				type: "array"
+				items: {
+					type: "array"
+					"items": [
+						"null",
+						"string",
+					],
+				}
+			}
+		}]
+	}
+	outSchema: inSchema
+	inData: F: [[null, {string: "hello"}], [{string: "goodbye"}]]
+	outData: inData
+}

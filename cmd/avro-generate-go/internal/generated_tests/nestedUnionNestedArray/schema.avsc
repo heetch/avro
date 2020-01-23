@@ -1,0 +1,19 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "F",
+                        "type": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": [
+                                    "null",
+                                    "string"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
