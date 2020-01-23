@@ -215,6 +215,56 @@ func TestGoTypeEnumOOBEmpty(t *testing.T) {
 	}`))
 }
 
+func TestProtobufGeneratedType(t *testing.T) {
+	c := qt.New(t)
+	at, err := avro.TypeOf(testtypes.MessageB{})
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(at.String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "MessageB",
+		"fields": [{
+			"name": "arble",
+			"default": null,
+			"type": [
+				"null", {
+					"type": "record",
+					"name": "MessageA",
+					"fields": [{
+						"name": "id",
+						"default": "",
+						"type": "string"
+					}, {
+						"name": "label",
+						"default": "LABEL_FOR_ZERO",
+						"type": {
+							"type": "enum",
+							"name": "LabelFor",
+							"symbols": [
+								"LABEL_FOR_ZERO",
+								"LABEL_FOR_ONE",
+								"LABEL_FOR_TWO",
+								"LABEL_FOR_THREE"
+							]
+						}
+					}, {
+						"name": "foo_url",
+						"type": "string",
+						"default": ""
+					}, {
+						"name": "enabled",
+						"default": false,
+						"type": "boolean"
+					}]
+				}
+			]
+		}, {
+			"name": "selected",
+			"default": false,
+			"type": "boolean"
+		}]
+	}`))
+}
+
 type OOBPanicEnum int
 
 var enumValues = []string{"a", "b"}

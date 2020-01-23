@@ -21,7 +21,7 @@ type azTypeInfo struct {
 
 	// makeDefault is a function that returns the default
 	// value for a field, or nil if there is no default value.
-	makeDefault func() interface{}
+	makeDefault func() reflect.Value
 
 	// isUnion holds whether this info is about a union type
 	// (if not, it's about a struct).
@@ -65,13 +65,17 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 				continue
 			}
 			var required bool
-			var makeDefault func() interface{}
+			var makeDefault func() reflect.Value
 			var unionInfo avrotypegen.UnionInfo
 			if i < len(r.Required) {
 				required = r.Required[i]
 			}
 			if i < len(r.Defaults) {
-				makeDefault = r.Defaults[i]
+				if md := r.Defaults[i]; md != nil {
+					makeDefault = func() reflect.Value {
+						return reflect.ValueOf(md())
+					}
+				}
 			}
 			if i < len(r.Unions) {
 				unionInfo = r.Unions[i]
@@ -90,7 +94,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 	}
 }
 
-func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() interface{}, unionInfo avrotypegen.UnionInfo) azTypeInfo {
+func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() reflect.Value, unionInfo avrotypegen.UnionInfo) azTypeInfo {
 	t := f.Type
 	if t.Kind() == reflect.Ptr && len(unionInfo.Union) == 0 {
 		// It's a pointer but there's no explicit union entry, which means that
@@ -111,17 +115,19 @@ func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault fu
 		// It's a ["null", T] union - we can infer the default
 		// value from the field type. The default value is the
 		// zero value of the first member of the union.
-		var v interface{}
+		var v reflect.Value
 		firstMemberType := unionInfo.Union[0].Type
 		if firstMemberType != nil {
-			v = reflect.Zero(reflect.TypeOf(firstMemberType).Elem()).Interface()
+			v = reflect.Zero(reflect.TypeOf(firstMemberType).Elem())
+		} else {
+			v = reflect.Zero(t)
 		}
-		makeDefault = func() interface{} {
+		makeDefault = func() reflect.Value {
 			return v
 		}
 	case makeDefault == nil:
-		v := reflect.Zero(t).Interface()
-		makeDefault = func() interface{} {
+		v := reflect.Zero(t)
+		makeDefault = func() reflect.Value {
 			return v
 		}
 	}

@@ -219,3 +219,24 @@ tests: goTypeFieldsOmitted: {
 		}
 	}
 }
+
+tests: protobufRecord: {
+	otherTests: """
+	package protobufRecord
+
+	import "github.com/heetch/avro/internal/testtypes"
+
+	type R = testtypes.MessageB
+	"""
+	goType: "R"
+	inSchema: {
+		name: "MessageB"
+		type: "record"
+		fields: []
+	}
+	inData: {}
+	outData: {
+		arble: null
+		selected: false
+	}
+}
