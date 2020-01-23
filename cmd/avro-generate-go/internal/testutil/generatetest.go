@@ -55,7 +55,7 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 
 	sanity, _, err := inCodec.NativeFromBinary(inData)
 	c.Assert(err, qt.Equals, nil)
-	pretty.Println("sanity: ", sanity)
+	c.Logf("sanity: %s", pretty.Sprint(sanity))
 
 	// Unmarshal the binary data into the Go type.
 	x := reflect.New(reflect.TypeOf(test.GoType).Elem())
@@ -63,7 +63,7 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 	c.Assert(err, qt.Equals, nil)
 	_, err = avro.Unmarshal(inData, x.Interface(), inType)
 	subtest.checkError(c, UnmarshalError, err, qt.Commentf("result data: %v", qt.Format(x.Interface())))
-	pretty.Println("unmarshaled: ", x.Interface())
+	c.Logf("unmarshaled: %s", pretty.Sprint(x.Interface()))
 
 	// Marshal the data back into binary and then into
 	// JSON, and check that it looks like we expect.

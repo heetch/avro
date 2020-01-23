@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/format"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -116,6 +117,9 @@ func main() {
 				check("remove dir", err)
 				continue
 			}
+			if err != nil {
+				io.Copy(os.Stderr, &buf)
+			}
 			check("avro-generate-go "+file, err)
 		} else {
 			// The Go tool seems to require at least some
@@ -135,6 +139,12 @@ func main() {
 		check("write test go file", err)
 		if fmtErr != nil {
 			check("gofmt test code "+outFile, fmtErr)
+		}
+		if test.OtherTests != "" {
+			otherTest, err := format.Source([]byte(test.OtherTests))
+			check("format other tests", err)
+			err = ioutil.WriteFile(filepath.Join(dir, "other_test.go"), otherTest, 0666)
+			check("write other tests", err)
 		}
 	}
 	if failed {

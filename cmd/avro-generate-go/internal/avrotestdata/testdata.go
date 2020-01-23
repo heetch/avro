@@ -16,6 +16,7 @@ type Test struct {
 	GoTypeBody    string             `json:"goTypeBody"`
 	GenerateError string             `json:"generateError"`
 	Subtests      map[string]Subtest `json:"subtests"`
+	OtherTests    string             `json:"otherTests"`
 }
 
 type Subtest struct {

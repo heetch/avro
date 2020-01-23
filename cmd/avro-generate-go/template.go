@@ -26,6 +26,7 @@ var templateFuncs = template.FuncMap{
 	"recordInfoLiteral":      recordInfoLiteral,
 	"doc":                    doc,
 	"goType":                 goType,
+	"import":                 func(pkg string) string { addImport(pkg); return "" },
 }
 
 var headerTemplate = template.Must(
@@ -71,6 +72,8 @@ var genTemplate = template.Must(
 
 		// TODO implement MarshalBinary and UnmarshalBinary methods?
 	«else if eq (typeof .) "EnumDefinition"»
+		«- import "strconv"»
+		«- import "fmt"»
 		«- doc "// " . -»
 		type «.Name» int
 		const (
@@ -78,7 +81,41 @@ var genTemplate = template.Must(
 		«$def.SymbolName $sym»«if eq $i 0» «$def.Name» = iota«end»
 		«- end»
 		)
-		// TODO UnmarshalText and String methods.
+
+		var _«.Name»_strings = []string{
+		«range $i, $sym := .Symbols»
+		«- printf "%q" $sym»,
+		«end»}
+
+		// String returns the textual representation of «.Name».
+		func (e «.Name») String() string {
+			if e < 0 || int(e) >= len(_«.Name»_strings) {
+				return "«.Name»(" + strconv.FormatInt(int64(e), 10) + ")"
+			}
+			return _«.Name»_strings[e]
+		}
+
+		// MarshalText implements encoding.TextMarshaler
+		// by returning the textual representation of «.Name».
+		func (e «.Name») MarshalText() ([]byte, error) {
+			if e < 0 || int(e) >= len(_«.Name»_strings) {
+				return nil, fmt.Errorf("«.Name» value %d is out of bounds", e)
+			}
+			return []byte(_«.Name»_strings[e]), nil
+		}
+
+		// UnmarshalText implements encoding.TextUnmarshaler
+		// by expecting the textual representation of «.Name».
+		func (e *«.Name») UnmarshalText(data []byte) error {
+			// Note for future: this could be more efficient.
+			for i, s := range _«.Name»_strings {
+				if string(data) == s {
+					*e = «.Name»(i)
+					return nil
+				}
+			}
+			return fmt.Errorf("unknown value %q for «.Name»", data)
+		}
 	«else if eq (typeof .) "FixedDefinition"»
 		«- doc "// " . -»
 		type «.Name» [«.SizeBytes»]byte
