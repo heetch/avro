@@ -3,7 +3,9 @@
 package enumDefault
 
 import (
+	"fmt"
 	"github.com/heetch/avro/avrotypegen"
+	"strconv"
 )
 
 type Foo int
@@ -14,7 +16,41 @@ const (
 	FooC
 )
 
-// TODO UnmarshalText and String methods.
+var _Foo_strings = []string{
+	"a",
+	"b",
+	"c",
+}
+
+// String returns the textual representation of Foo.
+func (e Foo) String() string {
+	if e < 0 || int(e) >= len(_Foo_strings) {
+		return "Foo(" + strconv.FormatInt(int64(e), 10) + ")"
+	}
+	return _Foo_strings[e]
+}
+
+// MarshalText implements encoding.TextMarshaler
+// by returning the textual representation of Foo.
+func (e Foo) MarshalText() ([]byte, error) {
+	if e < 0 || int(e) >= len(_Foo_strings) {
+		return nil, fmt.Errorf("Foo value %d is out of bounds", e)
+	}
+	return []byte(_Foo_strings[e]), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler
+// by expecting the textual representation of Foo.
+func (e *Foo) UnmarshalText(data []byte) error {
+	// Note for future: this could be more efficient.
+	for i, s := range _Foo_strings {
+		if string(data) == s {
+			*e = Foo(i)
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown value %q for Foo", data)
+}
 
 type R struct {
 	EnumField Foo `json:"enumField"`

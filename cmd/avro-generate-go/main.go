@@ -69,7 +69,7 @@ func generateFile(f string) error {
 	}
 	resultData, err := format.Source(buf.Bytes())
 	if err != nil {
-		fmt.Printf("-------\n%s\n", buf.Bytes())
+		fmt.Printf("%s\n", buf.Bytes())
 		return fmt.Errorf("cannot format source: %v", err)
 	}
 

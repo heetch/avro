@@ -20,6 +20,7 @@ roundTripTest :: {
 	inData?:        _
 	outData?:       _
 	expectError?: [errorKind]: string
+	otherTests?: string
 	subtests: [name=_]: {
 		testName: name
 		inData:   _
