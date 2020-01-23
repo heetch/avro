@@ -17,8 +17,15 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 		Required: []bool{
 			0: true,
 		},
-		Unions: [][]interface{}{
-			0: {new(int), new(string)},
+		Unions: []avrotypegen.UnionInfo{
+			0: {
+				Type: new([]interface{}),
+				Union: []avrotypegen.UnionInfo{{
+					Type: new(int),
+				}, {
+					Type: new(string),
+				}},
+			},
 		},
 	}
 }

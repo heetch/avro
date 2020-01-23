@@ -19,8 +19,17 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 				return int64(1234)
 			},
 		},
-		Unions: [][]interface{}{
-			0: {new(int64), new(int), new(string)},
+		Unions: []avrotypegen.UnionInfo{
+			0: {
+				Type: new(interface{}),
+				Union: []avrotypegen.UnionInfo{{
+					Type: new(int64),
+				}, {
+					Type: new(int),
+				}, {
+					Type: new(string),
+				}},
+			},
 		},
 	}
 }
