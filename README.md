@@ -1,6 +1,6 @@
 # Avro - Go-idiomatic encoding and decoding of Avro data
 
-This package provides both a code generator that generates Go data
+This package provides both a [code generator](https://pkg.go.dev/github.com/heetch/avro/cmd/avro-generate-go) that generates Go data
 structures from [Avro schemas](https://avro.apache.org/docs/1.9.1/spec.html) and a mapping between native
 Go data types and Avro schemas.
 
