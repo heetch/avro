@@ -57,6 +57,7 @@ var genTemplate = template.Must(
 		«- range $i, $_ := .Fields»
 			«- doc "\t// " .»
 			«- $type := goType .Type»
+			«- doc "\t// " $type»
 			«- if isExportedGoIdentifier .Name»
 				«- .GoName» «$type.GoType»
 			«- else»
@@ -69,8 +70,6 @@ var genTemplate = template.Must(
 		func («.Name») AvroRecord() avrotypegen.RecordInfo {
 			return «recordInfoLiteral .»
 		}
-
-		// TODO implement MarshalBinary and UnmarshalBinary methods?
 	«else if eq (typeof .) "EnumDefinition"»
 		«- import "strconv"»
 		«- import "fmt"»

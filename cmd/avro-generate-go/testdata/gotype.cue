@@ -220,9 +220,9 @@ tests: goTypeFieldsOmitted: {
 	}
 }
 
-tests: protobufRecord: {
+tests: goTypeProtobufRecord: {
 	otherTests: """
-	package protobufRecord
+	package goTypeProtobufRecord
 
 	import "github.com/heetch/avro/internal/testtypes"
 

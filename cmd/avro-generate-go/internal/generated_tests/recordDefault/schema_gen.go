@@ -28,8 +28,6 @@ func (Foo) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 type R struct {
 	RecordField Foo `json:"recordField"`
 }
@@ -49,5 +47,3 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 		},
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?

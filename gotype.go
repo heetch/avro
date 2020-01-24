@@ -73,10 +73,6 @@ func avroTypeOf(names *Names, t reflect.Type) (*Type, error) {
 	}
 	rType, err := avroTypeOfUncached(names, t)
 	if err != nil {
-		// TODO if the error was because it needs the writer schema,
-		// invoke schemaForGoType1(t, wSchema).
-		// Perhaps the caller should pass in a cache so we can
-		// store the result without using the global cache.
 		names.goTypeToAvroType.LoadOrStore(t, &Type{
 			avroType: errorSchema{err: err},
 		})
@@ -93,6 +89,7 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	}
 	// TODO pass in wType so that we can determine a schema
 	// even for partially specified Go types (e.g. interface{} values)
+	// See https://github.com/heetch/avro/issues/34
 	schemaVal, err := gts.schemaForGoType(t)
 	if err != nil {
 		return nil, err
@@ -105,7 +102,10 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO if names has no renames, return at unchanged.
+	if len(names.renames) == 0 {
+		// There are no renames, so we don't need to rename and parse again.
+		return at, nil
+	}
 	data1, err := json.Marshal(names.renameSchema(at.avroType))
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal generated renamed schema: %v", err)
@@ -142,7 +142,6 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	}
 	if syms := enumSymbols(t); len(syms) > 0 {
 		// It looks like an enum.
-		// TODO full names.
 		// TODO should we include a default here?
 		return gts.define(t, map[string]interface{}{
 			"type":    "enum",
@@ -269,6 +268,8 @@ func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName st
 	}
 	name, _ := def["name"].(string)
 	if name == "" {
+		// TODO use a fully qualified name derived from the Go package path
+		// as well as the type name. See https://github.com/heetch/avro/issues/35
 		if name = t.Name(); name == "" {
 			if name = defaultName; name == "" {
 				return nil, fmt.Errorf("cannot use unnamed type %s as Avro type", t)
@@ -278,7 +279,7 @@ func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName st
 	}
 	for _, def := range gts.defs {
 		if def.name == name {
-			// TODO use package path to disambiguate.
+			// TODO use package path to disambiguate. See https://github.com/heetch/avro/issues/35
 			return nil, fmt.Errorf("duplicate struct type name %q", name)
 		}
 	}
@@ -340,8 +341,6 @@ func enumSymbols(t reflect.Type) []string {
 	// Note: the String implementation created by the stringer tool
 	// returns "T(x)" for an out-of-bounds number x of type T
 	// so we use a bracket as an indicator of "out of bounds".
-	// TODO we could look for the numeric value of the enum too
-	// to cover more formats.
 	switch {
 	case !ok:
 		oobStyle = oobPanic
@@ -382,6 +381,7 @@ func enumSymbols(t reflect.Type) []string {
 		}
 		if !isValidEnumSymbol(sym) {
 			// TODO convert to a valid symbol somehow?
+			// https://github.com/heetch/avro/issues/36
 			return nil
 		}
 		syms = append(syms, sym)
@@ -416,7 +416,7 @@ func isDigit(c byte) bool {
 
 func (gts *goTypeSchema) defaultForType(t reflect.Type) interface{} {
 	// TODO perhaps a Go slice/map should accept a union
-	// of null and array/map?
+	// of null and array/map? See https://github.com/heetch/avro/issues/19
 	switch t.Kind() {
 	case reflect.Slice:
 		return reflect.MakeSlice(t, 0, 0).Interface()
@@ -430,7 +430,8 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) interface{} {
 		}
 		// TODO support other struct types better - we're using
 		// default JSON marshaling here, and that won't work
-		// with enum types or time.Time.
+		// when the struct contains enum types or time.Time.
+		// See https://github.com/heetch/avro/issues/37
 		fallthrough
 	default:
 		if def, ok := gts.defs[t]; ok {

@@ -7,6 +7,9 @@ import (
 )
 
 type R struct {
+	// Allowed types for interface{} value:
+	// 	int
+	// 	[]*string
 	F []interface{}
 }
 
@@ -34,5 +37,3 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 		},
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?

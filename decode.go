@@ -108,7 +108,7 @@ func (d *decoder) eval(target reflect.Value) {
 			case vm.Boolean:
 				frame.Boolean = d.readBool()
 			case vm.Int:
-				// TODO bounds check
+				// TODO bounds check. See https://github.com/heetch/avro/issues/33.
 				frame.Int = d.readLong()
 			case vm.Long:
 				frame.Int = d.readLong()
@@ -137,6 +137,7 @@ func (d *decoder) eval(target reflect.Value) {
 				// is setting milliseconds or microseconds. We'll need
 				// need more information from the VM to be able to
 				// do that, so support only timestamp-micros for now.
+				// See https://github.com/heetch/avro/issues/3
 				if target.Type() == timeType {
 					// timestamp-micros
 					target.Set(reflect.ValueOf(time.Unix(frame.Int/1e6, frame.Int%1e6*1e3)))
@@ -193,6 +194,7 @@ func (d *decoder) eval(target reflect.Value) {
 				// will also be nil. Perhaps when SetLong is called on the
 				// union type, we should create the map.
 				// The same applies to slices.
+				// See https://github.com/heetch/avro/issues/19
 				target.Set(reflect.MakeMap(target.Type()))
 			}
 			target.SetMapIndex(reflect.ValueOf(frame.String), elem)
@@ -228,7 +230,7 @@ func (d *decoder) eval(target reflect.Value) {
 			return
 		case vm.Halt:
 			if inst.Operand == 0 {
-				// TODO this doesn't actually halt.
+				// This doesn't actually halt, but it doesn't seem to matter.
 				return
 			}
 			d.error(fmt.Errorf("Runtime error: %v, frame: %v, pc: %v", d.program.Errors[inst.Operand-1], frame, d.pc))

@@ -32,6 +32,7 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		// a name for the type, and we may not be able to define
 		// methods on it because it might be a union type which
 		// is represented by an interface type in Go.
+		// See https://github.com/heetch/avro/issues/13
 		return fmt.Errorf("cannot generate code for a schema which hasn't got a name (%T)", sType)
 	}
 	imports = make(map[string]bool)
@@ -102,8 +103,6 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 	fprintf(w, "Schema: %s,\n", quote(schemaStr))
 	doneRequired := false
 	for i, f := range t.Fields() {
-		// TODO if the field's default value is the zero value for the type,
-		// omit the default.
 		if f.HasDefault() {
 			continue
 		}
@@ -391,7 +390,6 @@ func defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
 	default:
 		return "", fmt.Errorf("literal of type %T not yet implemented", t)
 	}
-	// TODO *schema.MapField, *schema.Reference
 }
 
 func decodeBytes(s string) ([]byte, error) {
@@ -434,7 +432,7 @@ func writeUnionComment(w io.Writer, union []typeInfo, indent string) {
 	if len(union) == 2 && (union[0].GoType == "nil" || union[1].GoType == "nil") {
 		// No need to comment a nil union.
 		// TODO we may want to document whether a map or array may
-		// be nil though.
+		// be nil though. https://github.com/heetch/avro/issues/19
 		return
 	}
 	printf := func(a string, f ...interface{}) {
@@ -458,7 +456,7 @@ func goType(t schema.AvroType) typeInfo {
 		// Note: Go int is at least 32 bits.
 		info.GoType = "int"
 	case *schema.LongField:
-		// TODO support timestampMillis
+		// TODO support timestampMillis. https://github.com/heetch/avro/issues/3
 		if logicalType(t) == timestampMicros {
 			info.GoType = "time.Time"
 			addImport("time")
@@ -478,7 +476,9 @@ func goType(t schema.AvroType) typeInfo {
 		switch {
 		case len(types) == 2 && isNullField(types[0]):
 			// TODO if inner type is array or map, we don't need
-			// the pointer - we already have a nil value.
+			// the pointer - both of those types already have nil
+			// values in Go.
+			// https://github.com/heetch/avro/issues/19
 			inner := goType(types[1])
 			info.GoType = "*" + inner.GoType
 			info.Union = []typeInfo{
@@ -515,11 +515,6 @@ func goType(t schema.AvroType) typeInfo {
 		// TODO this is wrong! SimpleName might be unexported.
 		info.GoType = t.SimpleName()
 	default:
-		//	case *schema.RecordDefinition,
-		//		*schema.FixedDefinition,
-		//		*schema.EnumDefinition:
-		//		// TODO use full name somehow
-		//		return t.SimpleName()
 		panic(fmt.Sprintf("unknown avro type %T", t))
 	}
 	return info

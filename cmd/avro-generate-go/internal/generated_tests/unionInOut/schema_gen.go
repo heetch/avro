@@ -7,6 +7,14 @@ import (
 )
 
 type PrimitiveUnionTestRecord struct {
+	// Allowed types for interface{} value:
+	// 	int
+	// 	int64
+	// 	float32
+	// 	float64
+	// 	string
+	// 	bool
+	// 	nil
 	UnionField interface{}
 }
 
@@ -41,5 +49,3 @@ func (PrimitiveUnionTestRecord) AvroRecord() avrotypegen.RecordInfo {
 		},
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?

@@ -1,4 +1,4 @@
-package protobufRecord
+package goTypeProtobufRecord
 
 import "github.com/heetch/avro/internal/testtypes"
 
