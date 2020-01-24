@@ -165,7 +165,8 @@ func (d *decoder) eval(target reflect.Value) {
 			if d.program.makeDefault[d.pc] == nil {
 				panic(fmt.Errorf("no makeDefault at PC %d; prog %p", d.pc, &d.program.makeDefault[0]))
 			}
-			target.Field(inst.Operand).Set(reflect.ValueOf(d.program.makeDefault[d.pc]()))
+			v := d.program.makeDefault[d.pc]()
+			target.Field(inst.Operand).Set(v)
 		case vm.Enter:
 			val, isRef := d.program.enter[d.pc](target)
 			debugf("enter %d -> %#v (isRef %v) {", inst.Operand, val, isRef)

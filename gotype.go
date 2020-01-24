@@ -150,6 +150,8 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		}, "")
 	}
 	switch t.Kind() {
+	case reflect.Bool:
+		return "boolean", nil
 	case reflect.String:
 		return "string", nil
 	case reflect.Int, reflect.Int64, reflect.Uint32:
@@ -311,7 +313,7 @@ func enumSymbols(t reflect.Type) []string {
 			v.SetUint(uint64(i))
 		}
 		getIntVal = func() int64 {
-			return int64(v.Int())
+			return int64(v.Uint())
 		}
 	}
 	symOf := func(i int64) (sym string, actual int64, ok bool) {
@@ -325,22 +327,52 @@ func enumSymbols(t reflect.Type) []string {
 		setInt(i)
 		return vs.String(), getIntVal(), true
 	}
-	sym, _, ok := symOf(-1)
+	// Assume that -1 is out-of-bounds and see what
+	// we get when we call String on it.
+	sym, actual, ok := symOf(-1)
+	const (
+		oobEmpty = iota
+		oobParen
+		oobNumber
+		oobPanic
+	)
+	var oobStyle int
 	// Note: the String implementation created by the stringer tool
 	// returns "T(x)" for an out-of-bounds number x of type T
 	// so we use a bracket as an indicator of "out of bounds".
 	// TODO we could look for the numeric value of the enum too
 	// to cover more formats.
-	if ok && sym != "" && !strings.Contains(sym, "(") {
-		// If -1 is OK, then our heuristic isn't going to work.
+	switch {
+	case !ok:
+		oobStyle = oobPanic
+	case sym == "":
+		oobStyle = oobEmpty
+	case strings.Contains(sym, "("):
+		oobStyle = oobParen
+	case sym == fmt.Sprint(actual):
+		oobStyle = oobNumber
+	default:
+		// All our heuristics for detecting out-of-bounds values
+		// are exhausted.
 		return nil
 	}
 	prev := ""
 	var syms []string
 	for i := 0; i < maxEnum; i++ {
-		sym, _, ok := symOf(int64(i))
-		if !ok || strings.Contains(sym, "(") || sym == "" {
+		sym, actual, ok := symOf(int64(i))
+		if !ok || sym == "" {
+			// Panic or empty value are never acceptable.
 			return syms
+		}
+		switch oobStyle {
+		case oobParen:
+			if strings.Contains(sym, "(") {
+				return syms
+			}
+		case oobNumber:
+			if sym == fmt.Sprint(actual) {
+				return syms
+			}
 		}
 		if sym == prev {
 			// If it's the same as the previous value, it might be "unknown"
@@ -348,12 +380,38 @@ func enumSymbols(t reflect.Type) []string {
 			// out-of-bounds.
 			return syms[0 : len(syms)-1]
 		}
-		// TODO cope with non-Avro-compatible symbols. Avro symbols must match [A-Za-z_][A-Za-z0-9_]*
+		if !isValidEnumSymbol(sym) {
+			// TODO convert to a valid symbol somehow?
+			return nil
+		}
 		syms = append(syms, sym)
 		prev = sym
 	}
 	// Too many values.
 	return nil
+}
+
+// From https://avro.apache.org/docs/1.9.1/spec.html#Enums :
+//
+//	Every symbol must match the regular expression [A-Za-z_][A-Za-z0-9_]*
+func isValidEnumSymbol(s string) bool {
+	if s == "" || s[0] != '_' && !isAlpha(s[0]) {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if c := s[i]; c != '_' && !isAlpha(c) && !isDigit(c) {
+			return false
+		}
+	}
+	return true
+}
+
+func isAlpha(c byte) bool {
+	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
 }
 
 func (gts *goTypeSchema) defaultForType(t reflect.Type) interface{} {

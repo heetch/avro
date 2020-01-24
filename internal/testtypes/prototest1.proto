@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package arble.foo.v1;
+
+option go_package = "testtypes";
+
+// MessageA has a doc comment.
+message MessageA {
+    string id = 1;
+    LabelFor label = 2;
+    string foo_url = 3;
+    bool enabled = 4;
+}
+
+// UserDisability is used to show whether a disability has been selected by a user.
+message MessageB {
+    MessageA arble = 1;
+    bool selected = 2;
+}
+
+// LabelFor also has a doc comment.
+enum LabelFor {
+    LABEL_FOR_ZERO = 0;
+    LABEL_FOR_ONE = 1;
+    LABEL_FOR_TWO = 2;
+    LABEL_FOR_THREE = 3;
+}

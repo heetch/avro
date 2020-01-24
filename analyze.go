@@ -29,7 +29,7 @@ type decodeProgram struct {
 	// makeDefault holds an entry for each SetDefault instruction
 	// in the program, indexed by pc, that gets the default
 	// value for a field.
-	makeDefault []func() interface{}
+	makeDefault []func() reflect.Value
 
 	readerType *Type
 }
@@ -38,7 +38,7 @@ type analyzer struct {
 	prog        *vm.Program
 	pcInfo      []pcInfo
 	enter       []func(reflect.Value) (reflect.Value, bool)
-	makeDefault []func() interface{}
+	makeDefault []func() reflect.Value
 }
 
 type pcInfo struct {
@@ -89,7 +89,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 		prog:        prog,
 		pcInfo:      make([]pcInfo, len(prog.Instructions)),
 		enter:       make([]func(reflect.Value) (reflect.Value, bool), len(prog.Instructions)),
-		makeDefault: make([]func() interface{}, len(prog.Instructions)),
+		makeDefault: make([]func() reflect.Value, len(prog.Instructions)),
 	}
 	debugf("analyze %d instructions\n%s {", len(prog.Instructions), prog)
 	defer debugf("}")
