@@ -19,8 +19,10 @@ tests: cloudEvent: {
 					type: "string"
 				}, {
 					name: "time"
-					type: "long"
-					// logicalType: "timestamp-micros"
+					type: {
+						type: "long"
+						logicalType: "timestamp-micros"
+					}
 				}]
 			}
 		}, {
@@ -29,7 +31,7 @@ tests: cloudEvent: {
 		}]
 	}
 	outSchema: {
-		name:      "SomeEvent"
+		name:      "CloudEvent"
 		namespace: "bar"
 		type:      "record"
 		fields: [{
@@ -46,8 +48,10 @@ tests: cloudEvent: {
 					type: "string"
 				}, {
 					name: "time"
-					type: "long"
-					// logicalType: "timestamp-micros"
+					type: {
+						type: "long"
+						logicalType: "timestamp-micros"
+					}
 				}]
 			}
 		}]

@@ -29,7 +29,10 @@ var tests = testutil.RoundTripTest{
                                 },
                                 {
                                     "name": "time",
-                                    "type": "long"
+                                    "type": {
+                                        "type": "long",
+                                        "logicalType": "timestamp-micros"
+                                    }
                                 }
                             ],
                             "namespace": "avro.apache.org"
@@ -42,7 +45,7 @@ var tests = testutil.RoundTripTest{
                 ],
                 "namespace": "foo"
             }`,
-	GoType: new(SomeEvent),
+	GoType: new(CloudEvent),
 	Subtests: []testutil.RoundTripSubtest{{
 		TestName: "main",
 		InDataJSON: `{
