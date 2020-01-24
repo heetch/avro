@@ -13,6 +13,27 @@ It also provides support for encoding and decoding messages
 using an [Avro schema registry](https://docs.confluent.io/current/schema-registry/index.html) - see
 [github.com/heetch/avro/avroregistry](https://pkg.go.dev/github.com/heetch/avro/avroregistry).
 
+## How are Avro schemas represented as Go datatypes?
+
+When the `avro-generate-go` command generates Go datatypes from Avro schemas, it uses the following rules:
+
+- `"int"` is represented as `int`
+- `"long"` is represented as `int64`
+- `"float"` is represented as `float32`
+- `"double"` is represented as `float64`
+- `"string"` is represented as `string`
+- `"boolean"` is represented as `bool`
+- `"bytes"` is represented as `[]byte`
+- `"null"` is represented as the Go value `nil`
+- `{"type": "array", "items": T}` is represented as `[]T`
+- `{"type": "map", "values": T}` is represented as `map[string]T`
+- `{"type": "enum", "name": "E", "symbols": ["red", "green", "blue"]}` is represented a Go int type with `String`, `MarshalText` and `UnmarshalText` methods so it will encode as a string when used in JSON.
+- `{"type": "fixed", "size": 123, "name": "F"}` will encode as a Go `[123]byte`  type named `F`
+- `["null", T]` encodes as `*T`
+- `[T, "null"]` encodes as `*T`
+- `[T₁, T₂, ...]` (a union) encodes as `interface{}` that should hold only the types for `T₁`, `T₂`, etc.
+- `{"type": "record", "name": "R", "fields": [....]}` encodes as a Go struct type named `R` with corresponding fields.
+
 ## Comparison with other Go Avro packages
 
 [github.com/linkedin/goavro/v2](https://pkg.go.dev/github.com/linkedin/goavro/v2),
