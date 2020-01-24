@@ -468,14 +468,3 @@ func jsonFieldName(f reflect.StructField) (name string, omitEmpty bool) {
 	}
 	return parts[0], omitEmpty
 }
-
-var recordField struct {
-	Name    string
-	Type    interface{}
-	Default interface{}
-}
-
-type arrayType struct {
-	Type  string `json:"type"` // always "array"
-	Items interface{}
-}

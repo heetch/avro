@@ -233,16 +233,10 @@ func (d *decoder) eval(target reflect.Value) {
 				// This doesn't actually halt, but it doesn't seem to matter.
 				return
 			}
-			d.error(fmt.Errorf("Runtime error: %v, frame: %v, pc: %v", d.program.Errors[inst.Operand-1], frame, d.pc))
+			d.error(fmt.Errorf("runtime error: %v, frame: %v, pc: %v", d.program.Errors[inst.Operand-1], frame, d.pc))
 		default:
-			d.error(fmt.Errorf("Unknown instruction %v", d.program.Instructions[d.pc]))
+			d.error(fmt.Errorf("unknown instruction %v", d.program.Instructions[d.pc]))
 		}
-	}
-}
-
-func (d *decoder) check(err error, what string) {
-	if err != nil {
-		d.error(fmt.Errorf("%s: %v", what, err))
 	}
 }
 

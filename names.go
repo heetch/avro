@@ -191,10 +191,6 @@ func relativeName(enclosingNamespace string, name schema.QualifiedName) string {
 	return name.String()
 }
 
-type avroDefinitioner interface {
-	Definition(map[schema.QualifiedName]interface{}) (interface{}, error)
-}
-
 func copyOfSchemaObj(at interface{}) map[string]interface{} {
 	var obj interface{}
 	// Note: at the time of writing there's no way that Definition can

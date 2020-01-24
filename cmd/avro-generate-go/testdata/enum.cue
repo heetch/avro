@@ -44,10 +44,10 @@ tests: simpleEnum: otherTests: """
 		c.Assert(err, qt.Equals, nil)
 		c.Assert(string(data), qt.Equals, "a")
 
-		data, err = MyEnum(-1).MarshalText()
+		_, err = MyEnum(-1).MarshalText()
 		c.Assert(err, qt.ErrorMatches, `MyEnum value -1 is out of bounds`)
 
-		data, err = MyEnum(3).MarshalText()
+		_, err = MyEnum(3).MarshalText()
 		c.Assert(err, qt.ErrorMatches, `MyEnum value 3 is out of bounds`)
 	}
 
