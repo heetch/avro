@@ -18,8 +18,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/clock v0.0.0-20190514195947-2896927a307a h1:3QH7VyOaaiUHNrA9Se4YQIRkDTCw1EJls9xTUCaCeRM=
 github.com/rogpeppe/clock v0.0.0-20190514195947-2896927a307a/go.mod h1:4r5QyqhjIWCcK8DO4KMclc5Iknq5qVBAlbYYzAbUScQ=
-github.com/rogpeppe/gogen-avro/v7 v7.0.0 h1:NQVRmrqbeCwSE5upW1XJOqov3yW5O6y0lQytCwTOqzQ=
-github.com/rogpeppe/gogen-avro/v7 v7.0.0/go.mod h1:awhtQwpFg18PdUpdnOFr0ceVLYAn/oDCa/HE1hdbk50=
+github.com/rogpeppe/gogen-avro/v7 v7.1.0 h1:T1VvalNJFUZ8tGW6LKF4ZGSD9wis8B8wO2BfZLwM14c=
+github.com/rogpeppe/gogen-avro/v7 v7.1.0/go.mod h1:awhtQwpFg18PdUpdnOFr0ceVLYAn/oDCa/HE1hdbk50=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 gopkg.in/retry.v1 v1.0.3 h1:a9CArYczAVv6Qs6VGoLMio99GEs7kY9UzSF9+LD+iGs=
 gopkg.in/retry.v1 v1.0.3/go.mod h1:FJkXmWiMaAo7xB+xhvDF59zhfjDWyzmyAxiT4dB688g=

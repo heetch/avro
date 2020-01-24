@@ -1,5 +1,5 @@
 {
-                "name": "SomeEvent",
+                "name": "CloudEvent",
                 "type": "record",
                 "fields": [
                     {
@@ -18,7 +18,10 @@
                                 },
                                 {
                                     "name": "time",
-                                    "type": "long"
+                                    "type": {
+                                        "type": "long",
+                                        "logicalType": "timestamp-micros"
+                                    }
                                 }
                             ],
                             "namespace": "avro.apache.org"
