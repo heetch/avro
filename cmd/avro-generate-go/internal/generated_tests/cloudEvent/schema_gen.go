@@ -25,8 +25,6 @@ func (Metadata) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 type CloudEvent struct {
 	Metadata Metadata
 }
@@ -40,5 +38,3 @@ func (CloudEvent) AvroRecord() avrotypegen.RecordInfo {
 		},
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?

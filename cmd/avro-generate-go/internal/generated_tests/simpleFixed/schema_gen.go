@@ -20,6 +20,4 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 type Five [5]byte

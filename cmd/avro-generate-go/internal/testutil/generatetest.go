@@ -70,6 +70,7 @@ func (subtest RoundTripSubtest) runTest(c *qt.C, test RoundTripTest, inCodec *go
 	outData, outSchema, err := avro.Marshal(x.Elem().Interface())
 	subtest.checkError(c, MarshalError, err)
 	c.Logf("output data: %x", outData)
+	c.Logf("output schema: %s", outSchema)
 	outCodec, err := goavro.NewCodec(outSchema.String())
 	c.Assert(err, qt.Equals, nil, qt.Commentf("outSchema: %s", outSchema))
 	native, remaining, err := outCodec.NativeFromBinary(outData)

@@ -89,6 +89,7 @@ func (n *Names) RenameType(x interface{}, newName string, newAliases ...string) 
 	// TODO on the errors below, we could just ignore the Add and return n unchanged.
 	// The caller will get an error if they ever try to use the type
 	// for encoding or decoding, so maybe that's OK.
+	// See https://github.com/heetch/avro/issues/38
 	t, err := TypeOf(x)
 	if err != nil {
 		panic(fmt.Errorf("cannot rename %T to %q: cannot get Avro type: %v", x, newName, err))

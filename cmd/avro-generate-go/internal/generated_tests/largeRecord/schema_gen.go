@@ -26,8 +26,6 @@ func (Data1) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 // Trace1
 
 type Trace1 struct {
@@ -42,8 +40,6 @@ func (Trace1) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 // A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014
 
 type UUID1 struct {
@@ -56,8 +52,6 @@ func (UUID1) AvroRecord() avrotypegen.RecordInfo {
 		Schema: `{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID1","namespace":"bodyworks.datatype","type":"record"}`,
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // GoGen test
 
@@ -75,8 +69,6 @@ func (Sample) AvroRecord() avrotypegen.RecordInfo {
 		Schema: `{"doc":"GoGen test","fields":[{"default":null,"doc":"Core data information required for any event","name":"header","type":["null",{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace0","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null","headerworks.datatype.UUID0"]}],"name":"Trace0","type":"record"}]}],"name":"Data0","namespace":"headerworks","type":"record"}]},{"default":null,"doc":"Core data information required for any event","name":"body","type":["null",{"doc":"Common information related to the event which must be included in any clean event","fields":[{"default":null,"doc":"Unique identifier for the event used for de-duplication and tracing.","name":"uuid","type":["null",{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID1","namespace":"bodyworks.datatype","type":"record"}]},{"default":null,"doc":"Fully qualified name of the host that generated the event that generated the data.","name":"hostname","type":["null","string"]},{"default":null,"doc":"Trace information not redundant with this object","name":"trace","type":["null",{"doc":"Trace1","fields":[{"default":null,"doc":"Trace Identifier","name":"traceId","type":["null","headerworks.datatype.UUID0"]}],"name":"Trace1","type":"record"}]}],"name":"Data1","namespace":"bodyworks","type":"record"}]}],"name":"sample","namespace":"com.avro.test","type":"record"}`,
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?
 
 // Common information related to the event which must be included in any clean event
 
@@ -98,8 +90,6 @@ func (Data0) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 // Trace0
 
 type Trace0 struct {
@@ -114,8 +104,6 @@ func (Trace0) AvroRecord() avrotypegen.RecordInfo {
 	}
 }
 
-// TODO implement MarshalBinary and UnmarshalBinary methods?
-
 // A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014
 
 type UUID0 struct {
@@ -128,5 +116,3 @@ func (UUID0) AvroRecord() avrotypegen.RecordInfo {
 		Schema: `{"doc":"A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014","fields":[{"default":"","name":"uuid","type":"string"}],"name":"UUID0","namespace":"headerworks.datatype","type":"record"}`,
 	}
 }
-
-// TODO implement MarshalBinary and UnmarshalBinary methods?

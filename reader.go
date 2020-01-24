@@ -65,6 +65,7 @@ func (d *decoder) readFloat() float64 {
 
 func (d *decoder) readBytes() []byte {
 	// TODO bounds-check readLong result.
+	// https://github.com/heetch/avro/issues/33
 	size := d.readLong()
 	// Make a temporary buffer for the bytes, limiting the size to
 	// an arbitrary sane default (~2.2GB).

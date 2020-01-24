@@ -59,6 +59,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			f := t.Field(i)
 			if f.Anonymous {
 				// TODO consider struct embedding.
+				// https://github.com/heetch/avro/issues/40
 				return azTypeInfo{}, fmt.Errorf("anonymous fields not supported")
 			}
 			if name, _ := jsonFieldName(f); name == "" {
@@ -87,6 +88,7 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 		return info, nil
 	default:
 		// TODO check for top-level union types too.
+		// See https://github.com/heetch/avro/issues/13
 		debugf("-> unknown")
 		return azTypeInfo{
 			ftype: t,
