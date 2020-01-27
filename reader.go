@@ -26,6 +26,13 @@ func (d *decoder) fill(n int) int {
 	if len(d.buf)-d.scan >= n {
 		return n
 	}
+	if d.readErr != nil {
+		// If there's an error, there's no point in doing
+		// anything more. This is also crucial to avoid
+		// corrupting the buffer when it has been provided by a
+		// caller.
+		return len(d.buf) - d.scan
+	}
 	// Slide any remaining bytes to the
 	// start of the buffer.
 	total := copy(d.buf, d.buf[d.scan:])

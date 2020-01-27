@@ -103,6 +103,9 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 		c.mu.RUnlock()
 		return prog, nil
 	}
+	if debugging {
+		debugf("no hit found for program %T schemaID %v", vt, wID)
+	}
 	wType := c.writerTypes[wID]
 	c.mu.RUnlock()
 
@@ -142,5 +145,6 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 		}
 		return nil, err
 	}
+	c.programs[decoderSchemaPair{vt, wID}] = prog
 	return prog, nil
 }

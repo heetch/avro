@@ -265,6 +265,32 @@ func TestProtobufGeneratedType(t *testing.T) {
 	}`))
 }
 
+func TestUnmarshalDoesNotCorruptData(t *testing.T) {
+	c := qt.New(t)
+	type R struct {
+		A *string
+		B *string
+	}
+	type T struct {
+		R R
+	}
+	x := T{
+		R: R{
+			A: newString("hello"),
+			B: newString("goodbye"),
+		},
+	}
+	data, at, err := avro.Marshal(x)
+	c.Assert(err, qt.Equals, nil)
+	origData := data
+	var x1 T
+	_, err = avro.Unmarshal(data, &x1, at)
+	c.Assert(err, qt.Equals, nil)
+	_, err = avro.Unmarshal(data, &x1, at)
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(data, qt.DeepEquals, []byte(origData))
+}
+
 type OOBPanicEnum int
 
 var enumValues = []string{"a", "b"}
