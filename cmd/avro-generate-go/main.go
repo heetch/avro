@@ -74,7 +74,7 @@ func generateFile(f string) error {
 	}
 
 	outFile := filepath.Base(f)
-	outFile = strings.TrimSuffix(f, filepath.Ext(f)) + "_gen"
+	outFile = strings.TrimSuffix(outFile, filepath.Ext(f)) + "_gen"
 	if *testFlag {
 		outFile += "_test"
 	}

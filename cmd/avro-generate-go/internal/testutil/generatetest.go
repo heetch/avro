@@ -90,10 +90,3 @@ func (subtest RoundTripSubtest) checkError(c *qt.C, kind ErrorType, err error, e
 	args := append([]interface{}{nil}, extra...)
 	c.Assert(err, qt.Equals, args...)
 }
-
-func unmarshalJSON(c *qt.C, s string) interface{} {
-	var x interface{}
-	err := json.Unmarshal([]byte(s), &x)
-	c.Assert(err, qt.Equals, nil)
-	return x
-}
