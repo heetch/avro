@@ -39,6 +39,12 @@ var builtinTypes = map[string]bool{
 	"null":    true,
 }
 
+// Marshal is like the Marshal function except that names
+// in the schema for x are renamed according to names.
+func (names *Names) Marshal(x interface{}) ([]byte, *Type, error) {
+	return marshalAppend(names, nil, reflect.ValueOf(x))
+}
+
 // Rename returns a copy of n that renames oldName to newName
 // with the given aliases when a schema is used.
 //

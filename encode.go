@@ -28,29 +28,11 @@ type encoderInfo struct {
 //
 // See https://avro.apache.org/docs/current/spec.html#binary_encoding
 func Marshal(x interface{}) ([]byte, *Type, error) {
-	return marshalAppend(globalNames, nil, reflect.ValueOf(x))
-}
-
-// Marshal is like the Marshal function except that names
-// in the schema for x are renamed according to names.
-func (names *Names) Marshal(x interface{}) ([]byte, *Type, error) {
-	return marshalAppend(names, nil, reflect.ValueOf(x))
+	return globalNames.Marshal(x)
 }
 
 func marshalAppend(names *Names, buf []byte, xv reflect.Value) (_ []byte, _ *Type, marshalErr error) {
-	avroType, enc := typeEncoder0(names, nil, xv.Type(), azTypeInfo{})
-	if avroType == nil {
-		avroType1, err := avroTypeOf(names, xv.Type())
-		if err != nil {
-			// Shouldn't be able to happen.
-			return nil, nil, err
-		}
-		avroType = avroType1
-		names.goTypeToEncoder.Store(xv.Type(), &encoderInfo{
-			avroType: avroType,
-			encode:   enc,
-		})
-	}
+	avroType, enc := typeEncoder(names, xv.Type())
 	e := &encodeState{
 		Buffer: bytes.NewBuffer(buf),
 	}
@@ -65,6 +47,30 @@ func marshalAppend(names *Names, buf []byte, xv reflect.Value) (_ []byte, _ *Typ
 	}()
 	enc(e, xv)
 	return e.Bytes(), avroType, nil
+}
+
+func typeEncoder(names *Names, t reflect.Type) (*Type, encoderFunc) {
+	// Note: since a Go type can't encode as more than one definition,
+	// we can use a purely Go-type-based cache.
+	enc0, ok := names.goTypeToEncoder.Load(t)
+	if ok {
+		info := enc0.(*encoderInfo)
+		return info.avroType, info.encode
+	}
+	at, err := avroTypeOf(names, t)
+	if err != nil {
+		return nil, errorEncoder(err)
+	}
+	b := &encoderBuilder{
+		names:        names,
+		typeEncoders: make(map[reflect.Type]encoderFunc),
+	}
+	enc := b.typeEncoder(at.avroType, t, azTypeInfo{})
+	names.goTypeToEncoder.LoadOrStore(t, &encoderInfo{
+		avroType: at,
+		encode:   enc,
+	})
+	return at, enc
 }
 
 type encodeState struct {
@@ -89,49 +95,17 @@ type encodeError struct {
 
 type encoderFunc func(e *encodeState, v reflect.Value)
 
-func typeEncoder(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
-	_, enc := typeEncoder0(names, at, t, info)
-	return enc
-}
-
-func typeEncoder0(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) (*Type, encoderFunc) {
-	// Note: since a Go type can't encode as more than one definition,
-	// we can use a purely Go-type-based cache.
-	enc0, ok := names.goTypeToEncoder.Load(t)
-	if ok {
-		info := enc0.(*encoderInfo)
-		return info.avroType, info.encode
-	}
-	var at1 *Type
-	if at == nil {
-		// We haven't been given an Avro type, which happens
-		// when definitionEncoder is called at the top level.
-		// Allowing this means we can do just a single cache
-		// lookup rather than two (one for type->avro type, one
-		// for encoder). The need for it wouldn't be there if
-		// Marshal didn't return the Avro type, but that's quite
-		// nice, so here we are.
-		var err error
-		at1, err = avroTypeOf(names, t)
-		if err != nil {
-			return nil, errorEncoder(err)
-		}
-		at = at1.avroType
-	}
-	enc := typeEncoderUncached(names, at, t, info)
-	// Note that for non-top-level calls, at1 will
-	// be nil - it can be calculated and cached later
-	// if this type is ever used directly.
-	names.goTypeToEncoder.LoadOrStore(t, &encoderInfo{
-		avroType: at1,
-		encode:   enc,
-	})
-	return at1, enc
+type encoderBuilder struct {
+	names        *Names
+	typeEncoders map[reflect.Type]encoderFunc
 }
 
 // typeEncoder returns an encoder that encodes values of type t according
 // to the Avro type at,
-func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+	if enc := b.typeEncoders[t]; enc != nil {
+		return enc
+	}
 	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
 	case *schema.Reference:
@@ -155,7 +129,7 @@ func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info 
 			indexes := make([]int, len(def.Fields()))
 			for i, f := range def.Fields() {
 				fieldIndex := info.entries[i].fieldIndex
-				fieldEncoders[i] = typeEncoder(names, f.Type(), t.Field(fieldIndex).Type, info.entries[i])
+				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.entries[i])
 				indexes[i] = fieldIndex
 			}
 			return structEncoder{
@@ -181,12 +155,12 @@ func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info 
 			case info.entries[0].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{0, 1},
-					encodeElem: typeEncoder(names, atypes[1], info.entries[1].ftype, info.entries[1]),
+					encodeElem: b.typeEncoder(atypes[1], info.entries[1].ftype, info.entries[1]),
 				}.encode
 			case info.entries[1].ftype == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{1, 0},
-					encodeElem: typeEncoder(names, atypes[0], info.entries[0].ftype, info.entries[0]),
+					encodeElem: b.typeEncoder(atypes[0], info.entries[0].ftype, info.entries[0]),
 				}.encode
 			default:
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
@@ -202,7 +176,7 @@ func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info 
 				} else {
 					enc.choices[i] = unionEncoderChoice{
 						typ: entry.ftype,
-						enc: typeEncoder(names, atypes[i], entry.ftype, entry),
+						enc: b.typeEncoder(atypes[i], entry.ftype, entry),
 					}
 				}
 			}
@@ -211,9 +185,9 @@ func typeEncoderUncached(names *Names, at schema.AvroType, t reflect.Type, info 
 			return errorEncoder(fmt.Errorf("union type is not pointer or interface"))
 		}
 	case *schema.MapField:
-		return mapEncoder{typeEncoder(names, at.ItemType(), t.Elem(), info)}.encode
+		return mapEncoder{b.typeEncoder(at.ItemType(), t.Elem(), info)}.encode
 	case *schema.ArrayField:
-		return arrayEncoder{typeEncoder(names, at.ItemType(), t.Elem(), info)}.encode
+		return arrayEncoder{b.typeEncoder(at.ItemType(), t.Elem(), info)}.encode
 	case *schema.BoolField:
 		return boolEncoder
 	case *schema.BytesField:
