@@ -68,6 +68,9 @@ type decodeError struct {
 // unmarshal unmarshals Avro binary data from r and writes it to target
 // following the given program.
 func unmarshal(r io.Reader, buf []byte, prog *decodeProgram, target reflect.Value) (_ *Type, err error) {
+	if debugging {
+		debugf("unmarshal %x into %s", buf, target.Type())
+	}
 	defer func() {
 		switch panicErr := recover().(type) {
 		case *decodeError:
@@ -92,15 +95,19 @@ func unmarshal(r io.Reader, buf []byte, prog *decodeProgram, target reflect.Valu
 }
 
 func (d *decoder) eval(target reflect.Value) {
-	if target.IsValid() {
-		debugf("eval %s", target.Type())
-	} else {
-		debugf("eval nil")
+	if debugging {
+		if target.IsValid() {
+			debugf("eval %s", target.Type())
+		} else {
+			debugf("eval nil")
+		}
+		defer debugf("}")
 	}
-	defer debugf("}")
 	var frame stackFrame
 	for ; d.pc < len(d.program.Instructions); d.pc++ {
-		debugf("x %d: %v", d.pc, d.program.Instructions[d.pc])
+		if debugging {
+			debugf("x %d: %v", d.pc, d.program.Instructions[d.pc])
+		}
 		switch inst := d.program.Instructions[d.pc]; inst.Op {
 		case vm.Read:
 			switch inst.Operand {
@@ -126,7 +133,9 @@ func (d *decoder) eval(target reflect.Value) {
 				frame.Bytes = d.readFixed(inst.Operand - 11)
 			}
 		case vm.Set:
-			debugf("%v on %s", inst, target.Type())
+			if debugging {
+				debugf("%v on %s", inst, target.Type())
+			}
 			switch inst.Operand {
 			case vm.Null:
 			case vm.Boolean:
@@ -170,14 +179,18 @@ func (d *decoder) eval(target reflect.Value) {
 			target.Field(inst.Operand).Set(v)
 		case vm.Enter:
 			val, isRef := d.program.enter[d.pc](target)
-			debugf("enter %d -> %#v (isRef %v) {", inst.Operand, val, isRef)
+			if debugging {
+				debugf("enter %d -> %#v (isRef %v) {", inst.Operand, val, isRef)
+			}
 			d.pc++
 			d.eval(val)
 			if !isRef {
 				target.Set(val)
 			}
 		case vm.Exit:
-			debugf("}")
+			if debugging {
+				debugf("}")
+			}
 			return
 		case vm.AppendArray:
 			target.Set(reflect.Append(target, reflect.Zero(target.Type().Elem())))

@@ -36,7 +36,9 @@ type azTypeInfo struct {
 }
 
 func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
-	debugf("azTypeInfo(%v)", t)
+	if debugging {
+		debugf("azTypeInfo(%v)", t)
+	}
 	switch t.Kind() {
 	case reflect.Struct:
 		info := azTypeInfo{
@@ -84,12 +86,16 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			entry := newAzTypeInfoFromField(f, required, makeDefault, unionInfo)
 			info.entries = append(info.entries, entry)
 		}
-		debugf("-> record, %d entries", len(info.entries))
+		if debugging {
+			debugf("-> record, %d entries", len(info.entries))
+		}
 		return info, nil
 	default:
 		// TODO check for top-level union types too.
 		// See https://github.com/heetch/avro/issues/13
-		debugf("-> unknown")
+		if debugging {
+			debugf("-> unknown")
+		}
 		return azTypeInfo{
 			ftype: t,
 		}, nil

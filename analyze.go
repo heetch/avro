@@ -68,6 +68,9 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine schema for %s: %v", t, err)
 	}
+	if debugging {
+		debugf("compiling:\nwriter type: %s\nreader type: %s\n", writerType, readerType)
+	}
 	prog, err := compiler.Compile(writerType.avroType, readerType.avroType)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create decoder: %v", err)
@@ -91,7 +94,9 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 		enter:       make([]func(reflect.Value) (reflect.Value, bool), len(prog.Instructions)),
 		makeDefault: make([]func() reflect.Value, len(prog.Instructions)),
 	}
-	debugf("analyze %d instructions\n%s {", len(prog.Instructions), prog)
+	if debugging {
+		debugf("analyze %d instructions; type %s\n%s {", len(prog.Instructions), t, prog)
+	}
 	defer debugf("}")
 	info, err := newAzTypeInfo(t)
 	if err != nil {
@@ -126,9 +131,13 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 }
 
 func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
-	debugf("eval %v; path %s{", stack, pathStr(path))
+	if debugging {
+		debugf("analyzer.eval %v; path %s{", stack, pathStr(path))
+	}
 	defer func() {
-		debugf("} -> %v", retErr)
+		if debugging {
+			debugf("} -> %v", retErr)
+		}
 	}()
 	for {
 		pc := stack[len(stack)-1]
@@ -140,7 +149,9 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			// of the current path.
 			a.pcInfo[pc].path = append(a.pcInfo[pc].path, path...)
 		} else {
-			debugf("already evaluated instruction %d", pc)
+			if debugging {
+				debugf("already evaluated instruction %d", pc)
+			}
 			// We've already visited this instruction which
 			// means we can stop analysing here.
 			// Make sure that the path is consistent though,
@@ -150,12 +161,17 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			}
 			return nil
 		}
-		debugf("exec %d: %v", pc, a.prog.Instructions[pc])
+		if debugging {
+			debugf("exec %d: %v", pc, a.prog.Instructions[pc])
+		}
 
 		elem := path[len(path)-1]
 		switch inst := a.prog.Instructions[pc]; inst.Op {
 		case vm.Set:
 			if elem.info.isUnion {
+				if debugging {
+					debugf("patching Set to Nop")
+				}
 				// Set on a union type is just to set the type of the union,
 				// which is implicit with the next Enter, so we want to just
 				// ignore the instruction, so replace it with a jump to the next instruction,
@@ -179,7 +195,9 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 				return fmt.Errorf("union index out of bounds; pc %d; type %s", pc, elem.ftype)
 			}
 			info := elem.info.entries[index]
-			debugf("enter %d -> %v, %d entries", index, info.ftype, len(info.entries))
+			if debugging {
+				debugf("enter %d -> %v, %d entries", index, info.ftype, len(info.entries))
+			}
 			if info.ftype == nil {
 				// Special case for the nil value. Return
 				// a zero value that will never be used.
@@ -270,7 +288,9 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			}
 			stack = stack[:len(stack)-1]
 		case vm.CondJump:
-			debugf("split {")
+			if debugging {
+				debugf("split {")
+			}
 			// Execute one path of the condition with a forked
 			// version of the state before carrying on with the
 			// current execution flow.
@@ -282,7 +302,9 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			if err := a.eval(stack1, path1); err != nil {
 				return err
 			}
-			debugf("}")
+			if debugging {
+				debugf("}")
+			}
 		case vm.Jump:
 			stack[len(stack)-1] = inst.Operand - 1
 		case vm.EvalGreater,
