@@ -17,12 +17,29 @@ PrimitiveType :: "null" | "boolean" | "int" | "long" | "float" | "double" | "byt
 
 Union :: [... Schema]
 
+// Metadata can be used to allow extra metadata fields.
+// The specification allows extra fields by default, but
+// this schema disallows them unless explicitly added
+// to this definition so that spelling mistakes aren't just ignored.
+//
+// For example, to allow all metadata fields as per the spec:
+//
+//	import (
+//		avroPkg "github.com/heetch/cue-schema/avro"
+//	)
+//
+//	avro :: avroPkg
+//	avro :: Metadata :: [_]: _
+//	mySchema: avro.Schema & {...}
+Metadata :: {}
+
 Definition :: {
 	type: string
 	name:       DefinedType
 	namespace?: =~#"^([A-Za-z_][A-Za-z0-9_]*)(\.([A-Za-z_][A-Za-z0-9_]*))*"#
 	aliases?: [...string]
 	doc?: string
+	Metadata
 }
 
 Record :: {
@@ -33,6 +50,7 @@ Record :: {
 }
 
 Field :: {
+	Metadata
 	name:     string
 	doc?:     string
 	type:     Schema
@@ -57,11 +75,13 @@ Enum :: {
 }
 
 Array :: {
+	Metadata
 	type:  "array"
 	items: Schema
 }
 
 Map :: {
+	Metadata
 	type:   "map"
 	values: Schema
 }
@@ -84,6 +104,7 @@ DecimalFixed :: {
 	Fixed
 	logicalType: "decimal"
 	precision:   >0
+	// TODO constrain
 	// Can't yet do bitwise shifts in Cue. https://github.com/cuelang/cue/issues/156
 	// precision: <= math.Floor(math.Log10(math.Pow(2, 8 * (n - 1))))
 	scale?: *0 | (>=0 & <=precision)

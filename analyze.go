@@ -2,12 +2,15 @@ package avro
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/rogpeppe/gogen-avro/v7/compiler"
 	"github.com/rogpeppe/gogen-avro/v7/vm"
+
+	"github.com/heetch/avro/internal/typeinfo"
 )
 
 var (
@@ -83,7 +86,7 @@ type pathElem struct {
 	// ftype holds the type of the value at the given index.
 	ftype reflect.Type
 	// info holds the type info for the element.
-	info azTypeInfo
+	info typeinfo.Info
 }
 
 // compileDecoder returns a decoder program to decode into values of the given type
@@ -124,7 +127,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 		debugf("analyze %d instructions; type %s\n%s {", len(prog.Instructions), t, prog)
 	}
 	defer debugf("}")
-	info, err := newAzTypeInfo(t)
+	info, err := typeinfo.ForType(t)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +208,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 		elem := path[len(path)-1]
 		switch inst := a.prog.Instructions[pc]; inst.Op {
 		case vm.Set:
-			if elem.info.isUnion {
+			if elem.info.IsUnion {
 				if debugging {
 					debugf("patching Set to Nop")
 				}
@@ -228,14 +231,14 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			elem := &path[len(path)-1]
 			index := inst.Operand
 
-			if index >= len(elem.info.entries) {
+			if index >= len(elem.info.Entries) {
 				return fmt.Errorf("union index out of bounds; pc %d; type %s", pc, elem.ftype)
 			}
-			info := elem.info.entries[index]
+			info := elem.info.Entries[index]
 			if debugging {
-				debugf("enter %d -> %v, %d entries", index, info.ftype, len(info.entries))
+				debugf("enter %d -> %v, %d entries", index, info.Type, len(info.Entries))
 			}
-			if info.ftype == nil {
+			if info.Type == nil {
 				// Special case for the nil value. Return
 				// a zero value that will never be used.
 				a.enter[pc] = func(v reflect.Value) (reflect.Value, bool) {
@@ -249,37 +252,37 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			var enter func(v reflect.Value) (reflect.Value, bool)
 			switch elem.ftype.Kind() {
 			case reflect.Struct:
-				fieldIndex := info.fieldIndex
+				fieldIndex := info.FieldIndex
 				enter = func(v reflect.Value) (reflect.Value, bool) {
 					return v.Field(fieldIndex), true
 				}
 			case reflect.Interface:
 				enter = func(v reflect.Value) (reflect.Value, bool) {
-					return reflect.New(info.ftype).Elem(), false
+					return reflect.New(info.Type).Elem(), false
 				}
 			case reflect.Ptr:
-				if len(elem.info.entries) != 2 {
+				if len(elem.info.Entries) != 2 {
 					return fmt.Errorf("pointer type without a two-member union")
 				}
 				enter = func(v reflect.Value) (reflect.Value, bool) {
-					inner := reflect.New(info.ftype)
+					inner := reflect.New(info.Type)
 					v.Set(inner)
 					return inner.Elem(), true
 				}
 			default:
 				return fmt.Errorf("unexpected type in union %T", elem.ftype)
 			}
-			if len(info.entries) == 0 {
+			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
-				info1, err := newAzTypeInfo(info.ftype)
+				info1, err := typeinfo.ForType(info.Type)
 				if err != nil {
-					return fmt.Errorf("cannot get info for %s: %v", info.ftype, err)
+					return fmt.Errorf("cannot get info for %s: %v", info.Type, err)
 				}
 				info = info1
 			}
 			path = append(path, pathElem{
 				index: index,
-				ftype: info.ftype,
+				ftype: info.Type,
 				info:  info,
 			})
 			a.enter[pc] = enter
@@ -309,14 +312,14 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			path = path[:len(path)-1]
 		case vm.SetDefault:
 			index := inst.Operand
-			if index >= len(elem.info.entries) {
+			if index >= len(elem.info.Entries) {
 				return fmt.Errorf("set-default index out of bounds; pc %d; type %s", pc, elem.ftype)
 			}
-			info := elem.info.entries[index]
-			if info.makeDefault == nil {
+			info := elem.info.Entries[index]
+			if info.MakeDefault == nil {
 				return fmt.Errorf("no default info found at index %d at %v", index, pathStr(path))
 			}
-			a.makeDefault[pc] = info.makeDefault
+			a.makeDefault[pc] = info.MakeDefault
 		case vm.Call:
 			found := false
 			for _, pc := range calls {
@@ -442,4 +445,12 @@ func operandString(op int) string {
 		return fmt.Sprintf("unknown%d", op)
 	}
 	return operandStrings[op]
+}
+
+const debugging = false
+
+func debugf(f string, a ...interface{}) {
+	if debugging {
+		log.Printf(f, a...)
+	}
 }

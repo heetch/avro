@@ -37,7 +37,7 @@ func (test RoundTripTest) Test(t *testing.T) {
 
 	// Translate the JSON input data into binary using the input schema.
 	inCodec, err := goavro.NewCodec(test.InSchema)
-	c.Assert(err, qt.Equals, nil)
+	c.Assert(err, qt.Equals, nil, qt.Commentf("inSchema: %s", test.InSchema))
 	for _, subtest := range test.Subtests {
 		c.Run(subtest.TestName, func(c *qt.C) {
 			subtest.runTest(c, test, inCodec)

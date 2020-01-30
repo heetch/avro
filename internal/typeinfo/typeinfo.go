@@ -1,49 +1,51 @@
-package avro
+package typeinfo
 
 import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/heetch/avro/avrotypegen"
 )
 
-// azTypeInfo is the representation of the above types used
+// Info is the representation of Go types used
 // by the analyzer. It can represent a record, a field or a type
 // inside one of those.
-type azTypeInfo struct {
-	// ftype holds the Go type used for this Avro type (or nil for null).
-	ftype reflect.Type
+type Info struct {
+	// Type holds the Go type used for this Avro type (or nil for null).
+	Type reflect.Type
 
-	// fieldIndex holds the index of the field if this entry is about
+	// FieldIndex holds the index of the field if this entry is about
 	// a struct field.
-	fieldIndex int
+	FieldIndex int
 
-	// makeDefault is a function that returns the default
+	// MakeDefault is a function that returns the default
 	// value for a field, or nil if there is no default value.
-	makeDefault func() reflect.Value
+	MakeDefault func() reflect.Value
 
-	// isUnion holds whether this info is about a union type
+	// IsUnion holds whether this info is about a union type
 	// (if not, it's about a struct).
-	isUnion bool
+	IsUnion bool
 
 	// Entries holds the possible types that can
 	// be descended in from this type.
 	// For structs (records) this holds an entry
 	// for each field; for union types, this holds an
 	// entry for each possible type in the union.
-	entries []azTypeInfo
+	Entries []Info
 }
 
-func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
+// ForType returns the Info for the given Go type.
+func ForType(t reflect.Type) (Info, error) {
 	if debugging {
-		debugf("azTypeInfo(%v)", t)
+		debugf("Info(%v)", t)
 	}
 	switch t.Kind() {
 	case reflect.Struct:
-		info := azTypeInfo{
-			ftype:   t,
-			entries: make([]azTypeInfo, 0, t.NumField()),
+		info := Info{
+			Type:    t,
+			Entries: make([]Info, 0, t.NumField()),
 		}
 		// Note that RecordInfo is defined in such a way that
 		// the zero value gives useful defaults for a normal Go
@@ -62,9 +64,9 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			if f.Anonymous {
 				// TODO consider struct embedding.
 				// https://github.com/heetch/avro/issues/40
-				return azTypeInfo{}, fmt.Errorf("anonymous fields not supported")
+				return Info{}, fmt.Errorf("anonymous fields not supported")
 			}
-			if name, _ := jsonFieldName(f); name == "" {
+			if name, _ := JSONFieldName(f); name == "" {
 				continue
 			}
 			var required bool
@@ -83,11 +85,11 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 			if i < len(r.Unions) {
 				unionInfo = r.Unions[i]
 			}
-			entry := newAzTypeInfoFromField(f, required, makeDefault, unionInfo)
-			info.entries = append(info.entries, entry)
+			entry := forField(f, required, makeDefault, unionInfo)
+			info.Entries = append(info.Entries, entry)
 		}
 		if debugging {
-			debugf("-> record, %d entries", len(info.entries))
+			debugf("-> record, %d entries", len(info.Entries))
 		}
 		return info, nil
 	default:
@@ -96,13 +98,13 @@ func newAzTypeInfo(t reflect.Type) (azTypeInfo, error) {
 		if debugging {
 			debugf("-> unknown")
 		}
-		return azTypeInfo{
-			ftype: t,
+		return Info{
+			Type: t,
 		}, nil
 	}
 }
 
-func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault func() reflect.Value, unionInfo avrotypegen.UnionInfo) azTypeInfo {
+func forField(f reflect.StructField, required bool, makeDefault func() reflect.Value, unionInfo avrotypegen.UnionInfo) Info {
 	t := f.Type
 	if t.Kind() == reflect.Ptr && len(unionInfo.Union) == 0 {
 		// It's a pointer but there's no explicit union entry, which means that
@@ -139,31 +141,57 @@ func newAzTypeInfoFromField(f reflect.StructField, required bool, makeDefault fu
 			return v
 		}
 	}
-	info := azTypeInfo{
-		ftype:       t,
-		fieldIndex:  f.Index[0],
-		makeDefault: makeDefault,
+	info := Info{
+		Type:        t,
+		FieldIndex:  f.Index[0],
+		MakeDefault: makeDefault,
 	}
 	setUnionInfo(&info, unionInfo)
 	return info
 }
 
-func setUnionInfo(info *azTypeInfo, unionInfo avrotypegen.UnionInfo) {
+func setUnionInfo(info *Info, unionInfo avrotypegen.UnionInfo) {
 	if len(unionInfo.Union) == 0 {
 		return
 	}
-	info.isUnion = true
-	info.entries = make([]azTypeInfo, len(unionInfo.Union))
+	info.IsUnion = true
+	info.Entries = make([]Info, len(unionInfo.Union))
 	for i, u := range unionInfo.Union {
 		var ut reflect.Type
 		if u.Type != nil {
 			ut = reflect.TypeOf(u.Type).Elem()
 		}
-		info.entries[i] = azTypeInfo{
-			ftype: ut,
+		info.Entries[i] = Info{
+			Type: ut,
 		}
-		setUnionInfo(&info.entries[i], u)
+		setUnionInfo(&info.Entries[i], u)
 	}
+}
+
+// JSONFieldName returns the name that the field will be given
+// when marshaled to JSON, or the empty string if
+// the field is ignored.
+// It also reports whether the field has been qualified with
+// the "omitempty" qualifier.
+func JSONFieldName(f reflect.StructField) (name string, omitEmpty bool) {
+	if f.PkgPath != "" {
+		// It's unexported.
+		return "", false
+	}
+	tag := f.Tag.Get("json")
+	parts := strings.Split(tag, ",")
+	for _, part := range parts[1:] {
+		if part == "omitempty" {
+			omitEmpty = true
+		}
+	}
+	switch {
+	case parts[0] == "":
+		return f.Name, omitEmpty
+	case parts[0] == "-":
+		return "", omitEmpty
+	}
+	return parts[0], omitEmpty
 }
 
 const debugging = false

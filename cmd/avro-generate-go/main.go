@@ -9,6 +9,17 @@
 //	  -p string
 //	    	package name (defaults to $GOPACKAGE)
 //	  -t	generated files will have _test.go suffix
+//	  -map string
+//	    	map from Avro namespace to Go package.
+//
+// By default, a type is generated for each Avro definition
+// in the schema. Some additional metadata fields are
+// recognized:
+//
+// - If a definition has a "go.package" metadata
+// field, the type from that package will be used instead.
+// - If a definition has a "go.name" metadata field,
+// the associated string will be used for the Go type name.
 package main
 
 import (

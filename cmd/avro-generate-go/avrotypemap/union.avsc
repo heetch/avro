@@ -1,0 +1,31 @@
+{
+    "name": "U",
+    "type": "record",
+    "fields": [
+        {
+            "name": "F",
+            "type": [
+                {
+                    "name": "UR1",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "A",
+                            "type": "int"
+                        }
+                    ]
+                },
+                {
+                    "name": "UR2",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "B",
+                            "type": "int"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

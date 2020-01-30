@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/rogpeppe/gogen-avro/v7/schema"
+
+	"github.com/heetch/avro/internal/typeinfo"
 )
 
 // Set to true for deterministic output.
@@ -65,7 +67,7 @@ func typeEncoder(names *Names, t reflect.Type) (*Type, encoderFunc) {
 		names:        names,
 		typeEncoders: make(map[reflect.Type]encoderFunc),
 	}
-	enc := b.typeEncoder(at.avroType, t, azTypeInfo{})
+	enc := b.typeEncoder(at.avroType, t, typeinfo.Info{})
 	names.goTypeToEncoder.LoadOrStore(t, &encoderInfo{
 		avroType: at,
 		encode:   enc,
@@ -102,7 +104,7 @@ type encoderBuilder struct {
 
 // typeEncoder returns an encoder that encodes values of type t according
 // to the Avro type at,
-func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info azTypeInfo) encoderFunc {
+func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info typeinfo.Info) encoderFunc {
 	if enc := b.typeEncoders[t]; enc != nil {
 		return enc
 	}
@@ -114,16 +116,16 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 			if t.Kind() != reflect.Struct {
 				return errorEncoder(fmt.Errorf("expected struct"))
 			}
-			if len(info.entries) == 0 {
+			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
-				info1, err := newAzTypeInfo(t)
+				info1, err := typeinfo.ForType(t)
 				if err != nil {
-					return errorEncoder(fmt.Errorf("cannot get info for %s: %v", info.ftype, err))
+					return errorEncoder(fmt.Errorf("cannot get info for %s: %v", info.Type, err))
 				}
 				info = info1
 			}
-			if len(info.entries) != len(def.Fields()) {
-				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.entries), len(def.Fields()), t, def.Name()))
+			if len(info.Entries) != len(def.Fields()) {
+				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.Entries), len(def.Fields()), t, def.Name()))
 			}
 			// To avoid an infinite loop on recursive types, make an
 			// entry in the type-encoder map which will use the real
@@ -142,8 +144,8 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 			fieldEncoders := make([]encoderFunc, len(def.Fields()))
 			indexes := make([]int, len(def.Fields()))
 			for i, f := range def.Fields() {
-				fieldIndex := info.entries[i].fieldIndex
-				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.entries[i])
+				fieldIndex := info.Entries[i].FieldIndex
+				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.Entries[i])
 				indexes[i] = fieldIndex
 			}
 			enc = structEncoder{
@@ -167,15 +169,15 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 				return errorEncoder(fmt.Errorf("unexpected item type count in union"))
 			}
 			switch {
-			case info.entries[0].ftype == nil:
+			case info.Entries[0].Type == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{0, 1},
-					encodeElem: b.typeEncoder(atypes[1], info.entries[1].ftype, info.entries[1]),
+					encodeElem: b.typeEncoder(atypes[1], info.Entries[1].Type, info.Entries[1]),
 				}.encode
-			case info.entries[1].ftype == nil:
+			case info.Entries[1].Type == nil:
 				return ptrUnionEncoder{
 					indexes:    [2]byte{1, 0},
-					encodeElem: b.typeEncoder(atypes[0], info.entries[0].ftype, info.entries[0]),
+					encodeElem: b.typeEncoder(atypes[0], info.Entries[0].Type, info.Entries[0]),
 				}.encode
 			default:
 				return errorEncoder(fmt.Errorf("unexpected types in union"))
@@ -183,15 +185,15 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 		case reflect.Interface:
 			enc := unionEncoder{
 				nullIndex: -1,
-				choices:   make([]unionEncoderChoice, len(info.entries)),
+				choices:   make([]unionEncoderChoice, len(info.Entries)),
 			}
-			for i, entry := range info.entries {
-				if entry.ftype == nil {
+			for i, entry := range info.Entries {
+				if entry.Type == nil {
 					enc.nullIndex = i
 				} else {
 					enc.choices[i] = unionEncoderChoice{
-						typ: entry.ftype,
-						enc: b.typeEncoder(atypes[i], entry.ftype, entry),
+						typ: entry.Type,
+						enc: b.typeEncoder(atypes[i], entry.Type, entry),
 					}
 				}
 			}
@@ -231,19 +233,8 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info az
 }
 
 func logicalType(t schema.AvroType) string {
-	// Until https://github.com/actgardner/gogen-avro/issues/119
-	// is fixed, we can't access metadata in general without a
-	// race condition, so implement logicalType only
-	// for the types that we currently care about, which
-	// don't mutate themselves when Definition is called.
-	switch t := t.(type) {
-	case *schema.LongField, *schema.IntField:
-		defn, _ := t.Definition(emptyScope())
-		defn1, _ := defn.(map[string]interface{})
-		lt, _ := defn1["logicalType"].(string)
-		return lt
-	}
-	return ""
+	s, _ := t.Attribute("logicalType").(string)
+	return s
 }
 
 func timestampMillisEncoder(e *encodeState, v reflect.Value) {
