@@ -146,3 +146,34 @@ tests: largeRecord: {
 	}
 	outData: inData
 }
+
+tests: duplicateRecord: {
+	inSchema: {
+		name: "R1"
+		type: "record"
+		fields: [{
+			name: "F"
+			type: {
+				type: "record"
+				name: "R2"
+				fields: [{
+					name: "A"
+					type: "string"
+				}]
+			}
+		}, {
+			name: "G"
+			type: "R2"
+		}, {
+			name: "H"
+			type: "int"
+		}]
+	}
+	outSchema: inSchema
+	inData: {
+		F: A: "hello"
+		G: A: "goodbye"
+		H: 99
+	}
+ 	outData: inData
+}

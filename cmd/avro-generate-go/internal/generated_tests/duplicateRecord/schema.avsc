@@ -1,0 +1,27 @@
+{
+                "name": "R1",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "F",
+                        "type": {
+                            "name": "R2",
+                            "type": "record",
+                            "fields": [
+                                {
+                                    "name": "A",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "G",
+                        "type": "R2"
+                    },
+                    {
+                        "name": "H",
+                        "type": "int"
+                    }
+                ]
+            }
