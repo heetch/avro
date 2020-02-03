@@ -48,6 +48,32 @@ type pcInfo struct {
 	// instruction encountered when executing the VM up
 	// until the instruction.
 	path []pathElem
+
+	// traces holds the set of call stacks we've found that lead
+	// to this instruction.
+	traces [][]int
+}
+
+func (info *pcInfo) addTrace(stack []int) bool {
+	for _, st := range info.traces {
+		if stackeq(st, stack) {
+			return false
+		}
+	}
+	info.traces = append(info.traces, append([]int(nil), stack...))
+	return true
+}
+
+func stackeq(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 type pathElem struct {
@@ -102,7 +128,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 	if err != nil {
 		return nil, err
 	}
-	if err := a.eval([]int{0}, []pathElem{{
+	if err := a.eval([]int{0}, nil, []pathElem{{
 		ftype: t,
 		info:  info,
 	}}); err != nil {
@@ -130,7 +156,15 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 	return prog1, nil
 }
 
-func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
+// eval runs a limited evaluation of the program to determine the appropriate
+// action to take for each Enter and SetDefault instruction.
+// The stack holds the program counter stack; calls holds the
+// called PCs (the start of each function in the stack) and path
+// holds info on the Go type at each level of the enter/exit stack.
+//
+// When the analysis is complete, we should have reached all
+// instructions in the program.
+func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error) {
 	if debugging {
 		debugf("analyzer.eval %v; path %s{", stack, pathStr(path))
 	}
@@ -152,14 +186,17 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			if debugging {
 				debugf("already evaluated instruction %d", pc)
 			}
-			// We've already visited this instruction which
-			// means we can stop analysing here.
-			// Make sure that the path is consistent though,
-			// to sanity-check our assumptions about the VM.
+			// Sanity-check our assumptions about the VM:
+			// we should always be inside the same path if
+			// we're at the same PC.
 			if !equalPathRef(path, a.pcInfo[pc].path) {
 				return fmt.Errorf("type mismatch (\n\tprevious %s\n\tnew %s\n)", pathStr(a.pcInfo[pc].path), pathStr(path))
 			}
-			return nil
+			if !a.pcInfo[pc].addTrace(stack) {
+				// We've been exactly here before,
+				// so we can stop analysing.
+				return nil
+			}
 		}
 		if debugging {
 			debugf("exec %d: %v", pc, a.prog.Instructions[pc])
@@ -281,12 +318,25 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			}
 			a.makeDefault[pc] = info.makeDefault
 		case vm.Call:
-			stack = append(stack, inst.Operand-1)
+			found := false
+			for _, pc := range calls {
+				if pc == inst.Operand {
+					// We've already called this in the current stack, so
+					// it's a recursive call, so ignore it.
+					found = true
+					break
+				}
+			}
+			if !found {
+				calls = append(calls, inst.Operand)
+				stack = append(stack, inst.Operand-1)
+			}
 		case vm.Return:
 			if len(stack) == 0 {
 				return fmt.Errorf("empty stack")
 			}
 			stack = stack[:len(stack)-1]
+			calls = calls[:len(calls)-1]
 		case vm.CondJump:
 			if debugging {
 				debugf("split {")
@@ -297,9 +347,11 @@ func (a *analyzer) eval(stack []int, path []pathElem) (retErr error) {
 			stack1 := make([]int, len(stack), cap(stack))
 			copy(stack1, stack)
 			stack1[len(stack1)-1] = inst.Operand
+			calls1 := make([]int, len(calls))
+			copy(calls1, calls)
 			path1 := make([]pathElem, len(path), cap(path))
 			copy(path1, path)
-			if err := a.eval(stack1, path1); err != nil {
+			if err := a.eval(stack1, calls1, path1); err != nil {
 				return err
 			}
 			if debugging {

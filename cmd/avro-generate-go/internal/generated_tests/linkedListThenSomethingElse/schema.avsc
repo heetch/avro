@@ -1,0 +1,31 @@
+{
+                "name": "R",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "L",
+                        "type": {
+                            "name": "List",
+                            "type": "record",
+                            "fields": [
+                                {
+                                    "name": "Item",
+                                    "type": "int"
+                                },
+                                {
+                                    "name": "Next",
+                                    "type": [
+                                        "null",
+                                        "List"
+                                    ],
+                                    "default": null
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "M",
+                        "type": "int"
+                    }
+                ]
+            }
