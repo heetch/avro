@@ -108,7 +108,6 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 	if enc := b.typeEncoders[t]; enc != nil {
 		return enc
 	}
-	// TODO cache this so it's faster and so that we can deal with recursive types.
 	switch at := at.(type) {
 	case *schema.Reference:
 		switch def := at.Def.(type) {
@@ -123,9 +122,6 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 					return errorEncoder(fmt.Errorf("cannot get info for %s: %v", info.Type, err))
 				}
 				info = info1
-			}
-			if len(info.Entries) != len(def.Fields()) {
-				return errorEncoder(fmt.Errorf("entry count mismatch (info entries %d vs definition fields %d; %s vs %s)", len(info.Entries), len(def.Fields()), t, def.Name()))
 			}
 			// To avoid an infinite loop on recursive types, make an
 			// entry in the type-encoder map which will use the real
@@ -144,7 +140,11 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			fieldEncoders := make([]encoderFunc, len(def.Fields()))
 			indexes := make([]int, len(def.Fields()))
 			for i, f := range def.Fields() {
-				fieldIndex := info.Entries[i].FieldIndex
+				fieldInfo, ok := entryByName(info.Entries, f.Name())
+				if !ok {
+					return errorEncoder(fmt.Errorf("field %q not found in %s", f.Name(), t))
+				}
+				fieldIndex := fieldInfo.FieldIndex
 				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.Entries[i])
 				indexes[i] = fieldIndex
 			}

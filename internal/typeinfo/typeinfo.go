@@ -16,6 +16,9 @@ type Info struct {
 	// Type holds the Go type used for this Avro type (or nil for null).
 	Type reflect.Type
 
+	// FieldName holds the Avro name of the field.
+	FieldName string
+
 	// FieldIndex holds the index of the field if this entry is about
 	// a struct field.
 	FieldIndex int
@@ -66,7 +69,7 @@ func ForType(t reflect.Type) (Info, error) {
 				// https://github.com/heetch/avro/issues/40
 				return Info{}, fmt.Errorf("anonymous fields not supported")
 			}
-			if name, _ := JSONFieldName(f); name == "" {
+			if shouldOmitField(f) {
 				continue
 			}
 			var required bool
@@ -141,9 +144,11 @@ func forField(f reflect.StructField, required bool, makeDefault func() reflect.V
 			return v
 		}
 	}
+	name, _ := JSONFieldName(f)
 	info := Info{
 		Type:        t,
 		FieldIndex:  f.Index[0],
+		FieldName:   name,
 		MakeDefault: makeDefault,
 	}
 	setUnionInfo(&info, unionInfo)
@@ -166,6 +171,11 @@ func setUnionInfo(info *Info, unionInfo avrotypegen.UnionInfo) {
 		}
 		setUnionInfo(&info.Entries[i], u)
 	}
+}
+
+func shouldOmitField(f reflect.StructField) bool {
+	name, _ := JSONFieldName(f)
+	return name == ""
 }
 
 // JSONFieldName returns the name that the field will be given

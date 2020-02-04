@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rogpeppe/gogen-avro/v7/compiler"
+	"github.com/rogpeppe/gogen-avro/v7/schema"
 	"github.com/rogpeppe/gogen-avro/v7/vm"
 
 	"github.com/heetch/avro/internal/typeinfo"
@@ -27,8 +28,7 @@ type decodeProgram struct {
 	// It reports whether the returned value is a reference
 	// directly into the target value (for example when
 	// the target is a struct type).
-	enter []func(target reflect.Value) (reflect.Value, bool)
-
+	enter []enterFunc
 	// makeDefault holds an entry for each SetDefault instruction
 	// in the program, indexed by pc, that gets the default
 	// value for a field.
@@ -40,9 +40,11 @@ type decodeProgram struct {
 type analyzer struct {
 	prog        *vm.Program
 	pcInfo      []pcInfo
-	enter       []func(reflect.Value) (reflect.Value, bool)
+	enter       []enterFunc
 	makeDefault []func() reflect.Value
 }
+
+type enterFunc = func(reflect.Value) (reflect.Value, bool)
 
 type pcInfo struct {
 	// path holds the descent path into the type for an instruction
@@ -80,13 +82,13 @@ func stackeq(a, b []int) bool {
 }
 
 type pathElem struct {
-	// index holds an index into a record or union value.
-	// It is zero for map and array types.
-	index int
-	// ftype holds the type of the value at the given index.
+	// ftype holds the type of the value for this element.
 	ftype reflect.Type
 	// info holds the type info for the element.
 	info typeinfo.Info
+	// avroType holds the corresponding Avro type
+	// that we're looking at.
+	avroType schema.AvroType
 }
 
 // compileDecoder returns a decoder program to decode into values of the given type
@@ -104,7 +106,7 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 	if err != nil {
 		return nil, fmt.Errorf("cannot create decoder: %v", err)
 	}
-	prog1, err := analyzeProgramTypes(prog, t)
+	prog1, err := analyzeProgramTypes(prog, t, readerType.avroType)
 	if err != nil {
 		return nil, fmt.Errorf("analysis failed: %v", err)
 	}
@@ -116,11 +118,11 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 // respect to the given type (the program must have been generated for that
 // type) and returns a program with a populated "enter" field allowing
 // the VM to correctly create union and field values for Enter instructions.
-func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, error) {
+func analyzeProgramTypes(prog *vm.Program, t reflect.Type, readerType schema.AvroType) (*decodeProgram, error) {
 	a := &analyzer{
 		prog:        prog,
 		pcInfo:      make([]pcInfo, len(prog.Instructions)),
-		enter:       make([]func(reflect.Value) (reflect.Value, bool), len(prog.Instructions)),
+		enter:       make([]enterFunc, len(prog.Instructions)),
 		makeDefault: make([]func() reflect.Value, len(prog.Instructions)),
 	}
 	if debugging {
@@ -132,8 +134,9 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type) (*decodeProgram, erro
 		return nil, err
 	}
 	if err := a.eval([]int{0}, nil, []pathElem{{
-		ftype: t,
-		info:  info,
+		ftype:    t,
+		info:     info,
+		avroType: readerType,
 	}}); err != nil {
 		return nil, fmt.Errorf("eval: %v", err)
 	}
@@ -228,71 +231,25 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return fmt.Errorf("cannot assign %v to %s", operandString(inst.Operand), elem.ftype)
 			}
 		case vm.Enter:
-			elem := &path[len(path)-1]
+			elem := path[len(path)-1]
 			index := inst.Operand
-
-			if index >= len(elem.info.Entries) {
-				return fmt.Errorf("union index out of bounds; pc %d; type %s", pc, elem.ftype)
-			}
-			info := elem.info.Entries[index]
 			if debugging {
-				debugf("enter %d -> %v, %d entries", index, info.Type, len(info.Entries))
+				debugf("enter %d -> %v, %d entries", index, elem.info.Type, len(elem.info.Entries))
 			}
-			if info.Type == nil {
-				// Special case for the nil value. Return
-				// a zero value that will never be used.
-				a.enter[pc] = func(v reflect.Value) (reflect.Value, bool) {
-					return reflect.Value{}, true
-				}
-				path = append(path, pathElem{
-					index: index,
-				})
-				break
+			enterf, newElem, err := enter(elem, index)
+			if err != nil {
+				return fmt.Errorf("cannot enter: %v", err)
 			}
-			var enter func(v reflect.Value) (reflect.Value, bool)
-			switch elem.ftype.Kind() {
-			case reflect.Struct:
-				fieldIndex := info.FieldIndex
-				enter = func(v reflect.Value) (reflect.Value, bool) {
-					return v.Field(fieldIndex), true
-				}
-			case reflect.Interface:
-				enter = func(v reflect.Value) (reflect.Value, bool) {
-					return reflect.New(info.Type).Elem(), false
-				}
-			case reflect.Ptr:
-				if len(elem.info.Entries) != 2 {
-					return fmt.Errorf("pointer type without a two-member union")
-				}
-				enter = func(v reflect.Value) (reflect.Value, bool) {
-					inner := reflect.New(info.Type)
-					v.Set(inner)
-					return inner.Elem(), true
-				}
-			default:
-				return fmt.Errorf("unexpected type in union %T", elem.ftype)
-			}
-			if len(info.Entries) == 0 {
-				// The type itself might contribute information.
-				info1, err := typeinfo.ForType(info.Type)
-				if err != nil {
-					return fmt.Errorf("cannot get info for %s: %v", info.Type, err)
-				}
-				info = info1
-			}
-			path = append(path, pathElem{
-				index: index,
-				ftype: info.Type,
-				info:  info,
-			})
-			a.enter[pc] = enter
+			path = append(path, newElem)
+			a.enter[pc] = enterf
 		case vm.AppendArray:
 			if elem.ftype.Kind() != reflect.Slice {
 				return fmt.Errorf("cannot append to %T", elem.ftype)
 			}
 			path = append(path, pathElem{
-				ftype: elem.ftype.Elem(),
-				info:  elem.info,
+				ftype:    elem.ftype.Elem(),
+				info:     elem.info,
+				avroType: elem.avroType.(*schema.ArrayField).ItemType(),
 			})
 		case vm.AppendMap:
 			if elem.ftype.Kind() != reflect.Map {
@@ -302,8 +259,9 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return fmt.Errorf("invalid key type for map %s", elem.ftype)
 			}
 			path = append(path, pathElem{
-				ftype: elem.ftype.Elem(),
-				info:  elem.info,
+				ftype:    elem.ftype.Elem(),
+				info:     elem.info,
+				avroType: elem.avroType.(*schema.MapField).ItemType(),
 			})
 		case vm.Exit:
 			if len(path) == 0 {
@@ -382,6 +340,113 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 	return nil
 }
 
+// enter returns an enter function and the new path element
+// resulting from an Enter into the given path element at
+// the given index.
+//
+// The enter function will be used to execute the Enter instruction
+// at decode time - it takes the value being decoded into
+// and returns the new value to decode into and also reports
+// whether the new value is a reference into the original
+// value (if not, it will need to be copied into the original value).
+func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
+	var entryType schema.AvroType
+	var info typeinfo.Info
+	switch at := elem.avroType.(type) {
+	case *schema.UnionField:
+		itemTypes := at.ItemTypes()
+		if len(elem.info.Entries) != len(itemTypes) {
+			return nil, pathElem{}, fmt.Errorf("union type mismatch")
+		}
+		if index >= len(elem.info.Entries) {
+			return nil, pathElem{}, fmt.Errorf("union index out of bounds")
+		}
+
+		entryType = itemTypes[index]
+		info = elem.info.Entries[index]
+	case *schema.Reference:
+		switch def := at.Def.(type) {
+		case *schema.RecordDefinition:
+			fields := def.Fields()
+			if index >= len(fields) {
+				return nil, pathElem{}, fmt.Errorf("field index out of bounds (%d/%d)", index, len(fields))
+			}
+			field := fields[index]
+			// The reader type might not exactly match the
+			// entries inferred from the Go type because
+			// of external types (external types are allowed
+			// to add and reorder fields without breaking the
+			// API), so search through the struct fields, looking
+			// for a field that matches the Avro field.
+			info1, ok := entryByName(elem.info.Entries, field.Name())
+			if !ok {
+				return nil, pathElem{}, fmt.Errorf("could not find entry for field %q", field.Name())
+			}
+			info = info1
+			entryType = field.Type()
+		default:
+			return nil, pathElem{}, fmt.Errorf("unexpected Enter on Avro definition %T", def)
+		}
+	default:
+		return nil, pathElem{}, fmt.Errorf("unexpected Enter on Avro type %T", at)
+	}
+	if info.Type == nil {
+		// Special case for the nil value. Return
+		// a zero value that will never be used.
+		return func(v reflect.Value) (reflect.Value, bool) {
+			return reflect.Value{}, true
+		}, pathElem{}, nil
+	}
+	if len(info.Entries) == 0 {
+		// The type itself might contribute information.
+		info1, err := typeinfo.ForType(info.Type)
+		if err != nil {
+			return nil, pathElem{}, fmt.Errorf("cannot get info for %s: %v", info.Type, err)
+		}
+		info1.FieldIndex = info.FieldIndex
+		info = info1
+	}
+	newElem := pathElem{
+		ftype:    info.Type,
+		info:     info,
+		avroType: entryType,
+	}
+	var enter func(v reflect.Value) (reflect.Value, bool)
+	switch elem.ftype.Kind() {
+	case reflect.Struct:
+		fieldIndex := info.FieldIndex
+		enter = func(v reflect.Value) (reflect.Value, bool) {
+			debugf("entering field %d in type %v", fieldIndex, v.Type())
+			return v.Field(fieldIndex), true
+		}
+	case reflect.Interface:
+		enter = func(v reflect.Value) (reflect.Value, bool) {
+			return reflect.New(info.Type).Elem(), false
+		}
+	case reflect.Ptr:
+		if len(elem.info.Entries) != 2 {
+			return nil, pathElem{}, fmt.Errorf("pointer type without a two-member union")
+		}
+		enter = func(v reflect.Value) (reflect.Value, bool) {
+			inner := reflect.New(info.Type)
+			v.Set(inner)
+			return inner.Elem(), true
+		}
+	default:
+		return nil, pathElem{}, fmt.Errorf("unexpected type %v for Enter", elem.ftype)
+	}
+	return enter, newElem, nil
+}
+
+func entryByName(entries []typeinfo.Info, fieldName string) (typeinfo.Info, bool) {
+	for _, entry := range entries {
+		if entry.FieldName == fieldName {
+			return entry, true
+		}
+	}
+	return typeinfo.Info{}, false
+}
+
 func canAssignVMType(operand int, dstType reflect.Type) bool {
 	// Note: the logic in this switch reflects the Set logic in the decoder.eval method.
 	dstKind := dstType.Kind()
@@ -420,7 +485,7 @@ func pathStr(ps []pathElem) string {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
-		fmt.Fprintf(&buf, "%d: %s", p.index, p.ftype)
+		fmt.Fprintf(&buf, "%s", p.ftype)
 	}
 	buf.WriteString("}")
 	return buf.String()
