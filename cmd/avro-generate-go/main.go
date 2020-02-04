@@ -7,7 +7,7 @@
 //	  -d string
 //	    	directory to write Go files to (default ".")
 //	  -p string
-//	    	package name
+//	    	package name (defaults to $GOPACKAGE)
 //	  -t	generated files will have _test.go suffix
 package main
 
@@ -22,10 +22,14 @@ import (
 	"strings"
 )
 
+// Generate the tests.
+
+//go:generate go run ./generatetestcode.go
+
 var (
 	dirFlag  = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag  = flag.String("p", "", "package name")
-	testFlag = flag.Bool("t", false, "generated files will have _test.go suffix")
+	pkgFlag  = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
 )
 
 func main() {
@@ -40,7 +44,7 @@ func main() {
 		flag.Usage()
 	}
 	if *pkgFlag == "" {
-		fmt.Fprintf(os.Stderr, "avrogen: -p flag must specify a package name\n")
+		fmt.Fprintf(os.Stderr, "avrogen: -p flag must specify a package name or set $GOPACKAGE\n")
 		os.Exit(1)
 	}
 	if err := generateFiles(files); err != nil {
