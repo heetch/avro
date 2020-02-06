@@ -5,7 +5,6 @@ package avroregistry
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,18 +23,9 @@ type Registry struct {
 	params Params
 }
 
-var (
-	_ avro.EncodingRegistry = (*Registry)(nil)
-	_ avro.DecodingRegistry = (*Registry)(nil)
-)
-
 type Params struct {
 	// ServerURL holds the URL of the Avro registry server, for example "http://localhost:8084".
 	ServerURL string
-
-	// Subject holds the registry subject to use. This must be non-empty, and
-	// is usually the name of the Kafka topic.
-	Subject string
 
 	// RetryStrategy is used when requests are retried after HTTP errors.
 	// If this is nil, a default exponential-backoff strategy is used.
@@ -57,9 +47,6 @@ func New(p Params) (*Registry, error) {
 	if p.RetryStrategy == nil {
 		p.RetryStrategy = defaultRetryStrategy
 	}
-	if p.Subject == "" {
-		return nil, fmt.Errorf("no subject found for Avro registry")
-	}
 	if p.ServerURL == "" {
 		return nil, fmt.Errorf("no server address found for Avro registry")
 	}
@@ -71,83 +58,36 @@ func New(p Params) (*Registry, error) {
 	}, nil
 }
 
-// AppendSchemaID implements avro.EncodingRegistry.AppendSchemaID
-// by appending the id.
-// See https://docs.confluent.io/current/schema-registry/serializer-formatter.html#wire-format.
-func (r *Registry) AppendSchemaID(buf []byte, id int64) []byte {
-	if id < 0 || id >= 1<<32-1 {
-		panic("schema id out of range")
+// Encoder returns an avro.EncodingRegistry implementation that can be
+// used to encode messages with schemas associated with the given
+// subject, which must be non-empty.
+func (r *Registry) Encoder(subject string) avro.EncodingRegistry {
+	return encodingRegistry{
+		r:       r,
+		subject: subject,
 	}
-	n := len(buf)
-	// Magic zero byte, then 4 bytes of schema ID.
-	buf = append(buf, 0, 0, 0, 0, 0)
-	binary.BigEndian.PutUint32(buf[n+1:], uint32(id))
-	return buf
 }
 
-// IDForSchema implements avro.EncodingRegistry.IDForSchema
-// by fetching the schema ID from the registry server.
-//
-// See https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject).
-func (r *Registry) IDForSchema(ctx context.Context, schema string) (int64, error) {
-	data, err := json.Marshal(struct {
-		Schema string `json:"schema"`
-	}{schema})
-	if err != nil {
-		return 0, err
+// Decoder returns an avro.DecodingRegistry implementation
+// that can be used to decode messages from the registry.
+func (r *Registry) Decoder() avro.DecodingRegistry {
+	return decodingRegistry{
+		r: r,
 	}
-	req := r.newRequest(ctx, "POST", "/subjects/"+r.params.Subject, bytes.NewReader(data))
-
-	var resp struct {
-		Subject string `json:"subject"`
-		ID      int64  `json:"id"`
-		Version int    `json:"version"`
-		Schema  string `json:"schema"`
-	}
-	if err := r.doRequest(req, &resp); err != nil {
-		return 0, err
-	}
-	// TODO could check that the subject is the same as r.params.Subject.
-	return resp.ID, nil
 }
 
-// DecodeSchemaID implements avro.DecodingRegistry.DecodeSchemaID
-// by stripping off the schema-identifier header.
-//
-// See https://docs.confluent.io/current/schema-registry/serializer-formatter.html#wire-format.
-func (r *Registry) DecodeSchemaID(msg []byte) (int64, []byte) {
-	if len(msg) < 5 || msg[0] != 0 {
-		return 0, nil
-	}
-	return int64(binary.BigEndian.Uint32(msg[1:5])), msg[5:]
-}
-
-// SchemaForID implements avro.DecodingRegistry.SchemaForID
-// by fetching the schema from the registry server.
-//
-// See https://docs.confluent.io/current/schema-registry/develop/api.html#get--schemas-ids-int-%20id
-func (r *Registry) SchemaForID(ctx context.Context, id int64) (string, error) {
-	req := r.newRequest(ctx, "GET", fmt.Sprintf("/schemas/ids/%d", id), nil)
-	var resp struct {
-		Schema string `json:"schema"`
-	}
-	if err := r.doRequest(req, &resp); err != nil {
-		return "", err
-	}
-	return resp.Schema, nil
-}
-
-// Register registers a schema with the registry and returns its id.
+// Register registers a schema with the registry associated
+// with the given subject and returns its id.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject)-versions
-func (r *Registry) Register(ctx context.Context, schema string) (int64, error) {
+func (r *Registry) Register(ctx context.Context, subject, schema string) (int64, error) {
 	data, err := json.Marshal(struct {
 		Schema string `json:"schema"`
 	}{schema})
 	if err != nil {
 		return 0, err
 	}
-	req := r.newRequest(ctx, "POST", fmt.Sprintf("/subjects/%s/versions", r.params.Subject), bytes.NewReader(data))
+	req := r.newRequest(ctx, "POST", fmt.Sprintf("/subjects/%s/versions", subject), bytes.NewReader(data))
 	var resp struct {
 		ID int64 `json:"id"`
 	}
@@ -160,21 +100,21 @@ func (r *Registry) Register(ctx context.Context, schema string) (int64, error) {
 // SetCompatibility sets the compatibility mode for the registry's subject to mode.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#put--config-(string-%20subject)
-func (r *Registry) SetCompatibility(ctx context.Context, mode avro.CompatMode) error {
+func (r *Registry) SetCompatibility(ctx context.Context, subject string, mode avro.CompatMode) error {
 	data, err := json.Marshal(struct {
 		Compatibility string `json:"compatibility"`
 	}{mode.String()})
 	if err != nil {
 		return err
 	}
-	return r.doRequest(r.newRequest(ctx, "PUT", "/config/"+r.params.Subject, bytes.NewReader(data)), nil)
+	return r.doRequest(r.newRequest(ctx, "PUT", "/config/"+subject, bytes.NewReader(data)), nil)
 }
 
-// DeleteSubject deletes the registry's subject from the registry.
+// DeleteSubject deletes the  given subject from the registry.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#delete--subjects-(string-%20subject)
-func (r *Registry) DeleteSubject(ctx context.Context) error {
-	return r.doRequest(r.newRequest(ctx, "DELETE", "/subjects/"+r.params.Subject, nil), nil)
+func (r *Registry) DeleteSubject(ctx context.Context, subject string) error {
+	return r.doRequest(r.newRequest(ctx, "DELETE", "/subjects/"+subject, nil), nil)
 }
 
 func (r *Registry) newRequest(ctx context.Context, method string, urlStr string, body io.Reader) *http.Request {
