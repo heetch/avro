@@ -1,27 +1,43 @@
 package roundtrip
 
+
 tests: cloudEvent: {
+	DomainName :: "someDomain"
+	EventName ::  "someEvent"
+	Version :: "v9.9.99"
 	inSchema: {
 		type:      "record"
-		name:      "SomeEvent"
-		namespace: "foo"
+		name:      "com.heetch.\(DomainName).\(EventName)"
+		heetchmeta: {
+			commentary: "This Schema describes version \(Version) of the event \(EventName) from the domain \(DomainName)."
+			topickey:   "\(DomainName).\(EventName).\(Version)"
+		}
 		fields: [{
 			name: "Metadata"
 			type: {
-				type:      "record"
-				name:      "Metadata"
-				namespace: "avro.apache.org"
+				type: "record"
+				name: "Metadata"
 				fields: [{
-					name: "id"
-					type: "string"
-				}, {
-					name: "source"
-					type: "string"
-				}, {
-					name: "time"
+					name: "CloudEvent"
 					type: {
-						type: "long"
-						logicalType: "timestamp-micros"
+						type: "record"
+						name: "CloudEvent"
+						fields: [{
+							name: "id"
+							type: "string"
+						}, {
+							name: "source"
+							type: "string"
+						}, {
+							name: "specversion"
+							type: "string"
+						}, {
+							name: "time"
+							type: {
+								type:        "long"
+								logicalType: "timestamp-micros"
+							}
+						}]
 					}
 				}]
 			}
@@ -30,37 +46,47 @@ tests: cloudEvent: {
 			type: "string"
 		}]
 	}
+	goType: "Message"
 	outSchema: {
-		name:      "CloudEvent"
-		namespace: "bar"
 		type:      "record"
+		name:      "com.heetch.Message"
 		fields: [{
 			name: "Metadata"
 			type: {
-				type:      "record"
-				name:      "Metadata"
-				namespace: "avro.apache.org"
+				type: "record"
+				name: "Metadata"
 				fields: [{
-					name: "id"
-					type: "string"
-				}, {
-					name: "source"
-					type: "string"
-				}, {
-					name: "time"
+					name: "CloudEvent"
 					type: {
-						type: "long"
-						logicalType: "timestamp-micros"
+						type: "record"
+						name: "CloudEvent"
+						fields: [{
+							name: "id"
+							type: "string"
+						}, {
+							name: "source"
+							type: "string"
+						}, {
+							name: "specversion"
+							type: "string"
+						}, {
+							name: "time"
+							type: {
+								type:        "long"
+								logicalType: "timestamp-micros"
+							}
+						}]
 					}
 				}]
 			}
 		}]
 	}
 	inData: {
-		Metadata: {
+		Metadata: CloudEvent: {
 			id:     "id1"
 			source: "source1"
-			time:   12345
+			specversion: "someversion"
+			time:   1580392724000000
 		}
 		other: "some other data"
 	}

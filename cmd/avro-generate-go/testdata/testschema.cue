@@ -1,8 +1,20 @@
 package roundtrip
 
 import (
-	"github.com/heetch/cue-schema/avro"
+	avroPkg "github.com/heetch/cue-schema/avro"
 )
+
+avro :: avroPkg
+avro :: Metadata :: {
+	"go.package"?: string
+	"go.name"?: string
+	heetchmeta?: {
+		commentary: string
+		status: string | *"active"
+		partitions: int | *1
+		topickey: string
+	}
+}
 
 tests: [_]: roundTripTest
 

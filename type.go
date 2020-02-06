@@ -1,11 +1,9 @@
 package avro
 
 import (
-	"fmt"
-
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/resolver"
 	"github.com/rogpeppe/gogen-avro/v7/schema"
+
+	"github.com/heetch/avro/internal/typeinfo"
 )
 
 // Type represents an Avro schema type.
@@ -17,15 +15,9 @@ type Type struct {
 // ParseType parses an Avro schema in the format defined by the Avro
 // specification at https://avro.apache.org/docs/current/spec.html.
 func ParseType(s string) (*Type, error) {
-	ns := parser.NewNamespace(false)
-	avroType, err := ns.TypeForSchema([]byte(s))
+	avroType, err := typeinfo.ParseSchema(s, nil)
 	if err != nil {
-		return nil, fmt.Errorf("invalid schema %q: %v", s, err)
-	}
-	for _, def := range ns.Roots {
-		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
-			return nil, fmt.Errorf("cannot resolve references in schema\n%s\n: %v", s, err)
-		}
+		return nil, err
 	}
 	return &Type{
 		schema:   s,

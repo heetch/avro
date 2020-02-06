@@ -1,35 +1,57 @@
 package example
+
 import (
-	"github.com/heetch/cue-schema/avro"
+	avroPkg "github.com/heetch/cue-schema/avro"
 )
+
+avro :: avroPkg
+avro :: Metadata :: heetchmeta?: {
+	commentary: string
+	status: string | *"active"
+	partitions: int | *1
+	topickey: string
+}
+
+DomainName :: "{{.DomainName}}"
+EventName ::  "{{.EventName}}"
+Version :: "{{.Version}}"
 
 cloudEvent: avro.Schema & {
 	type:      "record"
-	name:      "SomeEvent"
-	namespace: "foo.bar"
+	name:      "com.heetch.\(DomainName).\(EventName)"
+	heetchmeta: {
+		commentary: "This Schema describes version \(Version) of the event \(EventName) from the domain \(DomainName)."
+		topickey:   "\(DomainName).\(EventName).\(Version)"
+	}
 	fields: [{
 		name: "Metadata"
 		type: {
-			type:      "record"
-			name:      "Metadata"
-			namespace: "avro.apache.org"
+			type: "record"
+			name: "Metadata"
 			fields: [{
-				name: "id"
-				type: "string"
-			}, {
-				name: "source"
-				type: "string"
-			}, {
-				"name": "time"
-				"type": {
-					type:          "long"
-					"logicalType": "timestamp-micros"
+				name: "CloudEvent"
+				type: {
+					type: "record"
+					name: "CloudEvent"
+					fields: [{
+						name: "id"
+						type: "string"
+					}, {
+						name: "source"
+						type: "string"
+					}, {
+						name: "specversion"
+						type: "string"
+					}, {
+						name: "time"
+						type: {
+							type:        "long"
+							logicalType: "timestamp-micros"
+						}
+					}]
 				}
 			}]
 		}
-	}, {
-		name: "other"
-		type: "string"
 	}]
 }
 

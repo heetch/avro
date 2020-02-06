@@ -15,11 +15,14 @@
                                         "type": "record",
                                         "fields": [
                                             {
-                                                "name": "id",
-                                                "type": "string"
+                                                "name": "time",
+                                                "type": {
+                                                    "type": "long",
+                                                    "logicalType": "timestamp-micros"
+                                                }
                                             },
                                             {
-                                                "name": "source",
+                                                "name": "id",
                                                 "type": "string"
                                             },
                                             {
@@ -27,11 +30,12 @@
                                                 "type": "string"
                                             },
                                             {
-                                                "name": "time",
-                                                "type": {
-                                                    "type": "long",
-                                                    "logicalType": "timestamp-micros"
-                                                }
+                                                "name": "source",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "extraField",
+                                                "type": "boolean"
                                             }
                                         ]
                                     }
@@ -40,4 +44,4 @@
                         }
                     }
                 ]
-            }
+}

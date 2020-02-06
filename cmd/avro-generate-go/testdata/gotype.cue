@@ -240,3 +240,94 @@ tests: goTypeProtobufRecord: {
 		selected: false
 	}
 }
+
+tests: goTypeExternal: {
+	inSchema: {
+		name: "R"
+		type: "record"
+		fields: [{
+			name: "F"
+			type: {
+				type: "record"
+				name: "com.heetch.Message"
+				"go.package": "github.com/heetch/avro/internal/testtypes"
+				fields: [{
+					name: "Metadata"
+					type: {
+						type: "record"
+						name: "Metadata"
+						fields: [{
+							name: "CloudEvent"
+							type: {
+								type: "record"
+								name: "CloudEvent"
+								fields: [{
+									name: "id"
+									type: "string"
+								}, {
+									name: "source"
+									type: "string"
+								}, {
+									name: "specversion"
+									type: "string"
+								}, {
+									name: "time"
+									type: {
+										type: "long"
+										logicalType: "timestamp-micros"
+									}
+								}]
+							}
+						}]
+					}
+				}]
+			}
+		}, {
+			name: "G"
+			type: "com.heetch.CloudEvent"
+		}, {
+			name: "H"
+			type: "string"
+		}]
+	}
+	outSchema: inSchema
+	inData: {
+		F: Metadata: CloudEvent: {
+			id: "xid"
+			source: "xsource"
+			specversion: "xspecversion"
+			time: 1580486871000000
+		}
+		G: {
+			id: "yd"
+			source: "ysource"
+			specversion: "yspecversion"
+			time: 1580495933000000
+		}
+		H: "xh"
+	}
+	outData: inData
+	otherTests: """
+	package goTypeExternal
+	import (
+		"reflect"
+		"testing"
+
+		qt "github.com/frankban/quicktest"
+
+		"github.com/heetch/avro/internal/testtypes"
+	)
+
+	var (
+		messageType    = reflect.TypeOf(testtypes.Message{})
+		cloudEventType = reflect.TypeOf(testtypes.CloudEvent{})
+	)
+
+	func TestCorrectTypes(t *testing.T) {
+		c := qt.New(t)
+		var r R
+		c.Assert(reflect.TypeOf(r.F), qt.Equals, messageType)
+		c.Assert(reflect.TypeOf(r.G), qt.Equals, cloudEventType)
+	}
+	"""
+}

@@ -10,7 +10,7 @@ import (
 
 var tests = testutil.RoundTripTest{
 	InSchema: `{
-                "name": "SomeEvent",
+                "name": "com.heetch.someDomain.someEvent",
                 "type": "record",
                 "fields": [
                     {
@@ -20,22 +20,34 @@ var tests = testutil.RoundTripTest{
                             "type": "record",
                             "fields": [
                                 {
-                                    "name": "id",
-                                    "type": "string"
-                                },
-                                {
-                                    "name": "source",
-                                    "type": "string"
-                                },
-                                {
-                                    "name": "time",
+                                    "name": "CloudEvent",
                                     "type": {
-                                        "type": "long",
-                                        "logicalType": "timestamp-micros"
+                                        "name": "CloudEvent",
+                                        "type": "record",
+                                        "fields": [
+                                            {
+                                                "name": "id",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "source",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "specversion",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "time",
+                                                "type": {
+                                                    "type": "long",
+                                                    "logicalType": "timestamp-micros"
+                                                }
+                                            }
+                                        ]
                                     }
                                 }
-                            ],
-                            "namespace": "avro.apache.org"
+                            ]
                         }
                     },
                     {
@@ -43,24 +55,35 @@ var tests = testutil.RoundTripTest{
                         "type": "string"
                     }
                 ],
-                "namespace": "foo"
+                "heetchmeta": {
+                    "status": "active",
+                    "commentary": "This Schema describes version v9.9.99 of the event someEvent from the domain someDomain.",
+                    "topickey": "someDomain.someEvent.v9.9.99",
+                    "partitions": 1
+                }
             }`,
-	GoType: new(CloudEvent),
+	GoType: new(Message),
 	Subtests: []testutil.RoundTripSubtest{{
 		TestName: "main",
 		InDataJSON: `{
                         "Metadata": {
-                            "time": 12345,
-                            "id": "id1",
-                            "source": "source1"
+                            "CloudEvent": {
+                                "time": 1580392724000000,
+                                "id": "id1",
+                                "source": "source1",
+                                "specversion": "someversion"
+                            }
                         },
                         "other": "some other data"
                     }`,
 		OutDataJSON: `{
                         "Metadata": {
-                            "time": 12345,
-                            "id": "id1",
-                            "source": "source1"
+                            "CloudEvent": {
+                                "time": 1580392724000000,
+                                "id": "id1",
+                                "source": "source1",
+                                "specversion": "someversion"
+                            }
                         }
                     }`,
 	}},

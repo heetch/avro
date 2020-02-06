@@ -1,5 +1,8 @@
 // +build ignore
 
+// This program generates all the test code in internal/generated_tests from
+// the Cue data in the testdata directory. It's run from go generate
+// via generate_test.go.
 package main
 
 import (

@@ -9,6 +9,7 @@ import (
 	"github.com/rogpeppe/gogen-avro/v7/schema"
 
 	"github.com/heetch/avro/avrotypegen"
+	"github.com/heetch/avro/internal/typeinfo"
 )
 
 const (
@@ -215,7 +216,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			// so we'll make them all optional.
 			// TODO  experiment by making optional only the fields that
 			// specify omitempty.
-			name, _ := jsonFieldName(f)
+			name, _ := typeinfo.JSONFieldName(f)
 			if name == "" {
 				continue
 			}
@@ -441,30 +442,4 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) interface{} {
 		}
 		return reflect.Zero(t).Interface()
 	}
-}
-
-// jsonFieldName returns the name that the field will be given
-// when marshaled to JSON, or the empty string if
-// the field is ignored.
-// It also reports whether the field has been qualified with
-// the "omitempty" qualifier.
-func jsonFieldName(f reflect.StructField) (name string, omitEmpty bool) {
-	if f.PkgPath != "" {
-		// It's unexported.
-		return "", false
-	}
-	tag := f.Tag.Get("json")
-	parts := strings.Split(tag, ",")
-	for _, part := range parts[1:] {
-		if part == "omitempty" {
-			omitEmpty = true
-		}
-	}
-	switch {
-	case parts[0] == "":
-		return f.Name, omitEmpty
-	case parts[0] == "-":
-		return "", omitEmpty
-	}
-	return parts[0], omitEmpty
 }

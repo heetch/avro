@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/resolver"
 	"github.com/rogpeppe/gogen-avro/v7/schema"
+
+	"github.com/heetch/avro/internal/typeinfo"
 )
 
 const (
@@ -21,7 +23,7 @@ const (
 
 func generate(w io.Writer, s []byte, pkg string) error {
 	ns := parser.NewNamespace(false)
-	sType, err := parseSchema(ns, s)
+	sType, err := typeinfo.ParseSchema(string(s), ns)
 	if err != nil {
 		return err
 	}
@@ -35,22 +37,39 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		// See https://github.com/heetch/avro/issues/13
 		return fmt.Errorf("cannot generate code for a schema which hasn't got a name (%T)", sType)
 	}
-	imports = make(map[string]bool)
-	addImport("github.com/heetch/avro/avrotypegen")
+	extTypes, err := externalTypeMap(ns)
+	if err != nil {
+		return err
+	}
+	gc := &generateContext{
+		imports:  make(map[string]string),
+		extTypes: extTypes,
+	}
+	gc.addImport("github.com/heetch/avro/avrotypegen")
 	var body bytes.Buffer
-	if err := genTemplate.Execute(&body, templateParams{
-		NS: ns,
+	if err := bodyTemplate.Execute(&body, bodyTemplateParams{
+		NS:  ns,
+		Ctx: gc,
 	}); err != nil {
 		return err
 	}
 	var importList []string
-	for imp := range imports {
+	for imp := range gc.imports {
 		importList = append(importList, imp)
 	}
 	sort.Strings(importList)
+	// Don't use explicit identifiers for stdlib or Heetch-avro imports.
+	// TODO look at the actual identifier used by the
+	// package to avoid the explicit identifer in more cases.
+	for pkg := range gc.imports {
+		if !strings.Contains(pkg, ".") || strings.HasPrefix(pkg, "github.com/heetch/avro/") {
+			gc.imports[pkg] = ""
+		}
+	}
 	if err := headerTemplate.Execute(w, headerTemplateParams{
-		Pkg:     pkg,
-		Imports: importList,
+		Pkg:       pkg,
+		Imports:   importList,
+		ImportIds: gc.imports,
 	}); err != nil {
 		return fmt.Errorf("cannot execute header template: %v", err)
 	}
@@ -58,19 +77,6 @@ func generate(w io.Writer, s []byte, pkg string) error {
 		return err
 	}
 	return nil
-}
-
-func parseSchema(ns *parser.Namespace, s []byte) (schema.AvroType, error) {
-	avroType, err := ns.TypeForSchema(s)
-	if err != nil {
-		return nil, err
-	}
-	for _, def := range ns.Roots {
-		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
-			return nil, fmt.Errorf("cannot resolve references in schema: %v", err)
-		}
-	}
-	return avroType, nil
 }
 
 type typeInfo struct {
@@ -93,7 +99,7 @@ func fprintf(w io.Writer, f string, a ...interface{}) {
 	fmt.Fprintf(w, f, a...)
 }
 
-func recordInfoLiteral(t *schema.RecordDefinition) string {
+func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) string {
 	w := new(strings.Builder)
 	fprintf(w, "avrotypegen.RecordInfo{\n")
 	schemaStr, err := t.Schema()
@@ -126,7 +132,7 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 			doneDefaults = true
 		}
 		fprintf(w, "%d: ", i)
-		lit, err := defaultFuncLiteral(f.Default(), f.Type())
+		lit, err := gc.defaultFuncLiteral(f.Default(), f.Type())
 		if err != nil {
 			fprintf(w, "func() interface{} {}, // ERROR: %v\n", err)
 		} else {
@@ -139,7 +145,7 @@ func recordInfoLiteral(t *schema.RecordDefinition) string {
 
 	doneUnions := false
 	for i, f := range t.Fields() {
-		info := goType(f.Type())
+		info := gc.GoTypeOf(f.Type())
 		if canOmitUnionInfo(info) {
 			continue
 		}
@@ -240,20 +246,14 @@ func isZeroDefault(x interface{}, t schema.AvroType) bool {
 	return false
 }
 
-func jsonMarshal(x interface{}) string {
-	data, err := json.Marshal(x)
-	if err != nil {
-		panic(err)
-	}
-	return string(data)
-}
-
-func defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
+// defaultFuncLiteral returns a Go function definition that
+// returns the default value v as a Go value.
+func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
 	switch t := t.(type) {
 	case *schema.UnionField:
 		// Defaults for unions fields always use the first member
 		// of the union.
-		return defaultFuncLiteral(v, t.AvroTypes()[0])
+		return gc.defaultFuncLiteral(v, t.AvroTypes()[0])
 	case *schema.NullField:
 		if v != nil {
 			return "", fmt.Errorf("must be null but got %s", jsonMarshal(v))
@@ -295,9 +295,9 @@ func defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
 			return "", fmt.Errorf("must be array but got %v", jsonMarshal(v))
 		}
 		var buf bytes.Buffer
-		fmt.Fprintf(&buf, "[]%s{", goType(t.ItemType()).GoType)
+		fmt.Fprintf(&buf, "[]%s{", gc.GoTypeOf(t.ItemType()).GoType)
 		for i, item := range a {
-			val, err := defaultFuncLiteral(item, t.ItemType())
+			val, err := gc.defaultFuncLiteral(item, t.ItemType())
 			if err != nil {
 				return "", fmt.Errorf("at index %d: %v", i, err)
 			}
@@ -312,14 +312,14 @@ func defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
 			return "", fmt.Errorf("must be map but got %v", jsonMarshal(v))
 		}
 		var buf bytes.Buffer
-		fmt.Fprintf(&buf, "map[string]%s{\n", goType(t.ItemType()).GoType)
+		fmt.Fprintf(&buf, "map[string]%s{\n", gc.GoTypeOf(t.ItemType()).GoType)
 		var keys []string
 		for k := range m {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			val, err := defaultFuncLiteral(m[key], t.ItemType())
+			val, err := gc.defaultFuncLiteral(m[key], t.ItemType())
 			if err != nil {
 				return "", fmt.Errorf("at key %q: %v", key, err)
 			}
@@ -375,7 +375,7 @@ func defaultFuncLiteral(v interface{}, t schema.AvroType) (string, error) {
 					}
 					fieldVal = field.Default()
 				}
-				lit, err := defaultFuncLiteral(fieldVal, field.Type())
+				lit, err := gc.defaultFuncLiteral(fieldVal, field.Type())
 				if err != nil {
 					return "", fmt.Errorf("at field %s: %v", field.Name(), err)
 				}
@@ -445,7 +445,12 @@ func writeUnionComment(w io.Writer, union []typeInfo, indent string) {
 	}
 }
 
-func goType(t schema.AvroType) typeInfo {
+type generateContext struct {
+	imports  map[string]string
+	extTypes map[schema.QualifiedName]goType
+}
+
+func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 	var info typeInfo
 	switch t := t.(type) {
 	case *schema.NullField:
@@ -459,7 +464,7 @@ func goType(t schema.AvroType) typeInfo {
 		// TODO support timestampMillis. https://github.com/heetch/avro/issues/3
 		if logicalType(t) == timestampMicros {
 			info.GoType = "time.Time"
-			addImport("time")
+			gc.addImport("time")
 		} else {
 			info.GoType = "int64"
 		}
@@ -479,7 +484,7 @@ func goType(t schema.AvroType) typeInfo {
 			// the pointer - both of those types already have nil
 			// values in Go.
 			// https://github.com/heetch/avro/issues/19
-			inner := goType(types[1])
+			inner := gc.GoTypeOf(types[1])
 			info.GoType = "*" + inner.GoType
 			info.Union = []typeInfo{
 				{
@@ -488,7 +493,7 @@ func goType(t schema.AvroType) typeInfo {
 				inner,
 			}
 		case len(types) == 2 && isNullField(types[1]):
-			inner := goType(types[0])
+			inner := gc.GoTypeOf(types[0])
 			info.GoType = "*" + inner.GoType
 			info.Union = []typeInfo{
 				inner,
@@ -500,20 +505,28 @@ func goType(t schema.AvroType) typeInfo {
 			info.GoType = "interface{}"
 			info.Union = make([]typeInfo, len(types))
 			for i, t := range types {
-				info.Union[i] = goType(t)
+				info.Union[i] = gc.GoTypeOf(t)
 			}
 		}
 	case *schema.ArrayField:
-		inner := goType(t.ItemType())
+		inner := gc.GoTypeOf(t.ItemType())
 		info.GoType = "[]" + inner.GoType
 		info.Union = inner.Union
 	case *schema.MapField:
-		inner := goType(t.ItemType())
+		inner := gc.GoTypeOf(t.ItemType())
 		info.GoType = "map[string]" + inner.GoType
 		info.Union = inner.Union
 	case *schema.Reference:
-		// TODO this is wrong! SimpleName might be unexported.
-		info.GoType = t.SimpleName()
+		gt, ok := gc.extTypes[t.TypeName]
+		if !ok {
+			gt = goTypeForDefinition(t.Def)
+		}
+		name := gt.Name
+		if gt.PkgPath != "" {
+			ident := gc.addImport(gt.PkgPath)
+			name = ident + "." + name
+		}
+		info.GoType = name
 	default:
 		panic(fmt.Sprintf("unknown avro type %T", t))
 	}
@@ -526,27 +539,60 @@ func isNullField(t schema.AvroType) bool {
 }
 
 func logicalType(t schema.AvroType) string {
-	// Until https://github.com/actgardner/gogen-avro/issues/119
-	// is fixed, we can't access metadata in general without a
-	// race condition, so implement logicalType only
-	// for the types that we currently care about, which
-	// don't mutate themselves when Definition is called.
-	switch t := t.(type) {
-	case *schema.LongField, *schema.IntField:
-		defn, _ := t.Definition(nil)
-		defn1, _ := defn.(map[string]interface{})
-		lt, _ := defn1["logicalType"].(string)
-		return lt
-	}
-	return ""
+	s, _ := t.Attribute("logicalType").(string)
+	return s
 }
-
-var imports map[string]bool
 
 // addImport adds a package to the required imports.
 // This is seriously sleazy, but easy to do for the time being
 // without refactoring the way that templates work.
 // TODO avoid the global mutable variable.
-func addImport(pkg string) {
-	imports[pkg] = true
+func (gc *generateContext) addImport(pkg string) string {
+	if id := gc.imports[pkg]; id != "" {
+		return id
+	}
+	// TODO make sure there's no duplicate name.
+	id := importPathToName(pkg)
+	gc.imports[pkg] = id
+	return id
+}
+
+func (gc *generateContext) IsExternal(def schema.Definition) bool {
+	_, ok := gc.extTypes[def.AvroName()]
+	return ok
+}
+
+var importPathPat = regexp.MustCompile(`((?:\p{L}|_)(?:\p{L}|_|\p{Nd})*)(?:\.v\d+(-unstable)?)?$`)
+
+// importPathToName returns the default identifier name
+// for a package path.
+func importPathToName(p string) string {
+	// TODO find the actual identifier used for the
+	// package rather than guessing it.
+	id := importPathPat.FindStringSubmatch(p)
+	if id == nil {
+		return ""
+	}
+	return id[1]
+}
+
+func goTypeForDefinition(def schema.Definition) goType {
+	pkg, _ := def.Attribute("go.package").(string)
+	name, _ := def.Attribute("go.name").(string)
+	if name == "" {
+		// TODO This might be wrong: SimpleName might be unexported.
+		name = def.SimpleName()
+	}
+	return goType{
+		PkgPath: pkg,
+		Name:    name,
+	}
+}
+
+func jsonMarshal(x interface{}) string {
+	data, err := json.Marshal(x)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
