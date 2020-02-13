@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
+	"github.com/rogpeppe/gogen-avro/v7/schema"
 )
 
 func newTemplate(s string) *template.Template {
@@ -21,6 +22,8 @@ func newTemplate(s string) *template.Template {
 var templateFuncs = template.FuncMap{
 	"typeof":                 typeof,
 	"isExportedGoIdentifier": isExportedGoIdentifier,
+	"defName":                defName,
+	"symbolName":             symbolName,
 	"indent":                 indent,
 	"doc":                    doc,
 	"import": func(gc *generateContext, pkg string) string {
@@ -58,7 +61,7 @@ var bodyTemplate = newTemplate(`
 	«- else if $.Ctx.IsExternal $def»«/* Omit the external definition */»
 	«- else if eq (typeof .) "RecordDefinition"»
 		«- doc "// " .»
-		type «.Name» struct {
+		type «defName .» struct {
 		«- range $i, $_ := .Fields»
 			«- doc "\t// " .»
 			«- $type := $.Ctx.GoTypeOf .Type»
@@ -72,62 +75,70 @@ var bodyTemplate = newTemplate(`
 		}
 
 		// AvroRecord implements the avro.AvroRecord interface.
-		func («.Name») AvroRecord() avrotypegen.RecordInfo {
+		func («defName .») AvroRecord() avrotypegen.RecordInfo {
 			return «$.Ctx.RecordInfoLiteral .»
 		}
 	«else if eq (typeof .) "EnumDefinition"»
 		«- import $.Ctx "strconv"»
 		«- import $.Ctx "fmt"»
 		«- doc "// " . -»
-		type «.Name» int
+		type «defName .» int
 		const (
 		«- range $i, $sym := .Symbols»
-		«$def.SymbolName $sym»«if eq $i 0» «$def.Name» = iota«end»
+		«symbolName $def $sym»«if eq $i 0» «defName $def» = iota«end»
 		«- end»
 		)
 
-		var _«.Name»_strings = []string{
+		var _«defName .»_strings = []string{
 		«range $i, $sym := .Symbols»
 		«- printf "%q" $sym»,
 		«end»}
 
-		// String returns the textual representation of «.Name».
-		func (e «.Name») String() string {
-			if e < 0 || int(e) >= len(_«.Name»_strings) {
-				return "«.Name»(" + strconv.FormatInt(int64(e), 10) + ")"
+		// String returns the textual representation of «defName .».
+		func (e «defName .») String() string {
+			if e < 0 || int(e) >= len(_«defName .»_strings) {
+				return "«defName .»(" + strconv.FormatInt(int64(e), 10) + ")"
 			}
-			return _«.Name»_strings[e]
+			return _«defName .»_strings[e]
 		}
 
 		// MarshalText implements encoding.TextMarshaler
-		// by returning the textual representation of «.Name».
-		func (e «.Name») MarshalText() ([]byte, error) {
-			if e < 0 || int(e) >= len(_«.Name»_strings) {
-				return nil, fmt.Errorf("«.Name» value %d is out of bounds", e)
+		// by returning the textual representation of «defName .».
+		func (e «defName .») MarshalText() ([]byte, error) {
+			if e < 0 || int(e) >= len(_«defName .»_strings) {
+				return nil, fmt.Errorf("«defName .» value %d is out of bounds", e)
 			}
-			return []byte(_«.Name»_strings[e]), nil
+			return []byte(_«defName .»_strings[e]), nil
 		}
 
 		// UnmarshalText implements encoding.TextUnmarshaler
 		// by expecting the textual representation of «.Name».
-		func (e *«.Name») UnmarshalText(data []byte) error {
+		func (e *«defName .») UnmarshalText(data []byte) error {
 			// Note for future: this could be more efficient.
-			for i, s := range _«.Name»_strings {
+			for i, s := range _«defName .»_strings {
 				if string(data) == s {
-					*e = «.Name»(i)
+					*e = «defName .»(i)
 					return nil
 				}
 			}
-			return fmt.Errorf("unknown value %q for «.Name»", data)
+			return fmt.Errorf("unknown value %q for «defName .»", data)
 		}
 	«else if eq (typeof .) "FixedDefinition"»
 		«- doc "// " . -»
-		type «.Name» [«.SizeBytes»]byte
+		type «defName .» [«.SizeBytes»]byte
 	«else»
 		// unknown definition type «printf "%T; name %q" . (typeof .)» .
 	«end»
 «end»
 `[1:])
+
+func defName(def schema.Definition) string {
+	return goTypeForDefinition(def).Name
+}
+
+func symbolName(e *schema.EnumDefinition, symbol string) string {
+	return defName(e) + strings.Title(symbol)
+}
 
 func quote(s string) string {
 	if !strings.Contains(s, "`") {
@@ -160,6 +171,7 @@ var goIdentifierPat = regexp.MustCompile(`^[A-Z][a-zA-Z_0-9]*$`)
 func isExportedGoIdentifier(s string) bool {
 	return goIdentifierPat.MatchString(s)
 }
+
 func typeof(x interface{}) string {
 	if x == nil {
 		return "nil"

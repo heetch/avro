@@ -175,5 +175,5 @@ tests: duplicateRecord: {
 		G: A: "goodbye"
 		H: 99
 	}
- 	outData: inData
+	outData: inData
 }

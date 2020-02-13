@@ -1,13 +1,12 @@
 package roundtrip
 
-
 tests: cloudEvent: {
 	DomainName :: "someDomain"
 	EventName ::  "someEvent"
-	Version :: "v9.9.99"
+	Version ::    "v9.9.99"
 	inSchema: {
-		type:      "record"
-		name:      "com.heetch.\(DomainName).\(EventName)"
+		type: "record"
+		name: "com.heetch.\(DomainName).\(EventName)"
 		heetchmeta: {
 			commentary: "This Schema describes version \(Version) of the event \(EventName) from the domain \(DomainName)."
 			topickey:   "\(DomainName).\(EventName).\(Version)"
@@ -48,8 +47,8 @@ tests: cloudEvent: {
 	}
 	goType: "Message"
 	outSchema: {
-		type:      "record"
-		name:      "com.heetch.Message"
+		type: "record"
+		name: "com.heetch.Message"
 		fields: [{
 			name: "Metadata"
 			type: {
@@ -83,10 +82,10 @@ tests: cloudEvent: {
 	}
 	inData: {
 		Metadata: CloudEvent: {
-			id:     "id1"
-			source: "source1"
+			id:          "id1"
+			source:      "source1"
 			specversion: "someversion"
-			time:   1580392724000000
+			time:        1580392724000000
 		}
 		other: "some other data"
 	}

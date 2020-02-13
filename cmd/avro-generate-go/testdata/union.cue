@@ -209,8 +209,8 @@ tests: nestedUnion: {
 						"items": [
 							"null",
 							"string",
-						],
-					}
+						]
+					},
 				]
 			}
 		}]
@@ -233,7 +233,7 @@ tests: nestedUnionNestedArray: {
 					"items": [
 						"null",
 						"string",
-					],
+					]
 				}
 			}
 		}]
