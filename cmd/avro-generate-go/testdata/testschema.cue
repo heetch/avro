@@ -7,12 +7,12 @@ import (
 avro :: avroPkg
 avro :: Metadata :: {
 	"go.package"?: string
-	"go.name"?: string
+	"go.name"?:    string
 	heetchmeta?: {
 		commentary: string
-		status: string | *"active"
+		status:     string | *"active"
 		partitions: int | *1
-		topickey: string
+		topickey:   string
 	}
 }
 

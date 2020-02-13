@@ -1,0 +1,28 @@
+{
+                "name": "M",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "E",
+                        "type": {
+                            "name": "e",
+                            "type": "enum",
+                            "symbols": [
+                                "a",
+                                "b"
+                            ],
+                            "go.name": "customEnum"
+                        }
+                    },
+                    {
+                        "name": "F",
+                        "type": {
+                            "name": "f",
+                            "type": "fixed",
+                            "size": 2,
+                            "go.name": "customFixed"
+                        }
+                    }
+                ],
+                "go.name": "customName"
+            }

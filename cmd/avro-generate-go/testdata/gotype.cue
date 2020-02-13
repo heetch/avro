@@ -236,7 +236,7 @@ tests: goTypeProtobufRecord: {
 	}
 	inData: {}
 	outData: {
-		arble: null
+		arble:    null
 		selected: false
 	}
 }
@@ -248,8 +248,8 @@ tests: goTypeExternal: {
 		fields: [{
 			name: "F"
 			type: {
-				type: "record"
-				name: "com.heetch.Message"
+				type:         "record"
+				name:         "com.heetch.Message"
 				"go.package": "github.com/heetch/avro/internal/testtypes"
 				fields: [{
 					name: "Metadata"
@@ -273,7 +273,7 @@ tests: goTypeExternal: {
 								}, {
 									name: "time"
 									type: {
-										type: "long"
+										type:        "long"
 										logicalType: "timestamp-micros"
 									}
 								}]
@@ -293,16 +293,16 @@ tests: goTypeExternal: {
 	outSchema: inSchema
 	inData: {
 		F: Metadata: CloudEvent: {
-			id: "xid"
-			source: "xsource"
+			id:          "xid"
+			source:      "xsource"
 			specversion: "xspecversion"
-			time: 1580486871000000
+			time:        1580486871000000
 		}
 		G: {
-			id: "yd"
-			source: "ysource"
+			id:          "yd"
+			source:      "ysource"
 			specversion: "yspecversion"
-			time: 1580495933000000
+			time:        1580495933000000
 		}
 		H: "xh"
 	}
@@ -330,4 +330,47 @@ tests: goTypeExternal: {
 		c.Assert(reflect.TypeOf(r.G), qt.Equals, cloudEventType)
 	}
 	"""
+}
+
+tests: goTypeCustomName: {
+	otherTests: """
+	package goTypeCustomName
+
+	// Check that the types exist and look correct
+	var (
+		_ customName
+		_ customEnum = customEnumA
+		_ = customFixed{}[1]
+	)
+
+	"""
+	goType: "customName"
+	inSchema: {
+		name:      "M"
+		"go.name": "customName"
+		type:      "record"
+		fields: [{
+			name: "E"
+			type: {
+				type:      "enum"
+				"go.name": "customEnum"
+				name:      "e"
+				symbols: ["a", "b"]
+			}
+		}, {
+			name: "F"
+			type: {
+				type:      "fixed"
+				"go.name": "customFixed"
+				name:      "f"
+				size:      2
+			}
+		}]
+	}
+	outSchema: inSchema
+	inData: {
+		E: "b"
+		F: "xz"
+	}
+	outData: inData
 }
