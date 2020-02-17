@@ -3,6 +3,7 @@ package avro
 import (
 	"context"
 	"reflect"
+	"sync"
 )
 
 // EncodingRegistry is used by SingleEncoder to find
@@ -21,6 +22,8 @@ type EncodingRegistry interface {
 type SingleEncoder struct {
 	registry EncodingRegistry
 	names    *Names
+	// ids holds a map from Go type (reflect.Type) to schema ID (int64)
+	ids sync.Map
 }
 
 // NewSingleEncoder returns a SingleEncoder instance that encodes single
@@ -39,16 +42,20 @@ func NewSingleEncoder(r EncodingRegistry, names *Names) *SingleEncoder {
 	}
 }
 
+// CheckMarshalType checks that the given type can be marshaled with the encoder.
+// It also caches any type information obtained from the EncodingRegistry from the
+// type, so future calls to Marshal with that type won't call it.
+func (enc *SingleEncoder) CheckMarshalType(ctx context.Context, x interface{}) error {
+	_, err := enc.idForType(ctx, reflect.TypeOf(x))
+	return err
+}
+
 // Marshal returns x marshaled as using the Avro binary encoding,
 // along with an identifier that records the type that it was encoded
 // with.
 func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, error) {
 	xv := reflect.ValueOf(x)
-	avroType, err := avroTypeOf(enc.names, xv.Type())
-	if err != nil {
-		return nil, err
-	}
-	id, err := enc.registry.IDForSchema(ctx, avroType.String())
+	id, err := enc.idForType(ctx, xv.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -56,4 +63,21 @@ func (enc *SingleEncoder) Marshal(ctx context.Context, x interface{}) ([]byte, e
 	buf = enc.registry.AppendSchemaID(buf, id)
 	data, _, err := marshalAppend(enc.names, buf, xv)
 	return data, err
+}
+
+func (enc *SingleEncoder) idForType(ctx context.Context, t reflect.Type) (int64, error) {
+	id, ok := enc.ids.Load(t)
+	if ok {
+		return id.(int64), nil
+	}
+	avroType, err := avroTypeOf(enc.names, t)
+	if err != nil {
+		return 0, err
+	}
+	id1, err := enc.registry.IDForSchema(ctx, avroType.String())
+	if err != nil {
+		return 0, err
+	}
+	enc.ids.LoadOrStore(t, id1)
+	return id1, nil
 }
