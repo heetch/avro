@@ -1,3 +1,3 @@
 package testtypes
 
-//go:generate avro-generate-go cloudevent.avsc
+//go:generate avrogo cloudevent.avsc

@@ -3,7 +3,7 @@
 package avrotypegen
 
 // AvroRecord is implemented by Go types generated
-// by the avro-generate-go command.
+// by the avrogo command.
 type AvroRecord interface {
 	AvroRecord() RecordInfo
 }

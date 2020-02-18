@@ -2,6 +2,6 @@
 
 set -ex
 PKG=github.com/heetch/avro
-go install $PKG/cmd/avro-generate-go
+go install $PKG/cmd/avrogo
 go generate $PKG/...
 go test $PKG/...
