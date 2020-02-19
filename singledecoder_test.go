@@ -10,7 +10,7 @@ import (
 	"github.com/heetch/avro"
 )
 
-//go:generate avro-generate-go testschema1.avsc
+//go:generate avrogo testschema1.avsc
 
 func TestSingleDecoder(t *testing.T) {
 	c := qt.New(t)

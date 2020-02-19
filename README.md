@@ -1,6 +1,6 @@
 # Avro - Go-idiomatic encoding and decoding of Avro data
 
-This package provides both a [code generator](https://pkg.go.dev/github.com/heetch/avro/cmd/avro-generate-go) that generates Go data
+This package provides both a [code generator](https://pkg.go.dev/github.com/heetch/avro/cmd/avrogo) that generates Go data
 structures from [Avro schemas](https://avro.apache.org/docs/1.9.1/spec.html) and a mapping between native
 Go data types and Avro schemas.
 
@@ -15,7 +15,7 @@ using an [Avro schema registry](https://docs.confluent.io/current/schema-registr
 
 ## How are Avro schemas represented as Go datatypes?
 
-When the `avro-generate-go` command generates Go datatypes from Avro schemas, it uses the following rules:
+When the `avrogo` command generates Go datatypes from Avro schemas, it uses the following rules:
 
 - `"int"` is represented as `int`
 - `"long"` is represented as `int64`
