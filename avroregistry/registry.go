@@ -80,10 +80,12 @@ func (r *Registry) Decoder() avro.DecodingRegistry {
 // with the given subject and returns its id.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject)-versions
-func (r *Registry) Register(ctx context.Context, subject, schema string) (int64, error) {
+func (r *Registry) Register(ctx context.Context, subject string, schema *avro.Type) (int64, error) {
+	// Note: because of https://github.com/confluentinc/schema-registry/issues/1348
+	// we need to strip metadata from the schema when registering.
 	data, err := json.Marshal(struct {
 		Schema string `json:"schema"`
-	}{schema})
+	}{schema.CanonicalString(avro.LeaveDefaults)})
 	if err != nil {
 		return 0, err
 	}

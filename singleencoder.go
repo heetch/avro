@@ -14,7 +14,7 @@ type EncodingRegistry interface {
 	AppendSchemaID(buf []byte, id int64) []byte
 
 	// IDForSchema returns an ID for the given schema.
-	IDForSchema(ctx context.Context, schema string) (int64, error)
+	IDForSchema(ctx context.Context, schema *Type) (int64, error)
 }
 
 // SingleEncoder encodes messages in Avro binary format.
@@ -74,7 +74,7 @@ func (enc *SingleEncoder) idForType(ctx context.Context, t reflect.Type) (int64,
 	if err != nil {
 		return 0, err
 	}
-	id1, err := enc.registry.IDForSchema(ctx, avroType.String())
+	id1, err := enc.registry.IDForSchema(ctx, avroType)
 	if err != nil {
 		return 0, err
 	}

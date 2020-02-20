@@ -15,7 +15,7 @@ import (
 func TestSingleDecoder(t *testing.T) {
 	c := qt.New(t)
 	dec := avro.NewSingleDecoder(memRegistry{
-		1: `{
+		1: mustParseType(`{
 	"name": "TestRecord",
 	"type": "record",
 	"fields": [{
@@ -29,8 +29,8 @@ func TestSingleDecoder(t *testing.T) {
 		    "type": "int"
 		}
 	}]
-}`,
-		2: `{
+}`),
+		2: mustParseType(`{
 	"name": "TestRecord",
 	"type": "record",
 	"fields": [{
@@ -39,8 +39,8 @@ func TestSingleDecoder(t *testing.T) {
 		    "type": "int"
 		}
 	}]
-}`,
-		3: `{
+}`),
+		3: mustParseType(`{
 	"name": "TestRecord",
 	"type": "record",
 	"fields": [{
@@ -49,8 +49,8 @@ func TestSingleDecoder(t *testing.T) {
 		    "type": "int"
 		}
 	}]
-}`,
-		13: `{
+}`),
+		13: mustParseType(`{
 	"name": "TestRecord",
 	"type": "record",
 	"fields": [{
@@ -59,7 +59,7 @@ func TestSingleDecoder(t *testing.T) {
 		    "type": "string"
 		}
 	}]
-}`,
+}`),
 	}, nil)
 	data, _, err := avro.Marshal(TestRecord{A: 40, B: 20})
 	c.Assert(err, qt.Equals, nil)
@@ -88,7 +88,7 @@ func TestSingleDecoder(t *testing.T) {
 
 // memRegistry implements DecodingRegistry and EncodingRegistry by associating a single-byte
 // schema ID with schemas.
-type memRegistry map[int64]string
+type memRegistry map[int64]*avro.Type
 
 func (m memRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 	if len(msg) < 1 {
@@ -97,12 +97,12 @@ func (m memRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 	return int64(msg[0]), msg[1:]
 }
 
-func (m memRegistry) SchemaForID(ctx context.Context, id int64) (string, error) {
-	s, ok := m[id]
+func (m memRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
+	t, ok := m[id]
 	if !ok {
-		return "", fmt.Errorf("schema not found for id %d", id)
+		return nil, fmt.Errorf("schema not found for id %d", id)
 	}
-	return s, nil
+	return t, nil
 }
 
 func (m memRegistry) AppendSchemaID(buf []byte, id int64) []byte {
@@ -112,9 +112,9 @@ func (m memRegistry) AppendSchemaID(buf []byte, id int64) []byte {
 	return append(buf, byte(id))
 }
 
-func (m memRegistry) IDForSchema(ctx context.Context, schema string) (int64, error) {
+func (m memRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (int64, error) {
 	for id, s := range m {
-		if s == schema {
+		if s.String() == schema.String() {
 			return id, nil
 		}
 	}

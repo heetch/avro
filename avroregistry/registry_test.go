@@ -164,7 +164,126 @@ func TestCanceledRetry(t *testing.T) {
 	}
 }
 
-func schemaOf(names *avro.Names, x interface{}) string {
+var schemaEquivalenceTests = []struct {
+	testName string
+	register string
+	fetch    string
+}{{
+	testName: "ignore_whitespace",
+	register: `     "string"    `,
+	fetch:    `"string" `,
+}, {
+	testName: "namespace_normalization",
+	register: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": {
+			 	"type": "enum",
+			 	"name": "Bar",
+			 	"symbols": ["a", "b"]
+			 }
+		}]
+	}`,
+	fetch: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": {
+			 	"type": "enum",
+			 	"name": "com.example.Bar",
+			 	"symbols": ["a", "b"]
+			 }
+		}]
+	}`,
+}, {
+	testName: "metadata_normalization#1",
+	register: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}],
+		"extraMetadata": "hello"
+	}`,
+	fetch: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}]
+	}`,
+}, {
+	testName: "metadata_normalization#2",
+	register: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}]
+	}`,
+	fetch: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}],
+		"extraMetadata": "hello"
+	}`,
+}, {
+	testName: "metadata_field_order",
+	register: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}],
+		"extraMetadata": {
+			"a": 1,
+			"b": 1
+		}
+	}`,
+	fetch: `{
+		"type": "record",
+		"name": "com.example.Foo",
+		"fields": [{
+			 "name": "a",
+			 "type": "string"
+		}],
+		"extraMetadata": {
+			"b": 1,
+			"a": 1
+		}
+	}`,
+}}
+
+func TestSchemaEquivalence(t *testing.T) {
+	c := qt.New(t)
+	for _, test := range schemaEquivalenceTests {
+		test := test
+		c.Run(test.testName, func(c *qt.C) {
+			ctx := context.Background()
+			r, subject := newTestRegistry(c)
+			// Sanity check it's not there already.
+			_, err := r.Encoder(subject).IDForSchema(ctx, schemaOf(nil, test.fetch))
+			c.Assert(err, qt.Not(qt.IsNil))
+			id, err := r.Register(ctx, subject, schemaOf(nil, test.register))
+			c.Assert(err, qt.Equals, nil)
+			gotID, err := r.Encoder(subject).IDForSchema(ctx, schemaOf(nil, test.fetch))
+			c.Assert(err, qt.Equals, nil)
+			c.Assert(gotID, qt.Equals, id)
+		})
+	}
+}
+
+func schemaOf(names *avro.Names, x interface{}) *avro.Type {
 	if names == nil {
 		names = new(avro.Names)
 	}
@@ -172,7 +291,7 @@ func schemaOf(names *avro.Names, x interface{}) string {
 	if err != nil {
 		panic(err)
 	}
-	return t.String()
+	return t
 }
 
 func newTestRegistry(c *qt.C) (*avroregistry.Registry, string) {
