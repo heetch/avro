@@ -14,7 +14,7 @@ func TestSingleEncoder(t *testing.T) {
 	c := qt.New(t)
 	avroType := mustTypeOf(TestRecord{})
 	registry := memRegistry{
-		1: avroType.String(),
+		1: avroType,
 	}
 	enc := avro.NewSingleEncoder(registry, nil)
 	data, err := enc.Marshal(context.Background(), TestRecord{A: 20, B: 34})
@@ -47,7 +47,7 @@ func TestSingleEncoderCachesTypes(t *testing.T) {
 	c := qt.New(t)
 	registry := &statsRegistry{
 		memRegistry: memRegistry{
-			1: mustTypeOf(TestRecord{}).String(),
+			1: mustTypeOf(TestRecord{}),
 		},
 	}
 	enc := avro.NewSingleEncoder(registry, nil)
@@ -76,8 +76,8 @@ func TestSingleEncoderRace(t *testing.T) {
 		B int
 	}
 	registry := memRegistry{
-		1: mustTypeOf(T1{}).String(),
-		2: mustTypeOf(T2{}).String(),
+		1: mustTypeOf(T1{}),
+		2: mustTypeOf(T2{}),
 	}
 	enc := avro.NewSingleEncoder(registry, nil)
 	var wg sync.WaitGroup
@@ -100,12 +100,12 @@ type statsRegistry struct {
 	memRegistry
 }
 
-func (r *statsRegistry) IDForSchema(ctx context.Context, schema string) (int64, error) {
+func (r *statsRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (int64, error) {
 	r.idForSchemaCount++
 	return r.memRegistry.IDForSchema(ctx, schema)
 }
 
-func (r *statsRegistry) SchemaForID(ctx context.Context, id int64) (string, error) {
+func (r *statsRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
 	r.schemaForIDCount++
 	return r.memRegistry.SchemaForID(ctx, id)
 }

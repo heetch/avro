@@ -35,10 +35,10 @@ func (r encodingRegistry) AppendSchemaID(buf []byte, id int64) []byte {
 // by fetching the schema ID from the registry server.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject).
-func (r encodingRegistry) IDForSchema(ctx context.Context, schema string) (int64, error) {
+func (r encodingRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (int64, error) {
 	data, err := json.Marshal(struct {
 		Schema string `json:"schema"`
-	}{schema})
+	}{schema.String()})
 	if err != nil {
 		return 0, err
 	}
@@ -78,13 +78,17 @@ func (r decodingRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 // by fetching the schema from the registry server.
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#get--schemas-ids-int-%20id
-func (r decodingRegistry) SchemaForID(ctx context.Context, id int64) (string, error) {
+func (r decodingRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
 	req := r.r.newRequest(ctx, "GET", fmt.Sprintf("/schemas/ids/%d", id), nil)
 	var resp struct {
 		Schema string `json:"schema"`
 	}
 	if err := r.r.doRequest(req, &resp); err != nil {
-		return "", err
+		return nil, err
 	}
-	return resp.Schema, nil
+	t, err := avro.ParseType(resp.Schema)
+	if err != nil {
+		return nil, fmt.Errorf("invalid schema (%q) in response: %v", resp.Schema, err)
+	}
+	return t, nil
 }

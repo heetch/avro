@@ -180,3 +180,11 @@ func TestCanonicalString(t *testing.T) {
 		})
 	}
 }
+
+func mustParseType(s string) *avro.Type {
+	t, err := avro.ParseType(s)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}

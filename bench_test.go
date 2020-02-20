@@ -45,7 +45,7 @@ func BenchmarkSingleDecoderUnmarshal(b *testing.B) {
 	at, err := avro.TypeOf(T{})
 	c.Assert(err, qt.Equals, nil)
 	r := memRegistry{
-		1: at.String(),
+		1: at,
 	}
 	enc := avro.NewSingleEncoder(r, nil)
 	ctx := context.Background()
