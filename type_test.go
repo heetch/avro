@@ -168,6 +168,11 @@ var canonicalStringTests = []struct {
 		"symbols": ["a", "b"]
 	}]`,
 	out: `["int","string",{"name":"E","type":"enum","symbols":["a","b"]}]`,
+}, {
+	testName: "out-of-bounds-opts",
+	in:       `"string"`,
+	out:      `"string"`,
+	opts:     15,
 }}
 
 func TestCanonicalString(t *testing.T) {
@@ -176,6 +181,8 @@ func TestCanonicalString(t *testing.T) {
 		c.Run(test.testName, func(c *qt.C) {
 			t, err := avro.ParseType(test.in)
 			c.Assert(err, qt.Equals, nil)
+			c.Assert(t.CanonicalString(test.opts), qt.Equals, test.out)
+			// Make sure that the sync.Once machinery is working OK.
 			c.Assert(t.CanonicalString(test.opts), qt.Equals, test.out)
 		})
 	}

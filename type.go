@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/rogpeppe/gogen-avro/v7/schema"
 
@@ -12,8 +13,12 @@ import (
 
 // Type represents an Avro schema type.
 type Type struct {
-	schema   string
 	avroType schema.AvroType
+	schema   string
+	// We might not usually need the canonical string, so we
+	// calculate it lazily and store it in canonical[opts].
+	canonical     [2]string
+	canonicalOnce [2]sync.Once
 }
 
 // ParseType parses an Avro schema in the format defined by the Avro
@@ -48,21 +53,25 @@ const (
 // BUG: Unicode characters \u2028 and \u2029 in strings inside the schema are always escaped, contrary to the
 // specification above.
 func (t *Type) CanonicalString(opts CanonicalOpts) string {
-	c := &canonicalizer{
-		defined: make(map[schema.QualifiedName]bool),
-		opts:    opts,
-	}
-	v := c.canonicalValue(t.avroType)
+	opts &= LeaveDefaults
+	t.canonicalOnce[opts].Do(func() {
+		c := &canonicalizer{
+			defined: make(map[schema.QualifiedName]bool),
+			opts:    opts,
+		}
+		v := c.canonicalValue(t.avroType)
 
-	// Use a Encoder rather than MarshalJSON directly so that
-	// we can disable escaping of HTML metacharacters.
-	var buf strings.Builder
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(v); err != nil {
-		panic(err)
-	}
-	return strings.TrimSuffix(buf.String(), "\n")
+		// Use a Encoder rather than MarshalJSON directly so that
+		// we can disable escaping of HTML metacharacters.
+		var buf strings.Builder
+		enc := json.NewEncoder(&buf)
+		enc.SetEscapeHTML(false)
+		if err := enc.Encode(v); err != nil {
+			panic(err)
+		}
+		t.canonical[opts] = strings.TrimSuffix(buf.String(), "\n")
+	})
+	return t.canonical[opts]
 }
 
 type canonicalizer struct {
