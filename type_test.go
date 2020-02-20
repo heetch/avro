@@ -89,7 +89,7 @@ var canonicalStringTests = []struct {
 		"type":"record",
 		"name":"R"
 	}`,
-	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"},{"name":"b","type":{"name":"E","type":"enum","symbols":["x","y"]}},{"name":"c","type":{"type":"array","items":"int"}},{"name":"d","type":{"type":"map","items":"int"}},{"name":"e","type":{"name":"F","type":"fixed","size":20}}]}`,
+	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"},{"name":"b","type":{"name":"E","type":"enum","symbols":["x","y"]}},{"name":"c","type":{"type":"array","items":"int"}},{"name":"d","type":{"type":"map","values":"int"}},{"name":"e","type":{"name":"F","type":"fixed","size":20}}]}`,
 }, {
 	testName: "spec-STRINGS",
 	opts:     avro.LeaveDefaults,
@@ -181,9 +181,14 @@ func TestCanonicalString(t *testing.T) {
 		c.Run(test.testName, func(c *qt.C) {
 			t, err := avro.ParseType(test.in)
 			c.Assert(err, qt.Equals, nil)
-			c.Assert(t.CanonicalString(test.opts), qt.Equals, test.out)
+			canon := t.CanonicalString(test.opts)
+			c.Assert(canon, qt.Equals, test.out)
 			// Make sure that the sync.Once machinery is working OK.
 			c.Assert(t.CanonicalString(test.opts), qt.Equals, test.out)
+			// The canonical type of a canonical type should be the same.
+			t1, err := avro.ParseType(canon)
+			c.Assert(err, qt.Equals, nil)
+			c.Assert(t1.String(), qt.Equals, canon)
 		})
 	}
 }
