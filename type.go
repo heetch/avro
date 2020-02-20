@@ -123,8 +123,8 @@ func (c *canonicalizer) canonicalValue(at schema.AvroType) interface{} {
 		return "string"
 	case *schema.MapField:
 		return canonicalFields{
-			Type:  "map",
-			Items: c.canonicalValue(at.ItemType()),
+			Type:   "map",
+			Values: c.canonicalValue(at.ItemType()),
 		}
 	case *schema.UnionField:
 		cf := make([]interface{}, len(at.ItemTypes()))

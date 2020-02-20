@@ -272,11 +272,11 @@ func TestSchemaEquivalence(t *testing.T) {
 			ctx := context.Background()
 			r, subject := newTestRegistry(c)
 			// Sanity check it's not there already.
-			_, err := r.Encoder(subject).IDForSchema(ctx, schemaOf(nil, test.fetch))
+			_, err := r.Encoder(subject).IDForSchema(ctx, parseType(test.fetch))
 			c.Assert(err, qt.Not(qt.IsNil))
-			id, err := r.Register(ctx, subject, schemaOf(nil, test.register))
+			id, err := r.Register(ctx, subject, parseType(test.register))
 			c.Assert(err, qt.Equals, nil)
-			gotID, err := r.Encoder(subject).IDForSchema(ctx, schemaOf(nil, test.fetch))
+			gotID, err := r.Encoder(subject).IDForSchema(ctx, parseType(test.fetch))
 			c.Assert(err, qt.Equals, nil)
 			c.Assert(gotID, qt.Equals, id)
 		})
@@ -288,6 +288,14 @@ func schemaOf(names *avro.Names, x interface{}) *avro.Type {
 		names = new(avro.Names)
 	}
 	t, err := names.TypeOf(x)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+func parseType(s string) *avro.Type {
+	t, err := avro.ParseType(s)
 	if err != nil {
 		panic(err)
 	}
