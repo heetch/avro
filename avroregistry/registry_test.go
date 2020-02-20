@@ -262,6 +262,306 @@ var schemaEquivalenceTests = []struct {
 			"a": 1
 		}
 	}`,
+}, {
+	testName: "funky",
+	register: `{
+  "heetchmeta": {
+    "commentary": "This Schema describes version v0 of the event legacy-transaction-created from the domain bookkeeping.",
+    "domain": "bookkeeping",
+    "domainDescription": "TODO: Please describe bookkeeping domain here.",
+    "domainOwner": "TODO: Please name the team that is responsible for the domain bookkeeping here.",
+    "event": "legacy-transaction-created",
+    "eventDescription": "TODO: Please describe the legacy-transaction-created event here.",
+    "eventTriggeredBy": "TODO: Please desrcibe the circumstances under which the legacy-transaction-created event is triggered, here.",
+    "status": "active",
+    "partitions": 1,
+    "topickey": "com.heetch.bookkeeping.legacy_transaction_created.v0"
+  },
+  "type": "record",
+  "name": "com.heetch.bookkeeping.legacy_transaction_created",
+  "fields": [
+    {
+      "name": "Metadata",
+      "type": {
+        "name": "com.heetch.Metadata",
+        "go.package": "github.com/heetch/kafka-go/cloudevent",
+        "type": "record",
+        "fields": [
+          {
+            "name": "CloudEvent",
+            "type": {
+              "name": "com.heetch.CloudEvent",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "time",
+                  "type": {
+                    "type": "long",
+                    "logicalType": "timestamp-micros"
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string"
+                },
+                {
+                  "name": "specversion",
+                  "type": "string"
+                },
+                {
+                  "name": "source",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "Headers",
+            "type": {
+              "type": "map",
+              "values": "string"
+            }
+          },
+          {
+            "name": "SchemaVersion",
+            "type": "string"
+          },
+          {
+            "name": "RequestID",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Type",
+      "type": {
+        "name": "Type",
+        "type": "enum",
+        "symbols": ["payment", "payment_adjustment", "direct_payment"]
+      }
+    },
+    {
+      "name": "ID",
+      "type": "string"
+    },
+    {
+      "name": "AdjustedTransactionID",
+      "type": "string"
+    },
+    {
+      "name": "RideID",
+      "type": "string"
+    },
+    {
+      "name": "DriverAccountID",
+      "type": "string"
+    },
+    {
+      "name": "PassengerAccountID",
+      "type": "string"
+    },
+    {
+      "name": "BankAccountID",
+      "type": "string"
+    },
+    {
+      "name": "Mode",
+      "type": {
+        "name": "Mode",
+        "type": "enum",
+        "symbols": ["cash", "card", "in_car_with_fee", "paid_by_platform"]
+      }
+    },
+    {
+      "name": "Amount",
+      "type": "string"
+    },
+    {
+      "name": "PlatformFee",
+      "type": "string"
+    },
+    {
+      "name": "DriverAmount",
+      "type": "string"
+    },
+    {
+      "name": "DiscountAmount",
+      "type": "string"
+    },
+    {
+      "name": "Currency",
+      "type": "string"
+    },
+    {
+      "name": "Country",
+      "type": "string"
+    },
+    {
+      "name": "Reason",
+      "type": "string"
+    },
+    {
+      "name": "CreatedAt",
+      "type": "long",
+      "logicalType": "timestamp-micros"
+    },
+    {
+      "name": "UpdatedAt",
+      "type": "long",
+      "logicalType": "timestamp-micros"
+    }
+  ]
+}`,
+	fetch: `{
+  "heetchmeta": {
+    "commentary": "This Schema describes version v0 of the event legacy-transaction-created from the domain bookkeeping.",
+    "domain": "bookkeeping",
+    "domainDescription": "TODO: Please describe bookkeeping domain here.",
+    "domainOwner": "TODO: Please name the team that is responsible for the domain bookkeeping here.",
+    "event": "legacy-transaction-created",
+    "eventDescription": "TODO: Please describe the legacy-transaction-created event here.",
+    "eventTriggeredBy": "TODO: Please desrcibe the circumstances under which the legacy-transaction-created event is triggered, here.",
+    "status": "active",
+    "partitions": 1,
+    "topickey": "com.heetch.bookkeeping.legacy_transaction_created.v0"
+  },
+  "type": "record",
+  "name": "com.heetch.bookkeeping.legacy_transaction_created",
+  "fields": [
+    {
+      "name": "Metadata",
+      "type": {
+        "name": "com.heetch.Metadata",
+        "go.package": "github.com/heetch/kafka-go/cloudevent",
+        "type": "record",
+        "fields": [
+          {
+            "name": "CloudEvent",
+            "type": {
+              "name": "com.heetch.CloudEvent",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "time",
+                  "type": {
+                    "type": "long",
+                    "logicalType": "timestamp-micros"
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string"
+                },
+                {
+                  "name": "specversion",
+                  "type": "string"
+                },
+                {
+                  "name": "source",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "name": "Headers",
+            "type": {
+              "type": "map",
+              "values": "string"
+            }
+          },
+          {
+            "name": "SchemaVersion",
+            "type": "string"
+          },
+          {
+            "name": "RequestID",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Type",
+      "type": {
+        "name": "Type",
+        "type": "enum",
+        "symbols": ["payment", "payment_adjustment", "direct_payment"]
+      }
+    },
+    {
+      "name": "ID",
+      "type": "string"
+    },
+    {
+      "name": "AdjustedTransactionID",
+      "type": "string"
+    },
+    {
+      "name": "RideID",
+      "type": "string"
+    },
+    {
+      "name": "DriverAccountID",
+      "type": "string"
+    },
+    {
+      "name": "PassengerAccountID",
+      "type": "string"
+    },
+    {
+      "name": "BankAccountID",
+      "type": "string"
+    },
+    {
+      "name": "Mode",
+      "type": {
+        "name": "Mode",
+        "type": "enum",
+        "symbols": ["cash", "card", "in_car_with_fee", "paid_by_platform"]
+      }
+    },
+    {
+      "name": "Amount",
+      "type": "string"
+    },
+    {
+      "name": "PlatformFee",
+      "type": "string"
+    },
+    {
+      "name": "DriverAmount",
+      "type": "string"
+    },
+    {
+      "name": "DiscountAmount",
+      "type": "string"
+    },
+    {
+      "name": "Currency",
+      "type": "string"
+    },
+    {
+      "name": "Country",
+      "type": "string"
+    },
+    {
+      "name": "Reason",
+      "type": "string"
+    },
+    {
+      "name": "CreatedAt",
+      "type": "long",
+      "logicalType": "timestamp-micros"
+    },
+    {
+      "name": "UpdatedAt",
+      "type": "long",
+      "logicalType": "timestamp-micros"
+    }
+  ]
+}`,
 }}
 
 func TestSchemaEquivalence(t *testing.T) {
