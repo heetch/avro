@@ -204,11 +204,11 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return nil
 			}
 		}
-		if debugging {
-			debugf("exec %d: %v", pc, a.prog.Instructions[pc])
-		}
 
 		elem := path[len(path)-1]
+		if debugging {
+			debugf("exec %d: %v; ftype %v", pc, a.prog.Instructions[pc], elem.ftype)
+		}
 		switch inst := a.prog.Instructions[pc]; inst.Op {
 		case vm.Set:
 			if elem.info.IsUnion {
@@ -231,7 +231,6 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return fmt.Errorf("cannot assign %v to %s", operandString(inst.Operand), elem.ftype)
 			}
 		case vm.Enter:
-			elem := path[len(path)-1]
 			index := inst.Operand
 			if debugging {
 				debugf("enter %d -> %v, %d entries", index, elem.info.Type, len(elem.info.Entries))
@@ -246,11 +245,14 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			if elem.ftype.Kind() != reflect.Slice {
 				return fmt.Errorf("cannot append to %T", elem.ftype)
 			}
-			path = append(path, pathElem{
-				ftype:    elem.ftype.Elem(),
-				info:     elem.info,
-				avroType: elem.avroType.(*schema.ArrayField).ItemType(),
-			})
+			newElem, err := enterContainer(elem)
+			if err != nil {
+				return fmt.Errorf("cannot enter array: %v", err)
+			}
+			path = append(path, newElem)
+			if debugging {
+				debugf("append array enter -> %v", elem.ftype.Elem())
+			}
 		case vm.AppendMap:
 			if elem.ftype.Kind() != reflect.Map {
 				return fmt.Errorf("cannot append to %T", elem.ftype)
@@ -258,11 +260,11 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			if elem.ftype.Key().Kind() != reflect.String {
 				return fmt.Errorf("invalid key type for map %s", elem.ftype)
 			}
-			path = append(path, pathElem{
-				ftype:    elem.ftype.Elem(),
-				info:     elem.info,
-				avroType: elem.avroType.(*schema.MapField).ItemType(),
-			})
+			newElem, err := enterContainer(elem)
+			if err != nil {
+				return fmt.Errorf("cannot enter map: %v", err)
+			}
+			path = append(path, newElem)
 		case vm.Exit:
 			if len(path) == 0 {
 				return fmt.Errorf("unbalanced exit")
@@ -380,7 +382,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 			// for a field that matches the Avro field.
 			info1, ok := entryByName(elem.info.Entries, field.Name())
 			if !ok {
-				return nil, pathElem{}, fmt.Errorf("could not find entry for field %q", field.Name())
+				return nil, pathElem{}, fmt.Errorf("could not find entry for field %q in %v", field.Name(), elem.ftype)
 			}
 			info = info1
 			entryType = field.Type()
@@ -436,6 +438,29 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 		return nil, pathElem{}, fmt.Errorf("unexpected type %v for Enter", elem.ftype)
 	}
 	return enter, newElem, nil
+}
+
+// enterContainer returns the path element resulting
+// from descending into a map or array container
+// represented by elem.
+func enterContainer(elem pathElem) (pathElem, error) {
+	type container interface {
+		ItemType() schema.AvroType
+	}
+	elem1 := pathElem{
+		ftype:    elem.ftype.Elem(),
+		info:     elem.info,
+		avroType: elem.avroType.(container).ItemType(),
+	}
+	if len(elem1.info.Entries) == 0 {
+		// The type itself might contribute information.
+		info, err := typeinfo.ForType(elem1.ftype)
+		if err != nil {
+			return pathElem{}, fmt.Errorf("cannot get info for %s: %v", info.Type, err)
+		}
+		elem1.info = info
+	}
+	return elem1, nil
 }
 
 func entryByName(entries []typeinfo.Info, fieldName string) (typeinfo.Info, bool) {

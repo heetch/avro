@@ -1,6 +1,9 @@
 // The avrogo command generates Go types for the Avro schemas specified on the
 // command line. Each schema file results in a Go file with the same basename but with a ".go" suffix.
 //
+// Type names within different schemas may refer to one another;
+// for example to put a shared definition in a separate .avsc file.
+//
 // Usage:
 //
 //	usage: avrogen [flags] schema-file...
@@ -30,7 +33,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+
+	"github.com/rogpeppe/gogen-avro/v7/parser"
+	"github.com/rogpeppe/gogen-avro/v7/resolver"
+	"github.com/rogpeppe/gogen-avro/v7/schema"
 )
 
 // Generate the tests.
@@ -65,22 +73,27 @@ func main() {
 }
 
 func generateFiles(files []string) error {
-	for _, f := range files {
-		if err := generateFile(f); err != nil {
-			return err
+	ns, fileDefinitions, err := parseFiles(files)
+	if err != nil {
+		return err
+	}
+	for i, f := range files {
+		if err := generateFile(f, ns, fileDefinitions[i]); err != nil {
+			return fmt.Errorf("cannot generate code for %s: %v", f, err)
 		}
 	}
 	return nil
 }
 
-func generateFile(f string) error {
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
+func generateFile(f string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+	var buf bytes.Buffer
+	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	if err := generate(&buf, data, *pkgFlag); err != nil {
-		return err
+	if buf.Len() == 0 {
+		// No code produced (probably because all the definitions in this
+		// avsc file are external).
+		return nil
 	}
 	resultData, err := format.Source(buf.Bytes())
 	if err != nil {
@@ -99,4 +112,68 @@ func generateFile(f string) error {
 		return err
 	}
 	return nil
+}
+
+// parseFiles parses the Avro schemas in the given files and returns
+// a namespace containing all of the definitions in all of the files
+// and a slice with an element for each file holding a slice
+// of all the definitions within that file.
+func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, error) {
+	var fileDefinitions [][]schema.QualifiedName
+	ns := parser.NewNamespace(false)
+	for _, f := range files {
+		data, err := ioutil.ReadFile(f)
+		if err != nil {
+			return nil, nil, err
+		}
+		var definitions []schema.QualifiedName
+		// Make a new namespace just for this file only
+		// so we can tell which names are defined in this
+		// file alone.
+		singleNS := parser.NewNamespace(false)
+		avroType, err := singleNS.TypeForSchema(data)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid schema in %s: %v", f, err)
+		}
+		if _, ok := avroType.(*schema.Reference); !ok {
+			// The schema doesn't have a top-level name.
+			// TODO how should we cope with a schema that's not
+			// a definition? In that case we don't have
+			// a name for the type, and we may not be able to define
+			// methods on it because it might be a union type which
+			// is represented by an interface type in Go.
+			// See https://github.com/heetch/avro/issues/13
+			return nil, nil, fmt.Errorf("cannot generate code for schema %q which hasn't got a name (%T)", f, avroType)
+		}
+		for name, def := range singleNS.Definitions {
+			if name != def.AvroName() {
+				// It's an alias, so ignore it.
+				continue
+			}
+			definitions = append(definitions, name)
+		}
+		// Sort the definitions so we get deterministic output.
+		// TODO sort topologically so we get top level definitions
+		// before lower level definitions.
+		sort.Slice(definitions, func(i, j int) bool {
+			return definitions[i].String() < definitions[j].String()
+		})
+		fileDefinitions = append(fileDefinitions, definitions)
+		// Parse the schema again but use the global namespace
+		// this time so all the schemas can share the same definitions.
+		if _, err := ns.TypeForSchema(data); err != nil {
+			return nil, nil, fmt.Errorf("cannot parse schema in %s: %v", f, err)
+		}
+	}
+	// Now we've accumulated all the available types,
+	// resolve the names with respect to the complete
+	// namespace.
+	for _, def := range ns.Roots {
+		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
+			// TODO find out which file(s) the definition came from
+			// and include that file name in the error.
+			return nil, nil, fmt.Errorf("cannot resolve reference %q: %v", def, err)
+		}
+	}
+	return ns, fileDefinitions, nil
 }

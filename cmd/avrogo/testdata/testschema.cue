@@ -24,6 +24,7 @@ roundTripTest :: {
 	testName:    string
 	inSchema:    avro.Schema
 	outSchema?:  avro.Schema
+	extraSchemas?: [... avro.Schema]
 	goType:      *outSchema.name | string
 	goTypeBody?: string
 	// generateError holds the error expected from invoking avrogo.

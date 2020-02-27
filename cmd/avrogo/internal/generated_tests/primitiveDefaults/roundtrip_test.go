@@ -28,8 +28,8 @@ var tests = testutil.RoundTripTest{
                     }`,
 		OutDataJSON: `{
                         "string": "hello",
-                        "int": 1111,
                         "long": 2222,
+                        "int": 1111,
                         "float": 1.5,
                         "double": 2.75,
                         "boolean": true

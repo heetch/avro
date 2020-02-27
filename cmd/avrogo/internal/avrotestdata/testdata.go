@@ -12,6 +12,7 @@ type Test struct {
 	TestName      string             `json:"testName"`
 	InSchema      json.RawMessage    `json:"inSchema"`
 	OutSchema     json.RawMessage    `json:"outSchema"`
+	ExtraSchemas  []json.RawMessage  `json:"extraSchemas"`
 	GoType        string             `json:"goType"`
 	GoTypeBody    string             `json:"goTypeBody"`
 	GenerateError string             `json:"generateError"`
