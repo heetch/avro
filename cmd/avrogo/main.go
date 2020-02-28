@@ -3,7 +3,7 @@
 //
 // Usage:
 //
-//	usage: avrogen [flags] schema-file...
+//	usage: avrogo [flags] schema-file...
 //	  -d string
 //	    	directory to write Go files to (default ".")
 //	  -p string
@@ -45,7 +45,7 @@ var (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: avrogen [flags] schema-file...\n")
+		fmt.Fprintf(os.Stderr, "usage: avrogo [flags] schema-file...\n")
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
@@ -55,11 +55,11 @@ func main() {
 		flag.Usage()
 	}
 	if *pkgFlag == "" {
-		fmt.Fprintf(os.Stderr, "avrogen: -p flag must specify a package name or set $GOPACKAGE\n")
+		fmt.Fprintf(os.Stderr, "avrogo: -p flag must specify a package name or set $GOPACKAGE\n")
 		os.Exit(1)
 	}
 	if err := generateFiles(files); err != nil {
-		fmt.Fprintf(os.Stderr, "avrogen: %v\n", err)
+		fmt.Fprintf(os.Stderr, "avrogo: %v\n", err)
 		os.Exit(1)
 	}
 }
