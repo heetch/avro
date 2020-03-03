@@ -12,8 +12,6 @@ import (
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
 	"github.com/rogpeppe/gogen-avro/v7/schema"
-
-	"github.com/heetch/avro/internal/typeinfo"
 )
 
 const (
@@ -21,25 +19,20 @@ const (
 	timestampMillis = "timestamp-millis"
 )
 
-func generate(w io.Writer, s []byte, pkg string) error {
-	ns := parser.NewNamespace(false)
-	sType, err := typeinfo.ParseSchema(string(s), ns)
-	if err != nil {
-		return err
-	}
-	if _, ok := sType.(*schema.Reference); !ok {
-		// The schema doesn't have a top-level name.
-		// TODO how should we cope with a schema that's not
-		// a definition? In that case we don't have
-		// a name for the type, and we may not be able to define
-		// methods on it because it might be a union type which
-		// is represented by an interface type in Go.
-		// See https://github.com/heetch/avro/issues/13
-		return fmt.Errorf("cannot generate code for a schema which hasn't got a name (%T)", sType)
-	}
+func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	extTypes, err := externalTypeMap(ns)
 	if err != nil {
 		return err
+	}
+	// Select only those definitions which aren't external.
+	var localDefinitions []schema.QualifiedName
+	for _, name := range definitions {
+		if _, ok := extTypes[name]; !ok {
+			localDefinitions = append(localDefinitions, name)
+		}
+	}
+	if len(localDefinitions) == 0 {
+		return nil
 	}
 	gc := &generateContext{
 		imports:  make(map[string]string),
@@ -48,8 +41,9 @@ func generate(w io.Writer, s []byte, pkg string) error {
 	gc.addImport("github.com/heetch/avro/avrotypegen")
 	var body bytes.Buffer
 	if err := bodyTemplate.Execute(&body, bodyTemplateParams{
-		NS:  ns,
-		Ctx: gc,
+		Definitions: localDefinitions,
+		NS:          ns,
+		Ctx:         gc,
 	}); err != nil {
 		return err
 	}
@@ -544,9 +538,6 @@ func logicalType(t schema.AvroType) string {
 }
 
 // addImport adds a package to the required imports.
-// This is seriously sleazy, but easy to do for the time being
-// without refactoring the way that templates work.
-// TODO avoid the global mutable variable.
 func (gc *generateContext) addImport(pkg string) string {
 	if id := gc.imports[pkg]; id != "" {
 		return id
@@ -555,11 +546,6 @@ func (gc *generateContext) addImport(pkg string) string {
 	id := importPathToName(pkg)
 	gc.imports[pkg] = id
 	return id
-}
-
-func (gc *generateContext) IsExternal(def schema.Definition) bool {
-	_, ok := gc.extTypes[def.AvroName()]
-	return ok
 }
 
 var importPathPat = regexp.MustCompile(`((?:\p{L}|_)(?:\p{L}|_|\p{Nd})*)(?:\.v\d+(-unstable)?)?$`)

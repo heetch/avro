@@ -1,0 +1,19 @@
+{
+                    "name": "S",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "Data",
+                            "type": "string",
+                            "default": ""
+                        },
+                        {
+                            "name": "Child",
+                            "type": [
+                                "null",
+                                "R"
+                            ],
+                            "default": null
+                        }
+                    ]
+                }

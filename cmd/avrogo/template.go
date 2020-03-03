@@ -50,16 +50,16 @@ import (
 `)
 
 type bodyTemplateParams struct {
-	NS  *parser.Namespace
-	Ctx *generateContext
+	Definitions []schema.QualifiedName
+	NS          *parser.Namespace
+	Ctx         *generateContext
 }
 
 var bodyTemplate = newTemplate(`
-«range $defName, $def  :=.NS.Definitions»
-	«- if ne $defName.String .AvroName.String »
-		// Alias «$defName» = «.AvroName»
-	«- else if $.Ctx.IsExternal $def»«/* Omit the external definition */»
-	«- else if eq (typeof .) "RecordDefinition"»
+«range $defName := .Definitions»
+	«$def := index $.NS.Definitions $defName»
+	«with $def»
+	«- if eq (typeof .) "RecordDefinition"»
 		«- doc "// " .»
 		type «defName .» struct {
 		«- range $i, $_ := .Fields»
@@ -128,6 +128,7 @@ var bodyTemplate = newTemplate(`
 		type «defName .» [«.SizeBytes»]byte
 	«else»
 		// unknown definition type «printf "%T; name %q" . (typeof .)» .
+	«end»
 	«end»
 «end»
 `[1:])

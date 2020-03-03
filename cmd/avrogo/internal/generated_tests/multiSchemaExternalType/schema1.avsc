@@ -1,0 +1,44 @@
+{
+                    "name": "com.heetch.Message",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "Metadata",
+                            "type": {
+                                "name": "Metadata",
+                                "type": "record",
+                                "fields": [
+                                    {
+                                        "name": "CloudEvent",
+                                        "type": {
+                                            "name": "CloudEvent",
+                                            "type": "record",
+                                            "fields": [
+                                                {
+                                                    "name": "id",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "name": "source",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "name": "specversion",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "name": "time",
+                                                    "type": {
+                                                        "type": "long",
+                                                        "logicalType": "timestamp-micros"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "go.package": "github.com/heetch/avro/internal/testtypes"
+                }

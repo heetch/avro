@@ -90,12 +90,25 @@ func main() {
 		err := os.MkdirAll(dir, 0777)
 		check("mkdir", err)
 		if test.OutSchema != nil {
-			file := filepath.Join(dir, "schema.avsc")
-			err = ioutil.WriteFile(file, []byte(test.OutSchema), 0666)
-			check("create schema file", err)
-
+			var schemaFiles []string
+			schemas := []json.RawMessage{test.OutSchema}
+			schemas = append(schemas, test.ExtraSchemas...)
+			for i, schema := range schemas {
+				var f string
+				if i == 0 {
+					f = "schema.avsc"
+				} else {
+					f = fmt.Sprintf("schema%d.avsc", i)
+				}
+				file := filepath.Join(dir, f)
+				err = ioutil.WriteFile(file, schema, 0666)
+				check("create schema file", err)
+				schemaFiles = append(schemaFiles, f)
+			}
 			var buf bytes.Buffer
-			cmd := exec.Command("avrogo", "-p", test.TestName, "schema.avsc")
+			args := []string{"-p", test.TestName, "schema.avsc"}
+			args = append(args, schemaFiles...)
+			cmd := exec.Command("avrogo", args...)
 			cmd.Stderr = &buf
 			cmd.Stdout = &buf
 			cmd.Dir = dir
@@ -106,10 +119,10 @@ func main() {
 					failed = true
 					continue
 				} else {
-					pat, err := regexp.Compile("^(" + test.GenerateError + "$")
+					pat, err := regexp.Compile("^(" + test.GenerateError + ")\n?$")
 					check("generateError regexp", err)
 					if !pat.MatchString(buf.String()) {
-						fmt.Fprintf(os.Stderr, "avrogo failed with unexpected error;\ngot %q\nwant %s\n", buf, test.GenerateError)
+						fmt.Fprintf(os.Stderr, "avrogo failed with unexpected error;\ngot %q\nwant %q\n", &buf, test.GenerateError)
 						failed = true
 						continue
 					}
@@ -123,7 +136,7 @@ func main() {
 			if err != nil {
 				io.Copy(os.Stderr, &buf)
 			}
-			check("avrogo "+file, err)
+			check(fmt.Sprintf("avrogo %q", args), err)
 		} else {
 			// The Go tool seems to require at least some
 			// non-test code, at least when run with coverage engaged.
