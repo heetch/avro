@@ -255,5 +255,5 @@ tests: multiSchemaConflictingDefinitions: {
 			type: "string"
 		}]
 	}]
-	generateError: "avrogen: cannot parse schema in .*: Conflicting definitions for S"
+	generateError: "avrogo: cannot parse schema in .*: Conflicting definitions for S"
 }
