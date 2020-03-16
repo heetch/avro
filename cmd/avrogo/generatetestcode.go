@@ -86,6 +86,18 @@ func main() {
 	os.RemoveAll(generateDir)
 	failed := false
 	for _, test := range tests {
+		errorf := func(f string, a ...interface{}) {
+			fmt.Fprintf(os.Stderr, "generatetestcode: test %q: %s\n", test.TestName, fmt.Sprintf(f, a...))
+		}
+		fatalf := func(f string, a ...interface{}) {
+			errorf(f, a...)
+			os.Exit(1)
+		}
+		check := func(what string, err error) {
+			if err != nil {
+				fatalf("%s: %v", what, err)
+			}
+		}
 		dir := filepath.Join(generateDir, test.TestName)
 		err := os.MkdirAll(dir, 0777)
 		check("mkdir", err)
@@ -115,14 +127,14 @@ func main() {
 			err = cmd.Run()
 			if test.GenerateError != "" {
 				if err == nil {
-					fmt.Fprintf(os.Stderr, "avrogo unexpectedly succeeded in test %s (%s)\n", test.TestName, dir)
+					errorf("avrogo unexpectedly succeeded in dir", dir)
 					failed = true
 					continue
 				} else {
 					pat, err := regexp.Compile("^(" + test.GenerateError + ")\n?$")
 					check("generateError regexp", err)
 					if !pat.MatchString(buf.String()) {
-						fmt.Fprintf(os.Stderr, "avrogo failed with unexpected error;\ngot %q\nwant %q\n", &buf, test.GenerateError)
+						errorf("avrogo failed with unexpected error;\ngot %q\nwant %q\n", &buf, test.GenerateError)
 						failed = true
 						continue
 					}
@@ -136,7 +148,7 @@ func main() {
 			if err != nil {
 				io.Copy(os.Stderr, &buf)
 			}
-			check(fmt.Sprintf("avrogo %q", args), err)
+			check(fmt.Sprintf("test %s: avrogo %q", test.TestName, args), err)
 		} else {
 			// The Go tool seems to require at least some
 			// non-test code, at least when run with coverage engaged.
@@ -164,13 +176,6 @@ func main() {
 		}
 	}
 	if failed {
-		os.Exit(1)
-	}
-}
-
-func check(what string, err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "generatetestcode: %s: %v\n", what, err)
 		os.Exit(1)
 	}
 }
