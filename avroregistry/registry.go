@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/heetch/avro"
-	"gopkg.in/retry.v1"
+	retry "gopkg.in/retry.v1"
 )
 
 // Registry represents an Avro registry server. It implements avro.EncodingRegistry
@@ -132,6 +132,7 @@ func (r *Registry) newRequest(ctx context.Context, method string, urlStr string,
 func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 	// TODO should we specificy a version number of the API to accept?
 	req.Header.Set("Accept", "application/vnd.schemaregistry.v1+json")
+	req.Header.Set("Content-Type", "application/vnd.schemaregistry.v1+json")
 	if r.params.Username != "" {
 		req.SetBasicAuth(r.params.Username, r.params.Password)
 	}
