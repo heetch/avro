@@ -1,0 +1,31 @@
+go2avro T
+cmp stdout expect-stdout
+
+go2avro example.com/foo/bar.T
+cmp stdout expect-stdout
+
+-- expect-stdout --
+{
+    "fields": [
+        {
+            "default": 0,
+            "name": "X",
+            "type": "long"
+        }
+    ],
+    "name": "T",
+    "type": "record"
+}
+-- bar.go --
+package bar
+
+type T struct {
+	X int
+}
+
+-- go.mod --
+module example.com/foo/bar
+
+go 1.14
+
+require github.com/heetch/avro v0.0.0-20200318154341-de261c0e4b7f // indirect

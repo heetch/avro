@@ -1,0 +1,16 @@
+! go2avro T
+stderr 'go2avro: cannot get Avro type: cannot get type: cannot make Avro schema for Go type chan int'
+
+-- bar.go --
+package bar
+
+type T struct {
+	X chan int
+}
+
+-- go.mod --
+module example.com/foo/bar
+
+go 1.14
+
+require github.com/heetch/avro v0.0.0-20200318154341-de261c0e4b7f // indirect
