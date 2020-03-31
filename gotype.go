@@ -205,7 +205,9 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		var fields []interface{}
+		// Note: don't start with nil fields because gogen-avro
+		// doesn't like the nil value.
+		fields := []interface{}{}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.Anonymous {

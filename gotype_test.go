@@ -48,6 +48,17 @@ func TestSimpleGoType(t *testing.T) {
 	wg.Wait()
 }
 
+func TestEmptyGoStructType(t *testing.T) {
+	c := qt.New(t)
+	type T struct{}
+	data, wType, err := avro.Marshal(T{})
+	c.Assert(err, qt.Equals, nil)
+	var x T
+	_, err = avro.Unmarshal(data, &x, wType)
+	c.Assert(err, qt.Equals, nil)
+	c.Check(x, qt.Equals, T{})
+}
+
 func TestGoTypeWithOmittedFields(t *testing.T) {
 	c := qt.New(t)
 	type R struct {
