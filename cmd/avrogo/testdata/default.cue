@@ -129,6 +129,7 @@ tests: recordDefault: {
 			default: {
 				F1: 44
 				F2: "whee"
+				F3: "ok"
 			}
 		}]
 	}
@@ -136,8 +137,36 @@ tests: recordDefault: {
 	outData: recordField: {
 		F1: 44
 		F2: "whee"
-		F3: "hello"
+		F3: "ok"
 	}
+}
+
+tests: recordDefaultFieldNotProvided: {
+	inSchema: emptyRecord
+	inSchema: name: "R"
+	outSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "recordField"
+			type: {
+				type: "record"
+				name: "Foo"
+				fields: [{
+					name:    "F1"
+					type:    "string"
+				}, {
+					name:    "F2"
+					type:    "string"
+					default: "hello"
+				}]
+			}
+			default: {
+				F1: ""
+			}
+		}]
+	}
+	generateError: #"avrogo: cannot generate code for schema.avsc: template: .*: executing "" at <\$.Ctx.RecordInfoLiteral>: error calling RecordInfoLiteral: cannot generate code for field recordField of record R: field "F2" of record Foo must be present in default value but is missing"#
 }
 
 tests: enumDefault: {

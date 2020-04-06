@@ -93,7 +93,7 @@ func fprintf(w io.Writer, f string, a ...interface{}) {
 	fmt.Fprintf(w, f, a...)
 }
 
-func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) string {
+func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) (string, error) {
 	w := new(strings.Builder)
 	fprintf(w, "avrotypegen.RecordInfo{\n")
 	schemaStr, err := t.Schema()
@@ -128,7 +128,7 @@ func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) string 
 		fprintf(w, "%d: ", i)
 		lit, err := gc.defaultFuncLiteral(f.Default(), f.Type())
 		if err != nil {
-			fprintf(w, "func() interface{} {}, // ERROR: %v\n", err)
+			return "", fmt.Errorf("cannot generate code for field %s of record %v: %v", f.Name(), t.AvroName(), err)
 		} else {
 			fprintf(w, "func() interface{} {\nreturn %s\n},\n", lit)
 		}
@@ -155,7 +155,7 @@ func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) string 
 		fprintf(w, "},\n")
 	}
 	fprintf(w, "}")
-	return w.String()
+	return w.String(), nil
 }
 
 // canOmitUnionInfo reports whether the info for the
@@ -364,10 +364,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 				fieldVal, ok := m[field.Name()]
 				var lit string
 				if !ok {
-					if !field.HasDefault() {
-						return "", fmt.Errorf("field %q not present", field.Name())
-					}
-					fieldVal = field.Default()
+					return "", fmt.Errorf("field %q of record %s must be present in default value but is missing", field.Name(), t.TypeName)
 				}
 				lit, err := gc.defaultFuncLiteral(fieldVal, field.Type())
 				if err != nil {
