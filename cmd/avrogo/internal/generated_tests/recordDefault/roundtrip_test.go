@@ -30,7 +30,7 @@ var tests = testutil.RoundTripTest{
                         "recordField": {
                             "F1": 44,
                             "F2": "whee",
-                            "F3": "hello"
+                            "F3": "ok"
                         }
                     }`,
 	}},

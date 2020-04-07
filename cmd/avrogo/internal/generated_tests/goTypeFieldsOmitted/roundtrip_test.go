@@ -20,11 +20,11 @@ var tests = testutil.RoundTripTest{
 		InDataJSON: `{}`,
 		OutDataJSON: `{
                         "E": [],
+                        "A": 0,
                         "F": {
                             "A": 0,
                             "B": ""
                         },
-                        "A": 0,
                         "B": "",
                         "C": "\u0000\u0000\u0000",
                         "D": {}

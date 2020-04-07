@@ -35,13 +35,13 @@ type R struct {
 // AvroRecord implements the avro.AvroRecord interface.
 func (R) AvroRecord() avrotypegen.RecordInfo {
 	return avrotypegen.RecordInfo{
-		Schema: `{"fields":[{"default":{"F1":44,"F2":"whee"},"name":"recordField","type":{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}}],"name":"R","type":"record"}`,
+		Schema: `{"fields":[{"default":{"F1":44,"F2":"whee","F3":"ok"},"name":"recordField","type":{"fields":[{"name":"F1","type":"int"},{"name":"F2","type":"string"},{"default":"hello","name":"F3","type":"string"}],"name":"Foo","type":"record"}}],"name":"R","type":"record"}`,
 		Defaults: []func() interface{}{
 			0: func() interface{} {
 				return Foo{
 					F1: 44,
 					F2: "whee",
-					F3: "hello",
+					F3: "ok",
 				}
 			},
 		},
