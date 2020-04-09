@@ -85,7 +85,7 @@ func (r *Registry) Register(ctx context.Context, subject string, schema *avro.Ty
 	// we need to strip metadata from the schema when registering.
 	data, err := json.Marshal(struct {
 		Schema string `json:"schema"`
-	}{schema.CanonicalString(avro.LeaveDefaults)})
+	}{canonical(schema)})
 	if err != nil {
 		return 0, err
 	}
@@ -183,4 +183,8 @@ type apiError struct {
 
 func (e *apiError) Error() string {
 	return fmt.Sprintf("Avro registry error (code %d): %v", e.ErrorCode, e.Message)
+}
+
+func canonical(schema *avro.Type) string {
+	return schema.CanonicalString(avro.RetainDefaults | avro.RetainLogicalTypes)
 }
