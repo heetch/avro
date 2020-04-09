@@ -26,7 +26,6 @@ var canonicalStringTests = []struct {
 	out:      `"int"`,
 }, {
 	testName: "spec-STRIP",
-	opts:     avro.LeaveDefaults,
 	in: `{
 	"type": "record",
 	"name":"R",
@@ -37,10 +36,17 @@ var canonicalStringTests = []struct {
 		"name": "a",
 		"type": "string",
 		"default": "hello"
+	}, {
+		"name": "b",
+		"type": {
+			"type": "long",
+			"logicalType": "timestamp-millis"
+		}
 	}]}`,
-	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string","default":"hello"}]}`,
+	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"},{"name":"b","type":"long"}]}`,
 }, {
-	testName: "spec-STRIP-include-defaults",
+	testName: "spec-STRIP-retain-defaults",
+	opts:     avro.RetainDefaults,
 	in: `{
 	"type": "record",
 	"name":"R",
@@ -51,8 +57,72 @@ var canonicalStringTests = []struct {
 		"name": "a",
 		"type": "string",
 		"default": "hello"
+	}, {
+		"name": "b",
+		"type": {
+			"type": "long",
+			"logicalType": "timestamp-micros"
+		}
 	}]}`,
-	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"}]}`,
+	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string","default":"hello"},{"name":"b","type":"long"}]}`,
+}, {
+	testName: "spec-STRIP-retain-logical-types",
+	opts:     avro.RetainLogicalTypes,
+	in: `{
+	"type": "record",
+	"name":"R",
+	"doc": "documentation",
+	"extra-meta":"hello",
+	"aliases": ["a", "b"],
+	"fields": [{
+		"name": "a",
+		"type": "string",
+		"default": "hello"
+	}, {
+		"name": "b",
+		"type": {
+			"type": "long",
+			"logicalType": "timestamp-micros"
+		}
+	}, {
+		"name": "c",
+		"type": {
+			"type": "bytes",
+			"logicalType": "decimal",
+			"scale": 3,
+			"precision": 6
+		}
+	}, {
+		"name": "d",
+		"type": {
+			"type": "bytes",
+			"logicalType": "decimal",
+			"scale": 0,
+			"precision": 6
+		}
+	}]}`,
+	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"},{"name":"b","type":{"type":"long","logicalType":"timestamp-micros"}},{"name":"c","type":{"type":"bytes","logicalType":"decimal","precision":6,"scale":3}},{"name":"d","type":{"type":"bytes","logicalType":"decimal","precision":6}}]}`,
+}, {
+	testName: "spec-STRIP-retain-all",
+	opts:     avro.RetainAll,
+	in: `{
+	"type": "record",
+	"name":"R",
+	"doc": "documentation",
+	"extra-meta":"hello",
+	"aliases": ["a", "b"],
+	"fields": [{
+		"name": "a",
+		"type": "string",
+		"default": "hello"
+	}, {
+		"name": "b",
+		"type": {
+			"type": "long",
+			"logicalType": "timestamp-micros"
+		}
+	}]}`,
+	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string","default":"hello"},{"name":"b","type":{"type":"long","logicalType":"timestamp-micros"}}]}`,
 }, {
 	testName: "spec-ORDER",
 	in: `{
@@ -92,7 +162,7 @@ var canonicalStringTests = []struct {
 	out: `{"name":"R","type":"record","fields":[{"name":"a","type":"string"},{"name":"b","type":{"name":"E","type":"enum","symbols":["x","y"]}},{"name":"c","type":{"type":"array","items":"int"}},{"name":"d","type":{"type":"map","values":"int"}},{"name":"e","type":{"name":"F","type":"fixed","size":20}}]}`,
 }, {
 	testName: "spec-STRINGS",
-	opts:     avro.LeaveDefaults,
+	opts:     avro.RetainDefaults,
 	in: `{
 		"name":"\u0052",
 		"type":"record",

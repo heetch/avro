@@ -17,8 +17,8 @@ type Type struct {
 	schema   string
 	// We might not usually need the canonical string, so we
 	// calculate it lazily and store it in canonical[opts].
-	canonical     [2]string
-	canonicalOnce [2]sync.Once
+	canonical     [RetainAll + 1]string
+	canonicalOnce [RetainAll + 1]sync.Once
 }
 
 // ParseType parses an Avro schema in the format defined by the Avro
@@ -44,7 +44,9 @@ type CanonicalOpts int
 const (
 	// LeaveDefaults specifies that default values should be retained in
 	// the canonicalized schema string.
-	LeaveDefaults CanonicalOpts = 1 << iota
+	RetainDefaults CanonicalOpts = 1 << iota
+	RetainLogicalTypes
+	RetainAll CanonicalOpts = RetainDefaults | RetainLogicalTypes
 )
 
 // CanonicalString returns the canonical string representation of the type,
@@ -53,7 +55,7 @@ const (
 // BUG: Unicode characters \u2028 and \u2029 in strings inside the schema are always escaped, contrary to the
 // specification above.
 func (t *Type) CanonicalString(opts CanonicalOpts) string {
-	opts &= LeaveDefaults
+	opts &= RetainAll
 	t.canonicalOnce[opts].Do(func() {
 		c := &canonicalizer{
 			defined: make(map[schema.QualifiedName]bool),
@@ -94,11 +96,44 @@ type canonicalFields struct {
 	// important to store in the registry, so we allow it to be
 	// kept with the LeaveDefaults option to CanonicalString.
 	// TODO the Avro spec doesn't define canonicalization for
-	// floating point values, which could be an issue.
+	// numeric values, which could be an issue.
 	Default interface{} `json:"default,omitempty"`
+	// Logical types aren't mentioned in the specification either,
+	// but they're important to maintain so that we can potentially
+	// guard against data corruption due to changed logical types.
+	LogicalType string `json:"logicalType,omitempty"`
+	Precision   int    `json:"precision,omitempty"`
+	Scale       int    `json:"scale,omitempty"`
 }
 
 func (c *canonicalizer) canonicalValue(at schema.AvroType) interface{} {
+	s := c.canonicalValue1(at)
+	ltype := logicalType(at)
+	if (c.opts&RetainLogicalTypes) == 0 || ltype == "" {
+		return s
+	}
+	var r canonicalFields
+	switch s := s.(type) {
+	case string:
+		r = canonicalFields{
+			Type: s,
+		}
+	case canonicalFields:
+		r = s
+	default:
+		panic("unexpected type returned from canonicalValue1")
+	}
+	r.LogicalType = ltype
+	if ltype == "decimal" {
+		scale, _ := at.Attribute("scale").(float64)
+		r.Scale = int(scale)
+		precision, _ := at.Attribute("precision").(float64)
+		r.Precision = int(precision)
+	}
+	return r
+}
+
+func (c *canonicalizer) canonicalValue1(at schema.AvroType) interface{} {
 	switch at := at.(type) {
 	case *schema.ArrayField:
 		return canonicalFields{
@@ -166,7 +201,7 @@ func (c *canonicalizer) canonicalValue(at schema.AvroType) interface{} {
 					Name: f.Name(),
 					Type: c.canonicalValue(f.Type()),
 				}
-				if f.HasDefault() && (c.opts&LeaveDefaults) != 0 {
+				if f.HasDefault() && (c.opts&RetainDefaults) != 0 {
 					cf.Fields[i].Default = f.Default()
 				}
 			}

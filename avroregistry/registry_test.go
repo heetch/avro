@@ -77,6 +77,21 @@ func TestSchemaCompatibility(t *testing.T) {
 	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 409\): Schema being registered is incompatible with an earlier schema`)
 }
 
+func TestSchemasRetainLogicalTypes(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	r, subject := newTestRegistry(c)
+	ctx := context.Background()
+	type R struct {
+		T time.Time
+	}
+	id, err := r.Register(ctx, subject, schemaOf(nil, R{}))
+	c.Assert(err, qt.Equals, nil)
+	schema, err := r.Decoder().SchemaForID(ctx, id)
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(schema.String(), qt.Equals, `{"type":"record","name":"R","fields":[{"name":"T","type":{"type":"long","logicalType":"timestamp-micros"},"default":0}]}`)
+}
+
 func TestSingleCodec(t *testing.T) {
 	c := qt.New(t)
 	defer c.Done()

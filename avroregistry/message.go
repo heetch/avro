@@ -38,7 +38,7 @@ func (r encodingRegistry) AppendSchemaID(buf []byte, id int64) []byte {
 func (r encodingRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (int64, error) {
 	data, err := json.Marshal(struct {
 		Schema string `json:"schema"`
-	}{schema.CanonicalString(avro.LeaveDefaults)})
+	}{canonical(schema)})
 	if err != nil {
 		return 0, err
 	}
