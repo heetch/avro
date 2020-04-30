@@ -29,6 +29,10 @@
                     {
                         "name": "stringField",
                         "type": "string"
+                    },
+                    {
+                        "name": "nullField",
+                        "type": "null"
                     }
                 ]
             }

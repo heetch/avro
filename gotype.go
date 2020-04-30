@@ -43,6 +43,7 @@ type errorSchema struct {
 //	- float32 encodes as "float"
 //	- float64 encodes as "double"
 //	- string encodes as "string"
+//	- Null{} encodes as "null"
 //	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
 //	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
 //	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
@@ -188,11 +189,14 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			"values": values,
 		}, nil
 	case reflect.Struct:
-		if t == timeType {
+		switch t {
+		case timeType:
 			return map[string]interface{}{
 				"type":        "long",
 				"logicalType": timestampMicros,
 			}, nil
+		case nullType:
+			return "null", nil
 		}
 		// Define the struct type before filling in the definition
 		// so that we'll find the definition if there's a recursive type.
@@ -432,8 +436,11 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) (interface{}, error) {
 	case reflect.Array:
 		return strings.Repeat("\u0000", t.Len()), nil
 	case reflect.Struct:
-		if t == timeType {
+		switch t {
+		case timeType:
 			return 0, nil
+		case nullType:
+			return nil, nil
 		}
 		if avroRecordOf(t) != nil {
 			// It's a generated type - producing a correctly formed default value
@@ -472,3 +479,8 @@ func avroRecordOf(t reflect.Type) avrotypegen.AvroRecord {
 	r, _ := reflect.Zero(t).Interface().(avrotypegen.AvroRecord)
 	return r
 }
+
+var nullType = reflect.TypeOf(Null{})
+
+// Null represents the Avro null type. Its only JSON representation is null.
+type Null = avrotypegen.Null

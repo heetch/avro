@@ -215,6 +215,8 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 		return floatEncoder
 	case *schema.IntField:
 		return longEncoder
+	case *schema.NullField:
+		return nullEncoder
 	case *schema.LongField:
 		if t == timeType {
 			if lt := logicalType(at); lt == timestampMicros {
@@ -322,6 +324,9 @@ func boolEncoder(e *encodeState, v reflect.Value) {
 	} else {
 		e.WriteByte(0)
 	}
+}
+
+func nullEncoder(e *encodeState, v reflect.Value) {
 }
 
 func longEncoder(e *encodeState, v reflect.Value) {

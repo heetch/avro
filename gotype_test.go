@@ -48,6 +48,31 @@ func TestSimpleGoType(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGoTypeWithNull(t *testing.T) {
+	c := qt.New(t)
+	type T struct {
+		A, B avro.Null
+	}
+	data, wType, err := avro.Marshal(T{})
+	c.Assert(err, qt.Equals, nil)
+	c.Assert(data, qt.HasLen, 0)
+	c.Assert(wType.String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "T",
+		"fields": [{
+			"name": "A",
+			"default": null,
+			"type": "null"
+		}, {
+			"name": "B",
+			"default": null,
+			"type": "null"
+		}]
+	}`))
+	_, err = avro.Unmarshal(nil, new(T), wType)
+	c.Assert(err, qt.Equals, nil)
+}
+
 func TestEmptyGoStructType(t *testing.T) {
 	c := qt.New(t)
 	type T struct{}

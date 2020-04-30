@@ -2,6 +2,8 @@
 // This is an implementation detail and this might change over time.
 package avrotypegen
 
+import "fmt"
+
 // AvroRecord is implemented by Go types generated
 // by the avrogo command.
 type AvroRecord interface {
@@ -47,4 +49,21 @@ type UnionInfo struct {
 	// The info can be omitted if Type is a pointer
 	// and the union is ["null", T].
 	Union []UnionInfo
+}
+
+// Null represents the Avro null type. Its only JSON representation is null.
+type Null struct{}
+
+// UnmarshalJSON implements json.Unmarshaler by requiring
+// the JSON value to be null.
+func (Null) UnmarshalJSON(data []byte) error {
+	if string(data) != "null" {
+		return fmt.Errorf("cannot unmarshal %q into avro.Null", data)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler by returning "null".
+func (Null) MarshalJSON() ([]byte, error) {
+	return []byte("null"), nil
 }

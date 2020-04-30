@@ -14,7 +14,7 @@ type PrimitiveUnionTestRecord struct {
 	// 	float64
 	// 	string
 	// 	bool
-	// 	nil
+	// 	avrotypegen.Null
 	UnionField interface{}
 }
 
@@ -43,7 +43,7 @@ func (PrimitiveUnionTestRecord) AvroRecord() avrotypegen.RecordInfo {
 				}, {
 					Type: new(bool),
 				}, {
-					Type: nil,
+					Type: new(avrotypegen.Null),
 				}},
 			},
 		},

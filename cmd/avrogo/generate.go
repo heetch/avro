@@ -445,7 +445,7 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 	var info typeInfo
 	switch t := t.(type) {
 	case *schema.NullField:
-		info.GoType = "nil"
+		info.GoType = "avrotypegen.Null"
 	case *schema.BoolField:
 		info.GoType = "bool"
 	case *schema.IntField:
