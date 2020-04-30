@@ -52,3 +52,8 @@ roundTripTest :: {
 }
 
 errorKind :: "unmarshal" | "marshal"
+
+dummyField :: {
+	name: "dummy"
+	type: "string"
+}

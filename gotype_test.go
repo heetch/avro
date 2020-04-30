@@ -78,6 +78,15 @@ func TestEmptyGoStructType(t *testing.T) {
 	type T struct{}
 	data, wType, err := avro.Marshal(T{})
 	c.Assert(err, qt.Equals, nil)
+	c.Assert(wType.String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "T",
+		"fields": [{
+			"default": null,
+			"name": "_",
+			"type": "null"
+		}]
+	}`))
 	var x T
 	_, err = avro.Unmarshal(data, &x, wType)
 	c.Assert(err, qt.Equals, nil)

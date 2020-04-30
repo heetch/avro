@@ -177,3 +177,52 @@ tests: duplicateRecord: {
 	}
 	outData: inData
 }
+
+tests: underscoreField: {
+	inSchema: {
+		name: "R"
+		type: "record"
+		fields: [{
+			name:    "_"
+			type:    "int"
+		}]
+	}
+	outSchema: inSchema
+	generateError: #"avrogo: cannot generate code for schema.avsc: template: .*error calling goName: cannot form an exported Go identifier from "_""#
+	inData: {
+		"_": 123
+	}
+	outData: inData
+}
+
+tests: emptyRecord: {
+	inSchema: {
+		name: "R"
+		type: "record"
+		fields: [{
+			name:    "_"
+			type:    "null"
+			default: null
+		}]
+	}
+	outSchema: inSchema
+	inData: {
+		"_": null
+	}
+	outData: inData
+	otherTests: """
+	package emptyRecord
+	import (
+		"reflect"
+		"testing"
+
+		qt "github.com/frankban/quicktest"
+	)
+
+	func TestNoFieldsInGeneratedStruct(t *testing.T) {
+		c := qt.New(t)
+		c.Assert(reflect.TypeOf(R{}).NumField(), qt.Equals, 0)
+	}
+	"""
+
+}
