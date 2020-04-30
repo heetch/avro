@@ -27,6 +27,9 @@ tests: primitive: {
 		}, {
 			name: "stringField"
 			type: "string"
+		}, {
+			name: "nullField"
+			type: "null"
 		}]
 	}
 	outSchema: inSchema
@@ -43,6 +46,7 @@ tests: primitive: subtests: highValues: {
 		// https://github.com/linkedin/goavro/issues/192
 		bytesField:  "stuff"
 		stringField: "hello world"
+		nullField: null
 	}
 	outData: inData
 }
@@ -58,6 +62,7 @@ tests: primitive: subtests: lowValues: {
 		// https://github.com/linkedin/goavro/issues/192
 		bytesField:  ""
 		stringField: ""
+		nullField: null
 	}
 	outData: inData
 }

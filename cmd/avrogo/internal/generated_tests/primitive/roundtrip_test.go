@@ -40,6 +40,10 @@ var tests = testutil.RoundTripTest{
                     {
                         "name": "stringField",
                         "type": "string"
+                    },
+                    {
+                        "name": "nullField",
+                        "type": "null"
                     }
                 ]
             }`,
@@ -53,7 +57,8 @@ var tests = testutil.RoundTripTest{
                         "doubleField": 2E-50,
                         "boolField": true,
                         "bytesField": "stuff",
-                        "stringField": "hello world"
+                        "stringField": "hello world",
+                        "nullField": null
                     }`,
 		OutDataJSON: `{
                         "intField": 2147483647,
@@ -62,7 +67,8 @@ var tests = testutil.RoundTripTest{
                         "doubleField": 2E-50,
                         "boolField": true,
                         "bytesField": "stuff",
-                        "stringField": "hello world"
+                        "stringField": "hello world",
+                        "nullField": null
                     }`,
 	}, {
 		TestName: "lowValues",
@@ -73,7 +79,8 @@ var tests = testutil.RoundTripTest{
                         "doubleField": -2E-50,
                         "boolField": false,
                         "bytesField": "",
-                        "stringField": ""
+                        "stringField": "",
+                        "nullField": null
                     }`,
 		OutDataJSON: `{
                         "intField": -2147483648,
@@ -82,7 +89,8 @@ var tests = testutil.RoundTripTest{
                         "doubleField": -2E-50,
                         "boolField": false,
                         "bytesField": "",
-                        "stringField": ""
+                        "stringField": "",
+                        "nullField": null
                     }`,
 	}},
 }
