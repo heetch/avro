@@ -12,12 +12,19 @@ var tests = testutil.RoundTripTest{
 	InSchema: `{
                 "name": "MessageB",
                 "type": "record",
-                "fields": []
+                "fields": [
+                    {
+                        "name": "dummy",
+                        "type": "string"
+                    }
+                ]
             }`,
 	GoType: new(R),
 	Subtests: []testutil.RoundTripSubtest{{
-		TestName:   "main",
-		InDataJSON: `{}`,
+		TestName: "main",
+		InDataJSON: `{
+                        "dummy": ""
+                    }`,
 		OutDataJSON: `{
                         "arble": null,
                         "selected": false
