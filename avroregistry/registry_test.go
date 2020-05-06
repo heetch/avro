@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -177,6 +179,34 @@ func TestCanceledRetry(t *testing.T) {
 	if d := time.Since(t0); d > 500*time.Millisecond {
 		c.Errorf("retry duration too large, want ~30ms got %v", d)
 	}
+}
+
+func TestUnavailableError(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	// When the service in unavailable, the response is probably not
+	// formatted as JSON.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+		w.WriteHeader(500)
+		w.Write([]byte(`
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>502 Proxy Error</title>
+</head><body>
+<h1>Proxy Error</h1>
+<p>The whole world is bogus
+</body>
+`))
+	}))
+	defer srv.Close()
+	registry, err := avroregistry.New(avroregistry.Params{
+		ServerURL:     srv.URL,
+		RetryStrategy: retry.Regular{},
+	})
+	c.Assert(err, qt.Equals, nil)
+	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
+	c.Assert(err, qt.ErrorMatches, `cannot unmarshal JSON error response from .*/config/x: unexpected content type text/html; want application/json; content: 502 Proxy Error; Proxy Error; The whole world is bogus`)
 }
 
 var schemaEquivalenceTests = []struct {
