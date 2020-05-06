@@ -8,12 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/heetch/avro"
+	"gopkg.in/httprequest.v1"
 	retry "gopkg.in/retry.v1"
 )
 
@@ -156,20 +156,14 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		return ctx.Err()
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("cannot read response body: %v", err)
-	}
 	if resp.StatusCode == http.StatusOK {
-		if result != nil {
-			if err := json.Unmarshal(data, result); err != nil {
-				return fmt.Errorf("cannot unmarshal JSON response from %v: %v", req.URL, err)
-			}
+		if err := httprequest.UnmarshalJSONResponse(resp, result); err != nil {
+			return fmt.Errorf("cannot unmarshal JSON response from %v: %v", req.URL, err)
 		}
 		return nil
 	}
 	var apiErr apiError
-	if err := json.Unmarshal(data, &apiErr); err != nil {
+	if err := httprequest.UnmarshalJSONResponse(resp, &apiErr); err != nil {
 		return fmt.Errorf("cannot unmarshal JSON error response from %v: %v", req.URL, err)
 	}
 	return &apiErr
