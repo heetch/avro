@@ -10,13 +10,13 @@ import (
 
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"go2avro": main1,
+		"avrogo": main1,
 	}))
 }
 
 func TestScript(t *testing.T) {
 	p := testscript.Params{
-		Dir: "testdata",
+		Dir: "testdata/script",
 	}
 	if err := gotooltest.Setup(&p); err != nil {
 		t.Fatal(err)

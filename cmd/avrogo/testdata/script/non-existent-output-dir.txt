@@ -1,0 +1,14 @@
+avrogo -p foo -d out/foo foo.avsc
+exists out/foo/foo_gen.go
+
+-- foo.avsc --
+{
+  "name": "R",
+  "type": "record",
+  "fields": [
+    {
+      "name": "A",
+      "type": "int"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
@@ -144,7 +145,7 @@ func externalTypeInfoForGoTypes(gts map[goType]bool) (map[goType]avrotypemap.Ext
 	}
 	f.Close()
 	var runStdout bytes.Buffer
-	cmd := exec.Command("go", "run", prog)
+	cmd := exec.Command("go", "run", filepath.Base(prog))
 	cmd.Dir = *dirFlag
 	cmd.Stdout = &runStdout
 	cmd.Stderr = os.Stderr

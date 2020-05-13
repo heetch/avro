@@ -1,0 +1,39 @@
+# Note: we need to include an external type in the schema file
+# otherwise the previous issue won't be exposed (we won't
+# need to generate and run a Go file in the output directory).
+
+mkdir outdir
+avrogo -p foo -d outdir foo.avsc
+exists outdir/foo_gen.go
+
+-- foo.avsc --
+{
+  "name": "R",
+  "type": "record",
+  "fields": [
+    {
+      "name": "P",
+      "type": {
+        "name": "Point",
+        "go.package": "image",
+        "type": "record",
+        "fields": [
+          {
+            "name": "X",
+            "type": "long"
+          },
+          {
+            "name": "Y",
+            "type": "long"
+          }
+        ]
+      }
+    }
+  ]
+}
+-- go.mod --
+module example.com/foo/bar
+
+go 1.14
+
+require github.com/heetch/avro v0.2.1
