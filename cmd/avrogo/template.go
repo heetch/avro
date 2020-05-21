@@ -3,6 +3,7 @@ package main
 import (
 	"go/token"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -160,13 +161,36 @@ type documented interface {
 
 func doc(indentStr string, d interface{}) string {
 	if d, ok := d.(documented); ok && d.Doc() != "" {
-		return "\n" + indent(d.Doc(), indentStr) + "\n"
+		return "\n" + indent(trimAVDLDoc(d.Doc()), indentStr) + "\n"
 	}
 	return ""
 }
 
+// trimAVDLDoc removes indentation from a doc string
+// that's been generated from an IDL file that was in
+// the form:
+//
+//	/**
+//	 * comment etc
+//	 */
+//
+// The idl2schemata tool just includes the entire body
+// of the comment verbatim, including the leading * and
+// indentation characters. We don't want those
+// in the Go comments.
+func trimAVDLDoc(s0 string) string {
+	s := strings.TrimPrefix(s0, "*")
+	if len(s) == len(s0) {
+		return s
+	}
+	s = avdlDocIndentPattern.ReplaceAllString(s, "\n")
+	return s
+}
+
+var avdlDocIndentPattern = regexp.MustCompile(`\n\s*\* ?`)
+
 func indent(s, with string) string {
-	s = strings.TrimSuffix(s, "\n")
+	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}

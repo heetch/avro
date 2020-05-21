@@ -25,6 +25,7 @@ tests: cloudEvent: {
 							name: "id"
 							type: "string"
 						}, {
+							doc: "* source holds the\n\t\t * source of the message."
 							name: "source"
 							type: "string"
 						}, {
@@ -63,6 +64,7 @@ tests: cloudEvent: {
 							name: "id"
 							type: "string"
 						}, {
+							doc: "* source holds the\n\t\t * source of the message."
 							name: "source"
 							type: "string"
 						}, {

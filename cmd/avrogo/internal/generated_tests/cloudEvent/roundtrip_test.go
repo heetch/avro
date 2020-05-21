@@ -31,7 +31,8 @@ var tests = testutil.RoundTripTest{
                                             },
                                             {
                                                 "name": "source",
-                                                "type": "string"
+                                                "type": "string",
+                                                "doc": "* source holds the\n\t\t * source of the message."
                                             },
                                             {
                                                 "name": "specversion",
@@ -52,7 +53,8 @@ var tests = testutil.RoundTripTest{
                     },
                     {
                         "name": "other",
-                        "type": "string"
+                        "type": "string",
+                        "doc": "other documentation"
                     }
                 ],
                 "heetchmeta": {
