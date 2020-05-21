@@ -139,22 +139,46 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		req.SetBasicAuth(r.params.Username, r.params.Password)
 	}
 	ctx := req.Context()
-	var resp *http.Response
 	attempt := retry.StartWithCancel(r.params.RetryStrategy, nil, ctx.Done())
 	for attempt.Next() {
-		resp1, err := http.DefaultClient.Do(req)
-		if err == nil {
-			resp = resp1
-			break
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			if !attempt.More() || !isTemporaryError(err) {
+				return err
+			}
+			continue
 		}
-		// TODO only retry if error is temporary?
+		err = unmarshalResponse(req, resp, result)
+		if err == nil {
+			return nil
+		}
 		if !attempt.More() {
+			return err
+		}
+		if err, ok := err.(*apiError); ok && err.StatusCode/100 != 5 {
+			// It's not a 5xx error. We want to retry on 5xx
+			// errors, because the Confluent Avro registry
+			// can occasionally return them as a matter of
+			// course (and there could also be an
+			// unavailable service that we're reaching
+			// through a proxy).
 			return err
 		}
 	}
 	if attempt.Stopped() {
 		return ctx.Err()
 	}
+	panic("unreachable")
+}
+
+func isTemporaryError(err error) bool {
+	err1, ok := err.(interface {
+		Temporary() bool
+	})
+	return ok && err1.Temporary()
+}
+
+func unmarshalResponse(req *http.Request, resp *http.Response, result interface{}) error {
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
 		if err := httprequest.UnmarshalJSONResponse(resp, result); err != nil {
@@ -166,17 +190,22 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 	if err := httprequest.UnmarshalJSONResponse(resp, &apiErr); err != nil {
 		return fmt.Errorf("cannot unmarshal JSON error response from %v: %v", req.URL, err)
 	}
+	apiErr.StatusCode = resp.StatusCode
 	return &apiErr
 }
 
 // https://docs.confluent.io/current/schema-registry/develop/api.html#errors
 type apiError struct {
-	ErrorCode int    `json:"error_code"`
-	Message   string `json:"message"`
+	ErrorCode  int    `json:"error_code"`
+	Message    string `json:"message"`
+	StatusCode int    `json:"-"`
 }
 
 func (e *apiError) Error() string {
-	return fmt.Sprintf("Avro registry error (code %d): %v", e.ErrorCode, e.Message)
+	if e.StatusCode != e.ErrorCode {
+		return fmt.Sprintf("Avro registry error (code %d; HTTP status %d): %v", e.ErrorCode, e.StatusCode, e.Message)
+	}
+	return fmt.Sprintf("Avro registry error (HTTP status %d): %v", e.ErrorCode, e.Message)
 }
 
 func canonical(schema *avro.Type) string {
