@@ -1,5 +1,7 @@
 // The avrogo command generates Go types for the Avro schemas specified on the
 // command line. Each schema file results in a Go file with the same basename but with a ".go" suffix.
+// If multiple schema files have the same basename, successively more elements of their
+// full path are used (replacing path separators with "_") until they're not the same any more.
 //
 // Type names within different schemas may refer to one another;
 // for example to put a shared definition in a separate .avsc file.
@@ -25,7 +27,7 @@ package main
 
 import (
 	"bytes"
-	"flag"
+	stdflag "flag"
 	"fmt"
 	"go/format"
 	"io/ioutil"
@@ -49,25 +51,34 @@ var (
 	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
 )
 
+var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
+
 func main() {
+	os.Exit(main1())
+}
+
+func main1() int {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: avrogo [flags] schema-file...\n")
 		flag.PrintDefaults()
-		os.Exit(2)
 	}
-	flag.Parse()
+	if flag.Parse(os.Args[1:]) != nil {
+		return 2
+	}
 	files := flag.Args()
 	if len(files) == 0 {
 		flag.Usage()
+		return 2
 	}
 	if *pkgFlag == "" {
 		fmt.Fprintf(os.Stderr, "avrogo: -p flag must specify a package name or set $GOPACKAGE\n")
-		os.Exit(1)
+		return 1
 	}
 	if err := generateFiles(files); err != nil {
 		fmt.Fprintf(os.Stderr, "avrogo: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func generateFiles(files []string) error {
@@ -75,15 +86,96 @@ func generateFiles(files []string) error {
 	if err != nil {
 		return err
 	}
+	outfiles, err := outputPaths(files, *testFlag)
+	if err != nil {
+		return err
+	}
 	for i, f := range files {
-		if err := generateFile(f, ns, fileDefinitions[i]); err != nil {
+		if err := generateFile(f, outfiles[f], ns, fileDefinitions[i]); err != nil {
 			return fmt.Errorf("cannot generate code for %s: %v", f, err)
 		}
 	}
 	return nil
 }
 
-func generateFile(f string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+func outputPaths(files []string, testFile bool) (map[string]string, error) {
+	fileset := make(map[string]string)
+	for _, file := range files {
+		fileset[file] = outputPath(file, testFile)
+	}
+	need := len(fileset)
+	result := make(map[string]string)
+	for level := 1; len(result) < need; level++ {
+		found := make(map[string]int)
+		for _, new := range result {
+			found[new]++
+		}
+		allOK := true
+		for old, clean := range fileset {
+			b, ok := baseN(clean, level)
+			allOK = allOK && ok
+			found[b]++
+			// Tentatively set the result. It'll be removed below if found to
+			// be ambiguous.
+			result[old] = b
+		}
+		for old, new := range result {
+			if _, ok := fileset[old]; ok && found[new] > 1 {
+				// Ambiguous name found in this round. Remove from the results, and we'll
+				// try again next time around the loop with another level
+				// of path included.
+				delete(result, old)
+			} else {
+				// Resolved unambiguously. We don't need to consider this in
+				// future rounds.
+				delete(fileset, old)
+			}
+		}
+		if !allOK && len(fileset) > 0 {
+			// We've got to the end of some paths and failed to resolve all the files
+			// unambigously, so avoid the potential infinite loop by returning an error.
+			return nil, fmt.Errorf("could not make unambiguous output files from input files")
+		}
+	}
+	return result, nil
+}
+
+// outputPath returns the output Go filename to
+// use for the given input avsc file. It retains the directory
+// information but converts to a /-separated path for
+// ease of processing.
+func outputPath(filename string, testFile bool) string {
+	filename = filepath.Clean(filename)
+	filename = filename[len(filepath.VolumeName(filename)):]
+	filename = filepath.ToSlash(filename)
+	filename = strings.TrimSuffix(filename, filepath.Ext(filename)) + "_gen"
+	if testFile {
+		filename += "_test"
+	}
+	filename += ".go"
+	return filename
+}
+
+// baseN returns the last n /-separated path elements of name
+// joined by underscores.
+// So baseN("foo/bar/baz", 2) would return "bar_baz".
+// It reports whether there were actually n path elements to take.
+func baseN(name string, n int) (string, bool) {
+	parts := strings.Split(name, "/")
+	if parts[0] == "" {
+		// This can only happen if the path is absolute.
+		// Go files aren't allowed to start
+		// with _ so use an arbitrary string instead.
+		parts[0] = "slash"
+	}
+	ok := len(parts) >= n
+	if ok {
+		parts = parts[len(parts)-n:]
+	}
+	return strings.Join(parts, "_"), ok
+}
+
+func generateFile(f, outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	var buf bytes.Buffer
 	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
 		return err
@@ -98,13 +190,9 @@ func generateFile(f string, ns *parser.Namespace, definitions []schema.Qualified
 		fmt.Printf("%s\n", buf.Bytes())
 		return fmt.Errorf("cannot format source: %v", err)
 	}
-
-	outFile := filepath.Base(f)
-	outFile = strings.TrimSuffix(outFile, filepath.Ext(f)) + "_gen"
-	if *testFlag {
-		outFile += "_test"
+	if err := os.MkdirAll(*dirFlag, 0777); err != nil {
+		return fmt.Errorf("cannot create output directory: %v", err)
 	}
-	outFile += ".go"
 	outFile = filepath.Join(*dirFlag, outFile)
 	if err := ioutil.WriteFile(outFile, resultData, 0666); err != nil {
 		return err
