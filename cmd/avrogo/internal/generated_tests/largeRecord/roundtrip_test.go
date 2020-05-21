@@ -35,12 +35,12 @@ var tests = testutil.RoundTripTest{
                                                         "default": ""
                                                     }
                                                 ],
-                                                "namespace": "headerworks.datatype",
-                                                "doc": "A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014"
+                                                "doc": "A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014",
+                                                "namespace": "headerworks.datatype"
                                             }
                                         ],
-                                        "default": null,
-                                        "doc": "Unique identifier for the event used for de-duplication and tracing."
+                                        "doc": "Unique identifier for the event used for de-duplication and tracing.",
+                                        "default": null
                                     },
                                     {
                                         "name": "hostname",
@@ -48,8 +48,8 @@ var tests = testutil.RoundTripTest{
                                             "null",
                                             "string"
                                         ],
-                                        "default": null,
-                                        "doc": "Fully qualified name of the host that generated the event that generated the data."
+                                        "doc": "Fully qualified name of the host that generated the event that generated the data.",
+                                        "default": null
                                     },
                                     {
                                         "name": "trace",
@@ -65,23 +65,23 @@ var tests = testutil.RoundTripTest{
                                                             "null",
                                                             "headerworks.datatype.UUID0"
                                                         ],
-                                                        "default": null,
-                                                        "doc": "Trace Identifier"
+                                                        "doc": "Trace Identifier",
+                                                        "default": null
                                                     }
                                                 ],
                                                 "doc": "Trace0"
                                             }
                                         ],
-                                        "default": null,
-                                        "doc": "Trace information not redundant with this object"
+                                        "doc": "Trace information not redundant with this object",
+                                        "default": null
                                     }
                                 ],
-                                "namespace": "headerworks",
-                                "doc": "Common information related to the event which must be included in any clean event"
+                                "doc": "Common information related to the event which must be included in any clean event",
+                                "namespace": "headerworks"
                             }
                         ],
-                        "default": null,
-                        "doc": "Core data information required for any event"
+                        "doc": "Core data information required for any event",
+                        "default": null
                     },
                     {
                         "name": "body",
@@ -105,12 +105,12 @@ var tests = testutil.RoundTripTest{
                                                         "default": ""
                                                     }
                                                 ],
-                                                "namespace": "bodyworks.datatype",
-                                                "doc": "A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014"
+                                                "doc": "A Universally Unique Identifier, in canonical form in lowercase. Example: de305d54-75b4-431b-adb2-eb6b9e546014",
+                                                "namespace": "bodyworks.datatype"
                                             }
                                         ],
-                                        "default": null,
-                                        "doc": "Unique identifier for the event used for de-duplication and tracing."
+                                        "doc": "Unique identifier for the event used for de-duplication and tracing.",
+                                        "default": null
                                     },
                                     {
                                         "name": "hostname",
@@ -118,8 +118,8 @@ var tests = testutil.RoundTripTest{
                                             "null",
                                             "string"
                                         ],
-                                        "default": null,
-                                        "doc": "Fully qualified name of the host that generated the event that generated the data."
+                                        "doc": "Fully qualified name of the host that generated the event that generated the data.",
+                                        "default": null
                                     },
                                     {
                                         "name": "trace",
@@ -135,27 +135,27 @@ var tests = testutil.RoundTripTest{
                                                             "null",
                                                             "headerworks.datatype.UUID0"
                                                         ],
-                                                        "default": null,
-                                                        "doc": "Trace Identifier"
+                                                        "doc": "Trace Identifier",
+                                                        "default": null
                                                     }
                                                 ],
                                                 "doc": "Trace1"
                                             }
                                         ],
-                                        "default": null,
-                                        "doc": "Trace information not redundant with this object"
+                                        "doc": "Trace information not redundant with this object",
+                                        "default": null
                                     }
                                 ],
-                                "namespace": "bodyworks",
-                                "doc": "Common information related to the event which must be included in any clean event"
+                                "doc": "Common information related to the event which must be included in any clean event",
+                                "namespace": "bodyworks"
                             }
                         ],
-                        "default": null,
-                        "doc": "Core data information required for any event"
+                        "doc": "Core data information required for any event",
+                        "default": null
                     }
                 ],
-                "namespace": "com.avro.test",
-                "doc": "GoGen test"
+                "doc": "GoGen test",
+                "namespace": "com.avro.test"
             }`,
 	GoType: new(Sample),
 	Subtests: []testutil.RoundTripSubtest{{

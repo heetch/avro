@@ -232,7 +232,7 @@ func isZeroDefault(x interface{}, t schema.AvroType) bool {
 			return ok && len(syms) > 0 && s == syms[0]
 		case *schema.FixedDefinition:
 			s, ok := x.(string)
-			return ok && s == strings.Repeat(string(0), def.SizeBytes())
+			return ok && s == strings.Repeat("\u0000", def.SizeBytes())
 		case *schema.RecordDefinition:
 			m, ok := x.(map[string]interface{})
 			if !ok {
