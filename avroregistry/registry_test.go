@@ -55,11 +55,11 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names := new(avro.Names).RenameType(R1{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
 
 	// Check that we can't rename the schema.
 	_, err = r.Register(ctx, subject, schemaOf(nil, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
 
 	// Check that we can change the field to a compatible union.
 	type R2 struct {
@@ -76,7 +76,7 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names = new(avro.Names).RenameType(R3{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R3{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
 }
 
 func TestSchemasRetainLogicalTypes(t *testing.T) {
@@ -145,6 +145,7 @@ func TestSingleCodec(t *testing.T) {
 func TestRetryOnError(t *testing.T) {
 	c := qt.New(t)
 	defer c.Done()
+	c.Patch(&http.DefaultClient.Transport, errorTransport(tmpError(true)))
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL: "http://0.1.2.3",
 		RetryStrategy: retry.LimitCount(4, retry.Regular{
@@ -155,7 +156,7 @@ func TestRetryOnError(t *testing.T) {
 	c.Assert(err, qt.Equals, nil)
 	t0 := time.Now()
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
-	c.Assert(err, qt.ErrorMatches, `Put "?http://0.1.2.3/config/x"?: dial tcp 0.1.2.3:80: connect: .*`)
+	c.Assert(err, qt.ErrorMatches, `Put "?http://0.1.2.3/config/x"?: temporary test error true`)
 	if d := time.Since(t0); d < 30*time.Millisecond {
 		c.Errorf("retry duration too small, want >=30ms got %v", d)
 	}
@@ -169,6 +170,7 @@ func TestCanceledRetry(t *testing.T) {
 		time.Sleep(30 * time.Millisecond)
 		cancel()
 	}()
+	c.Patch(&http.DefaultClient.Transport, errorTransport(tmpError(true)))
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL: "http://0.1.2.3",
 	})
@@ -179,6 +181,65 @@ func TestCanceledRetry(t *testing.T) {
 	if d := time.Since(t0); d > 500*time.Millisecond {
 		c.Errorf("retry duration too large, want ~30ms got %v", d)
 	}
+}
+
+func TestRetryOn500(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	failCount := 3
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if failCount == 0 {
+			return
+		}
+		failCount--
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write([]byte(`{"error_code":50001,"message":"Failed to update compatibility level"}`))
+	}))
+	defer srv.Close()
+	registry, err := avroregistry.New(avroregistry.Params{
+		ServerURL: srv.URL,
+		RetryStrategy: retry.LimitCount(4, retry.Regular{
+			Total: time.Second,
+			Delay: 10 * time.Millisecond,
+		}),
+	})
+	c.Assert(err, qt.Equals, nil)
+	t0 := time.Now()
+	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
+	c.Assert(err, qt.Equals, nil)
+	if d := time.Since(t0); d < 30*time.Millisecond {
+		c.Errorf("retry duration too small, want >=30ms got %v", d)
+	}
+
+	// If it fails more times than the retry limit, we should get
+	// an error.
+	failCount = 5
+	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 50001; HTTP status 500\): Failed to update compatibility level`)
+}
+
+func TestNoRetryOnNon5XXStatus(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(409)
+		w.Write([]byte(`{"error_code":409,"message":"incompatible wotsit"}`))
+	}))
+	defer srv.Close()
+	registry, err := avroregistry.New(avroregistry.Params{
+		ServerURL: srv.URL,
+		RetryStrategy: retry.LimitCount(4, retry.Regular{
+			Total: time.Second,
+			Delay: 10 * time.Millisecond,
+		}),
+	})
+	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): incompatible wotsit`)
+	c.Assert(calls, qt.Equals, 1)
 }
 
 func TestUnavailableError(t *testing.T) {
@@ -375,4 +436,26 @@ func randomString() string {
 		panic(err)
 	}
 	return fmt.Sprintf("test-%x", buf)
+}
+
+type transportFunc func(*http.Request) (*http.Response, error)
+
+func (f transportFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func errorTransport(err error) http.RoundTripper {
+	return transportFunc(func(*http.Request) (*http.Response, error) {
+		return nil, err
+	})
+}
+
+type tmpError bool
+
+func (e tmpError) Error() string {
+	return fmt.Sprintf("temporary test error %t", e)
+}
+
+func (e tmpError) Temporary() bool {
+	return bool(e)
 }
