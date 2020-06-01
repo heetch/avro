@@ -46,10 +46,7 @@ Record :: {
 	Definition
 	type:       "record"
 	doc?:       string
-	// Note: although the Avro specification doesn't explicitly
-	// prohibit records with no fields, it seems that some implementations
-	// don't allow empty structs, so prohibit them here.
-	fields: [Field, ... Field]
+	fields: [... Field]
 }
 
 Field :: {

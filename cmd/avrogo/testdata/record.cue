@@ -194,35 +194,3 @@ tests: underscoreField: {
 	}
 	outData: inData
 }
-
-tests: emptyRecord: {
-	inSchema: {
-		name: "R"
-		type: "record"
-		fields: [{
-			name:    "_"
-			type:    "null"
-			default: null
-		}]
-	}
-	outSchema: inSchema
-	inData: {
-		"_": null
-	}
-	outData: inData
-	otherTests: """
-	package emptyRecord
-	import (
-		"reflect"
-		"testing"
-
-		qt "github.com/frankban/quicktest"
-	)
-
-	func TestNoFieldsInGeneratedStruct(t *testing.T) {
-		c := qt.New(t)
-		c.Assert(reflect.TypeOf(R{}).NumField(), qt.Equals, 0)
-	}
-	"""
-
-}

@@ -10,8 +10,6 @@ import (
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
 	"github.com/rogpeppe/gogen-avro/v7/schema"
-
-	"github.com/heetch/avro/internal/typeinfo"
 )
 
 func newTemplate(s string) *template.Template {
@@ -25,7 +23,6 @@ func newTemplate(s string) *template.Template {
 var templateFuncs = template.FuncMap{
 	"typeof":                 typeof,
 	"isExportedGoIdentifier": isExportedGoIdentifier,
-	"isEmptyRecord":          typeinfo.IsEmptyRecord,
 	"defName":                defName,
 	"symbolName":             symbolName,
 	"goName":                 goName,
@@ -67,18 +64,16 @@ var bodyTemplate = newTemplate(`
 	«- if eq (typeof .) "RecordDefinition"»
 		«- doc "// " .»
 		type «defName .» struct {
-		«- if not (isEmptyRecord $def)»
-			«- range $i, $_ := .Fields»
-				«- doc "\t// " .»
-				«- $type := $.Ctx.GoTypeOf .Type»
-				«- doc "\t// " $type»
-				«- if isExportedGoIdentifier .Name»
-					«- .Name» «$type.GoType»
-				«- else»
-					«- goName .Name» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
-				«- end»
-			«end»
-		«- end»
+		«- range $i, $_ := .Fields»
+			«- doc "\t// " .»
+			«- $type := $.Ctx.GoTypeOf .Type»
+			«- doc "\t// " $type»
+			«- if isExportedGoIdentifier .Name»
+				«- .Name» «$type.GoType»
+			«- else»
+				«- goName .Name» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
+			«- end»
+		«end»
 		}
 
 		// AvroRecord implements the avro.AvroRecord interface.

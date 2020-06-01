@@ -12,8 +12,6 @@ import (
 
 	"github.com/rogpeppe/gogen-avro/v7/parser"
 	"github.com/rogpeppe/gogen-avro/v7/schema"
-
-	"github.com/heetch/avro/internal/typeinfo"
 )
 
 const (
@@ -367,10 +365,6 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 			m, ok := v.(map[string]interface{})
 			if !ok {
 				return "", fmt.Errorf("invalid record default value %s", jsonMarshal(v))
-			}
-			if typeinfo.IsEmptyRecord(def) {
-				// It's the special case for the "empty" record type.
-				return def.Name() + "{}", nil
 			}
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "%s{\n", def.Name())

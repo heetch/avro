@@ -189,7 +189,7 @@ tests: goTypeFieldsOmitted: {
 	inSchema: {
 		name: "R"
 		type: "record"
-		fields: [dummyField]
+		fields: []
 	}
 	goType: "R"
 	goTypeBody: """
@@ -206,7 +206,7 @@ tests: goTypeFieldsOmitted: {
 			B string
 		}
 	"""
-	inData: dummy: ""
+	inData: {}
 	outData: {
 		A: 0
 		B: ""
@@ -232,9 +232,9 @@ tests: goTypeProtobufRecord: {
 	inSchema: {
 		name: "MessageB"
 		type: "record"
-		fields: [dummyField]
+		fields: []
 	}
-	inData: dummy: ""
+	inData: {}
 	outData: {
 		arble:    null
 		selected: false

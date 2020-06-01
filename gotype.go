@@ -60,21 +60,6 @@ type errorSchema struct {
 //	- the field name is taken from the Go field name, or from a "json" tag for the field if present.
 //	- the default value for the field is the zero value for the type.
 //	- anonymous struct fields are disallowed (this restriction may be lifted in the future).
-//
-// As a special case, the empty struct encodes as:
-//
-//	{
-//		type: "record"
-//		name: typeName(T)
-//		fields: [{
-//			name: "_"
-//			type: "null"
-//			default: nil
-//		}]
-//	}
-//
-// This means it's possible to use empty Go structs even though some Avro
-// tooling doesn't allow empty records.
 func TypeOf(x interface{}) (*Type, error) {
 	return globalNames.TypeOf(x)
 }
@@ -212,19 +197,6 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			}, nil
 		case nullType:
 			return "null", nil
-		}
-		if t.NumField() == 0 {
-			// Avro tooling forbids empty records even though the
-			// spec doesn't explicitly disallow them, so generate
-			// a struct with a placeholder field.
-			return gts.define(t, map[string]interface{}{
-				"type": "record",
-				"fields": []map[string]interface{}{{
-					"name":    "_",
-					"type":    "null",
-					"default": nil,
-				}},
-			}, "")
 		}
 		// Define the struct type before filling in the definition
 		// so that we'll find the definition if there's a recursive type.

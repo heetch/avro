@@ -115,11 +115,6 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			if t.Kind() != reflect.Struct {
 				return errorEncoder(fmt.Errorf("expected struct"))
 			}
-			if typeinfo.IsEmptyRecord(def) {
-				// It's the "empty" record (a record with a single null-typed
-				// field that we use for encoding empty structs).
-				return nullEncoder
-			}
 			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
 				info1, err := typeinfo.ForType(t)

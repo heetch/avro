@@ -377,13 +377,6 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 			if index >= len(fields) {
 				return nil, pathElem{}, fmt.Errorf("field index out of bounds (%d/%d)", index, len(fields))
 			}
-			if typeinfo.IsEmptyRecord(def) {
-				// It's the "empty" record - we don't require
-				// its field to exist in the Go type, so leave info
-				// zero, which will fall into the special case for the
-				// nil type below.
-				break
-			}
 			field := fields[index]
 			// The reader type might not exactly match the
 			// entries inferred from the Go type because
