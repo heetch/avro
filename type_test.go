@@ -239,6 +239,14 @@ var canonicalStringTests = []struct {
 	}]`,
 	out: `["int","string",{"name":"E","type":"enum","symbols":["a","b"]}]`,
 }, {
+	testName: "empty-record",
+	in: `{
+	"name": "R",
+	"type": "record",
+	"fields": []
+}`,
+	out: `{"name":"R","type":"record","fields":[]}`,
+}, {
 	testName: "out-of-bounds-opts",
 	in:       `"string"`,
 	out:      `"string"`,

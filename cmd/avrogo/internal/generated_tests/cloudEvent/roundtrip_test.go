@@ -53,8 +53,7 @@ var tests = testutil.RoundTripTest{
                     },
                     {
                         "name": "other",
-                        "type": "string",
-                        "doc": "other documentation"
+                        "type": "string"
                     }
                 ],
                 "heetchmeta": {

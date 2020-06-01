@@ -85,13 +85,15 @@ type canonicalizer struct {
 // of a canonical schema representation in the order defined
 // by the spec.
 type canonicalFields struct {
-	Name    string            `json:"name,omitempty"`
-	Type    interface{}       `json:"type,omitempty"`
-	Fields  []canonicalFields `json:"fields,omitempty"`
-	Symbols []string          `json:"symbols,omitempty"`
-	Items   interface{}       `json:"items,omitempty"`
-	Size    int               `json:"size,omitempty"`
-	Values  interface{}       `json:"values,omitempty"`
+	Name string      `json:"name,omitempty"`
+	Type interface{} `json:"type,omitempty"`
+	// Note: this is a pointer so that omitempty
+	// doesn't omit it when the slice is empty but non-nil.
+	Fields  *[]canonicalFields `json:"fields,omitempty"`
+	Symbols []string           `json:"symbols,omitempty"`
+	Items   interface{}        `json:"items,omitempty"`
+	Size    int                `json:"size,omitempty"`
+	Values  interface{}        `json:"values,omitempty"`
 	// The default field isn't mentioned in the specification, but is
 	// important to store in the registry, so we allow it to be
 	// kept with the LeaveDefaults option to CanonicalString.
@@ -188,21 +190,22 @@ func (c *canonicalizer) canonicalValue1(at schema.AvroType) interface{} {
 			}
 		case *schema.RecordDefinition:
 			fields := def.Fields()
+			cfields := make([]canonicalFields, len(fields))
 			cf := canonicalFields{
 				Name:   def.AvroName().String(),
 				Type:   "record",
-				Fields: make([]canonicalFields, len(fields)),
+				Fields: &cfields,
 			}
 			for i, f := range fields {
 				// It's possible that the order field should be stored in the
 				// registry, but it doesn't seem necessary for now, so we
 				// omit it.
-				cf.Fields[i] = canonicalFields{
+				cfields[i] = canonicalFields{
 					Name: f.Name(),
 					Type: c.canonicalValue(f.Type()),
 				}
 				if f.HasDefault() && (c.opts&RetainDefaults) != 0 {
-					cf.Fields[i].Default = f.Default()
+					cfields[i].Default = f.Default()
 				}
 			}
 			return cf
