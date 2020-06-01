@@ -35,6 +35,19 @@ func TestRegister(t *testing.T) {
 	c.Assert(id1, qt.Equals, id)
 }
 
+func TestRegisterWithEmptyStruct(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	r, subject := newTestRegistry(c)
+	type Empty struct{}
+	type R struct {
+		X Empty
+	}
+	ctx := context.Background()
+	_, err := r.Register(ctx, subject, schemaOf(nil, R{}))
+	c.Assert(err, qt.Equals, nil)
+}
+
 func TestSchemaCompatibility(t *testing.T) {
 	c := qt.New(t)
 	defer c.Done()
