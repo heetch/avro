@@ -177,3 +177,20 @@ tests: duplicateRecord: {
 	}
 	outData: inData
 }
+
+tests: underscoreField: {
+	inSchema: {
+		name: "R"
+		type: "record"
+		fields: [{
+			name:    "_"
+			type:    "int"
+		}]
+	}
+	outSchema: inSchema
+	generateError: #"avrogo: cannot generate code for schema.avsc: template: .*error calling goName: cannot form an exported Go identifier from "_""#
+	inData: {
+		"_": 123
+	}
+	outData: inData
+}

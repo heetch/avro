@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/token"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -24,6 +25,7 @@ var templateFuncs = template.FuncMap{
 	"isExportedGoIdentifier": isExportedGoIdentifier,
 	"defName":                defName,
 	"symbolName":             symbolName,
+	"goName":                 goName,
 	"indent":                 indent,
 	"doc":                    doc,
 	"import": func(gc *generateContext, pkg string) string {
@@ -67,9 +69,9 @@ var bodyTemplate = newTemplate(`
 			«- $type := $.Ctx.GoTypeOf .Type»
 			«- doc "\t// " $type»
 			«- if isExportedGoIdentifier .Name»
-				«- .GoName» «$type.GoType»
+				«- .Name» «$type.GoType»
 			«- else»
-				«- .GoName» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
+				«- goName .Name» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
 			«- end»
 		«end»
 		}
@@ -190,10 +192,8 @@ func indent(s, with string) string {
 	return with + strings.Replace(s, "\n", "\n"+with, -1)
 }
 
-var goIdentifierPat = regexp.MustCompile(`^[A-Z][a-zA-Z_0-9]*$`)
-
 func isExportedGoIdentifier(s string) bool {
-	return goIdentifierPat.MatchString(s)
+	return token.IsExported(s) && token.IsIdentifier(s)
 }
 
 func typeof(x interface{}) string {

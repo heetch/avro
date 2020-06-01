@@ -103,7 +103,7 @@ type encoderBuilder struct {
 }
 
 // typeEncoder returns an encoder that encodes values of type t according
-// to the Avro type at,
+// to the Avro type at.
 func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info typeinfo.Info) encoderFunc {
 	if enc := b.typeEncoders[t]; enc != nil {
 		return enc

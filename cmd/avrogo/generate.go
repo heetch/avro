@@ -19,6 +19,8 @@ const (
 	timestampMillis = "timestamp-millis"
 )
 
+const nullType = "avrotypegen.Null"
+
 func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	extTypes, err := externalTypeMap(ns)
 	if err != nil {
@@ -76,7 +78,7 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 type typeInfo struct {
 	// GoType holds the name of the type used
 	// in Go. The "null" type is represented by
-	// the string "nil".
+	// "avrotypegen.Null" (the value of the nullType constant).
 	GoType string
 
 	// Union holds type info for all the members of a union.
@@ -165,14 +167,20 @@ func canOmitUnionInfo(u typeInfo) bool {
 	// (the default union type for a pointer) and the Go type is also
 	// a pointer, meaning the avro package can infer that it's a
 	// pointer union.
-	return len(u.Union) == 0 || (len(u.Union) == 2 && u.Union[0].GoType == "nil" && u.GoType[0] == '*')
+	return len(u.Union) == 0 || (len(u.Union) == 2 && u.Union[0].GoType == nullType && u.GoType[0] == '*')
 }
 
 func writeUnionInfo(w io.Writer, info typeInfo) {
 	fprintf(w, "{\n")
-	if info.GoType == "nil" {
-		// Technically we could omit this, but it
-		// looks nicer if we don't.
+	if info.GoType == nullType {
+		// We use a nil value rather than *avrotypegen.Null for
+		// backward-compatibility reasons - we don't want old
+		// generated code to use a different representation for
+		// the null type because that complicates the logic in
+		// the avro package.
+		//
+		// Technically we could omit this, but it looks nicer if
+		// we don't.
 		fprintf(w, "Type: nil,\n")
 	} else {
 		fprintf(w, "Type: new(%s),\n", info.GoType)
@@ -252,7 +260,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		if v != nil {
 			return "", fmt.Errorf("must be null but got %s", jsonMarshal(v))
 		}
-		return "nil", nil
+		return nullType + "{}", nil
 	case *schema.BoolField:
 		v, ok := v.(bool)
 		if !ok {
@@ -370,7 +378,11 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 				if err != nil {
 					return "", fmt.Errorf("at field %s: %v", field.Name(), err)
 				}
-				fmt.Fprintf(&buf, "%s: %s,\n", field.GoName(), lit)
+				ident, err := goName(field.Name())
+				if err != nil {
+					return "", err
+				}
+				fmt.Fprintf(&buf, "%s: %s,\n", ident, lit)
 			}
 			buf.WriteString("}")
 			return buf.String(), nil
@@ -381,6 +393,17 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 	default:
 		return "", fmt.Errorf("literal of type %T not yet implemented", t)
 	}
+}
+
+// goName returns an exported Go identifier for the Avro name s.
+func goName(s string) (string, error) {
+	lastIndex := strings.LastIndex(s, ".")
+	name := s[lastIndex+1:]
+	name = strings.Title(strings.Trim(name, "_"))
+	if !isExportedGoIdentifier(name) {
+		return "", fmt.Errorf("cannot form an exported Go identifier from %q", s)
+	}
+	return name, nil
 }
 
 func decodeBytes(s string) ([]byte, error) {
@@ -420,7 +443,7 @@ func writeUnionComment(w io.Writer, union []typeInfo, indent string) {
 	if len(union) == 0 {
 		return
 	}
-	if len(union) == 2 && (union[0].GoType == "nil" || union[1].GoType == "nil") {
+	if len(union) == 2 && (union[0].GoType == nullType || union[1].GoType == nullType) {
 		// No need to comment a nil union.
 		// TODO we may want to document whether a map or array may
 		// be nil though. https://github.com/heetch/avro/issues/19
@@ -479,7 +502,7 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 			info.GoType = "*" + inner.GoType
 			info.Union = []typeInfo{
 				{
-					GoType: "nil",
+					GoType: nullType,
 				},
 				inner,
 			}
@@ -489,7 +512,7 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 			info.Union = []typeInfo{
 				inner,
 				{
-					GoType: "nil",
+					GoType: nullType,
 				},
 			}
 		default:

@@ -43,7 +43,7 @@ func (R) AvroRecord() avrotypegen.RecordInfo {
 				}, {
 					Type: new(bool),
 				}, {
-					Type: new(avrotypegen.Null),
+					Type: nil,
 				}},
 			},
 		},

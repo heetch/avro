@@ -44,6 +44,10 @@ type analyzer struct {
 	makeDefault []func() reflect.Value
 }
 
+// enterFunc is used to "enter" a field or union value.
+// It's passed the outer value and returns the inner value
+// and also reports whether the inner value is a direct
+// reference to a part of the outer one.
 type enterFunc = func(reflect.Value) (reflect.Value, bool)
 
 type pcInfo struct {
@@ -393,7 +397,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 		return nil, pathElem{}, fmt.Errorf("unexpected Enter on Avro type %T", at)
 	}
 	if info.Type == nil {
-		// Special case for the nil value. Return
+		// Special case for the nil type. Return
 		// a zero value that will never be used.
 		return func(v reflect.Value) (reflect.Value, bool) {
 			return reflect.Value{}, true
