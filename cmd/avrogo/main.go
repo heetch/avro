@@ -21,8 +21,10 @@
 // in the schema. Some additional metadata fields are
 // recognized:
 //
-// See the README for a full description of how schemas
-// map to generated Go types: https://github.com/heetch/avro/blob/master/README.md
+// - If a definition has a "go.package" metadata
+// field, the type from that package will be used instead.
+// - If a definition has a "go.name" metadata field,
+// the associated string will be used for the Go type name.
 package main
 
 import (
@@ -254,11 +256,11 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 	// Now we've accumulated all the available types,
 	// resolve the names with respect to the complete
 	// namespace.
-	for name, def := range ns.Roots {
+	for _, def := range ns.Roots {
 		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
 			// TODO find out which file(s) the definition came from
 			// and include that file name in the error.
-			return nil, nil, fmt.Errorf("cannot resolve reference %q: %v", name, err)
+			return nil, nil, fmt.Errorf("cannot resolve reference %q: %v", def, err)
 		}
 	}
 	return ns, fileDefinitions, nil

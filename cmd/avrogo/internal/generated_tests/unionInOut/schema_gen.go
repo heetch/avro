@@ -43,7 +43,7 @@ func (PrimitiveUnionTestRecord) AvroRecord() avrotypegen.RecordInfo {
 				}, {
 					Type: new(bool),
 				}, {
-					Type: nil,
+					Type: new(avrotypegen.Null),
 				}},
 			},
 		},

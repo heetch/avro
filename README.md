@@ -34,12 +34,6 @@ When the `avrogo` command generates Go datatypes from Avro schemas, it uses the 
 - `[T₁, T₂, ...]` (a union) encodes as `interface{}` that should hold only the types for `T₁`, `T₂`, etc.
 - `{"type": "record", "name": "R", "fields": [....]}` encodes as a Go struct type named `R` with corresponding fields.
 
-As a special case, a record type with a single field named `_` (underscore), type `"null"` and default `null` will be encoded as the empty struct. This matches the corresponding rule defined in `avro.TypeOf`.
-
-If a definition has a `go.package` annotation the type from that package will be used instead of generating a Go type. The type must be compatible with the Avro schema (it may contain extra fields, but all fields in common must be compatible).
-
-If a definition has a `go.name` annotation the associated string will be used for the generated Go type name.
-
 ## Comparison with other Go Avro packages
 
 [github.com/linkedin/goavro/v2](https://pkg.go.dev/github.com/linkedin/goavro/v2),

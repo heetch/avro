@@ -103,7 +103,7 @@ type encoderBuilder struct {
 }
 
 // typeEncoder returns an encoder that encodes values of type t according
-// to the Avro type at.
+// to the Avro type at,
 func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info typeinfo.Info) encoderFunc {
 	if enc := b.typeEncoders[t]; enc != nil {
 		return enc
@@ -114,11 +114,6 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 		case *schema.RecordDefinition:
 			if t.Kind() != reflect.Struct {
 				return errorEncoder(fmt.Errorf("expected struct"))
-			}
-			if typeinfo.IsEmptyRecord(def) {
-				// It's the "empty" record (a record with a single null-typed
-				// field that we use for encoding empty structs).
-				return nullEncoder
 			}
 			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
