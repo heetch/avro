@@ -18,10 +18,14 @@ import (
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
 
+var outFile = flag.String("o", "", "output filename (default stdout)")
+
 func main() {
 	os.Exit(main1())
 }
 
+// main1 is the internal version of main that returns a status
+// code instead of calling os.Exit.
 func main1() int {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: avsc2avdl file.avdl\n")
@@ -34,14 +38,16 @@ func main1() int {
 		flag.Usage()
 		return 2
 	}
-	if err := avsc2avdl(flag.Arg(0)); err != nil {
+	if err := avsc2avdl(flag.Arg(0), *outFile); err != nil {
 		fmt.Fprintf(os.Stderr, "avsc2avdl: %v\n", err)
 		return 1
 	}
 	return 0
 }
 
-func avsc2avdl(avscFile string) error {
+// avsc2avdl converts the AVSC data in the file avscFile and writes
+// it to outFile (or stdout if outFile is empty).
+func avsc2avdl(avscFile, outFile string) error {
 	data, err := ioutil.ReadFile(avscFile)
 	if err != nil {
 		return err
@@ -55,7 +61,8 @@ func avsc2avdl(avscFile string) error {
 		return fmt.Errorf("top level of schema is not a reference")
 	}
 	g := &generator{
-		filename: avscFile,
+		filename: outFile,
+		line:     1,
 		done:     make(map[schema.QualifiedName]bool),
 	}
 	g.addDefinition(ref.Def)
@@ -78,20 +85,24 @@ func avsc2avdl(avscFile string) error {
 		g.writeDefinition(def)
 	}
 	g.printf("}\n")
-	os.Stdout.Write(g.buf.Bytes())
+	if outFile == "" {
+		os.Stdout.Write(g.buf.Bytes())
+	} else {
+		err := ioutil.WriteFile(outFile, g.buf.Bytes(), 0666)
+		if err != nil {
+			return fmt.Errorf("cannot create output file: %v", err)
+		}
+	}
 	return nil
 }
 
 type generator struct {
 	filename       string
+	line           int
 	buf            bytes.Buffer
 	queue          []schema.Definition
 	namespaceStack []string
 	done           map[schema.QualifiedName]bool
-}
-
-func (g *generator) printf(f string, a ...interface{}) {
-	fmt.Fprintf(&g.buf, f, a...)
 }
 
 func (g *generator) writeDefinition(def schema.Definition) {
@@ -113,15 +124,21 @@ func (g *generator) writeDefinition(def schema.Definition) {
 			g.writeMetadata(field, "\t\t")
 			g.printf("\t\t%s %s", g.typeString(field.Type()), field.Name())
 			if field.HasDefault() {
-				g.printf(" = %s", jsonMarshal(field.Default(), "\t\t"))
-				if isEnum(field.Type()) {
-					fmt.Fprintf(os.Stderr, "%s: WARNING: default value (%#v) for enum-valued field in %s.%s will be ignored (see https://issues.apache.org/jira/browse/AVRO-2866)\n",
-						g.filename,
+				switch {
+				case isEnum(field.Type()):
+					g.warningf("default value (%q) for enum-valued field in %s.%s will be ignored (see https://issues.apache.org/jira/browse/AVRO-2866)",
 						field.Default(),
 						name,
 						field.Name(),
 					)
+				case isRecord(field.Type()):
+					g.warningf("default value (%s) for record-valued field in %s.%s will cause an exception (see https://issues.apache.org/jira/browse/AVRO-2867)",
+						jsonMarshal(field.Default(), ""),
+						name,
+						field.Name(),
+					)
 				}
+				g.printf(" = %s", jsonMarshal(field.Default(), "\t\t"))
 			}
 			g.printf(";\n")
 		}
@@ -239,6 +256,20 @@ func (g *generator) writeMetadata(d interface{}, indent string) {
 	}
 }
 
+func (g *generator) printf(f string, a ...interface{}) {
+	s := fmt.Sprintf(f, a...)
+	g.line += strings.Count(s, "\n")
+	g.buf.WriteString(s)
+}
+
+func (g *generator) warningf(f string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, "%s: WARNING: %s\n", g.location(), fmt.Sprintf(f, a...))
+}
+
+func (g *generator) location() string {
+	return fmt.Sprintf("%s:%d", g.filename, g.line)
+}
+
 type metadata struct {
 	doc   string
 	attrs map[string]interface{}
@@ -287,6 +318,15 @@ func isEnum(at schema.AvroType) bool {
 		return false
 	}
 	_, ok = ref.Def.(*schema.EnumDefinition)
+	return ok
+}
+
+func isRecord(at schema.AvroType) bool {
+	ref, ok := at.(*schema.Reference)
+	if !ok {
+		return false
+	}
+	_, ok = ref.Def.(*schema.RecordDefinition)
 	return ok
 }
 

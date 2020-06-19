@@ -1,6 +1,6 @@
-avsc2avdl issue2866.avsc
-stderr '^issue2866\.avsc: WARNING: default value \("RED"\) for enum-valued field in R\.col will be ignored'
-cmp stdout expect.avdl
+avsc2avdl -o out.avdl issue2866.avsc
+stderr '^out.avdl:3: WARNING: default value \("RED"\) for enum-valued field in R\.col will be ignored'
+cmp out.avdl expect.avdl
 -- expect.avdl --
 protocol _ {
 	record R {
