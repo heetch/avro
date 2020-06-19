@@ -59,7 +59,13 @@ func avsc2avdl(avscFile string) error {
 		done:     make(map[schema.QualifiedName]bool),
 	}
 	g.addDefinition(ref.Def)
-	g.pushNamespace("")
+	// Use the top level definition's namespace as the default namespace for
+	// all definitions.
+	namespace := ref.Def.AvroName().Namespace
+	g.pushNamespace(namespace)
+	if namespace != "" {
+		g.printf("@namespace(%q)\n", namespace)
+	}
 	g.printf("protocol _ {\n")
 	for i := 0; ; i++ {
 		def := g.removeDefinition()
@@ -175,8 +181,24 @@ func (g *generator) typeString(at schema.AvroType) string {
 	case *schema.MapField:
 		return "map<" + g.typeString(at.ItemType()) + ">"
 	case *schema.UnionField:
+		types := at.ItemTypes()
+		if len(types) > 2 {
+			// It's a long union type; format the types on separate lines.
+			s := "union {\n\t\t\t"
+			for i, ut := range types {
+				if i > 0 {
+					// TODO it's possible to have nested union types.
+					// To fix that we'll need to have indent as an argument
+					// to typeString.
+					s += ",\n\t\t\t"
+				}
+				s += g.typeString(ut)
+			}
+			s += "\n\t\t}"
+			return s
+		}
 		s := "union { "
-		for i, ut := range at.ItemTypes() {
+		for i, ut := range types {
 			if i > 0 {
 				s += ", "
 			}

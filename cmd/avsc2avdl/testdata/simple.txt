@@ -1,7 +1,7 @@
-avsc2avdl header.avsc
+avsc2avdl test.avsc
 cmp stdout expect.avdl
 
--- header.avsc --
+-- test.avsc --
 {
   "type" : "record",
   "name" : "R",
@@ -67,6 +67,9 @@ cmp stdout expect.avdl
   }, {
     "name" : "unionField",
     "type" : [ "null", "long", "ns2.S" ]
+  }, {
+    "name" : "smallUnionField",
+    "type" : [ "null", "long" ]
   } ],
   "go.package" : "example.com/blah",
   "structuredMeta" : {
@@ -75,6 +78,7 @@ cmp stdout expect.avdl
   }
 }
 -- expect.avdl --
+@namespace("ns1.sub")
 protocol _ {
 	/** doc comment at top level */
 	@go.package("example.com/blah")
@@ -82,7 +86,6 @@ protocol _ {
 		"x": 356,
 		"y": "foo"
 	})
-	@namespace("ns1.sub")
 	record R {
 		/** doc comment on field */
 		@fieldMetadata(245)
@@ -100,7 +103,12 @@ protocol _ {
 		/** Note: IDL doesn't support enum defaults! See https://issues.apache.org/jira/browse/AVRO-2866 */
 		ns3.color col;
 		md5 checksum;
-		union { null, long, ns2.S } unionField;
+		union {
+			null,
+			long,
+			ns2.S
+		} unionField;
+		union { null, long } smallUnionField;
 	}
 
 	@namespace("ns2")
@@ -115,6 +123,5 @@ protocol _ {
 		green
 	}
 
-	@namespace("ns1.sub")
 	fixed md5(16);
 }
