@@ -39,6 +39,7 @@ func (names *Names) Unmarshal(data []byte, x interface{}, wType *Type) (*Type, e
 	return unmarshal(nil, data, prog, v)
 }
 
+// stackFrame represents the registers that are mutated by the VM interpreter.
 type stackFrame struct {
 	Boolean   bool
 	Int       int64

@@ -1,0 +1,120 @@
+avsc2avdl header.avsc
+cmp stdout expect.avdl
+
+-- header.avsc --
+{
+  "type" : "record",
+  "name" : "R",
+  "namespace" : "ns1.sub",
+  "doc" : "doc comment at top level",
+  "fields" : [ {
+    "name" : "fmap",
+    "type" : {
+      "type" : "map",
+      "values" : "string",
+      "fieldMetadata" : 245
+    },
+    "doc" : "doc comment on field"
+  }, {
+    "name" : "fstrWithDefault",
+    "type" : "string",
+    "doc" : "* doc comment on field with\n\t\t * newline",
+    "default" : ""
+  }, {
+    "name" : "fStrNoDefault",
+    "type" : "string",
+    "default" : ""
+  }, {
+    "name" : "fTime",
+    "type" : {
+      "type" : "long",
+      "logicalType" : "timestamp-micros"
+    },
+    "default" : 0
+  }, {
+    "name" : "fArray",
+    "type" : {
+      "type" : "array",
+      "items" : "int"
+    }
+  }, {
+    "name" : "fRef",
+    "type" : {
+      "type" : "record",
+      "name" : "S",
+      "namespace" : "ns2",
+      "fields" : [ {
+        "name" : "fs",
+        "type" : "string"
+      } ]
+    }
+  }, {
+    "name" : "col",
+    "type" : {
+      "type" : "enum",
+      "name" : "color",
+      "namespace" : "ns3",
+      "symbols" : [ "red", "blue", "green" ]
+    },
+    "doc" : "Note: IDL doesn't support enum defaults! See https://issues.apache.org/jira/browse/AVRO-2866"
+  }, {
+    "name" : "checksum",
+    "type" : {
+      "type" : "fixed",
+      "name" : "md5",
+      "size" : 16
+    }
+  }, {
+    "name" : "unionField",
+    "type" : [ "null", "long", "ns2.S" ]
+  } ],
+  "go.package" : "example.com/blah",
+  "structuredMeta" : {
+    "x" : 356,
+    "y" : "foo"
+  }
+}
+-- expect.avdl --
+protocol _ {
+	/** doc comment at top level */
+	@go.package("example.com/blah")
+	@structuredMeta({
+		"x": 356,
+		"y": "foo"
+	})
+	@namespace("ns1.sub")
+	record R {
+		/** doc comment on field */
+		@fieldMetadata(245)
+		map<string> fmap;
+		/**
+		 * doc comment on field with
+		 * newline
+		 */
+		string fstrWithDefault = "";
+		string fStrNoDefault = "";
+		@logicalType("timestamp-micros")
+		long fTime = 0;
+		array<int> fArray;
+		ns2.S fRef;
+		/** Note: IDL doesn't support enum defaults! See https://issues.apache.org/jira/browse/AVRO-2866 */
+		ns3.color col;
+		md5 checksum;
+		union { null, long, ns2.S } unionField;
+	}
+
+	@namespace("ns2")
+	record S {
+		string fs;
+	}
+
+	@namespace("ns3")
+	enum color {
+		red,
+		blue,
+		green
+	}
+
+	@namespace("ns1.sub")
+	fixed md5(16);
+}
