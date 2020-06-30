@@ -18,6 +18,7 @@ import (
 //		The Kafka registry address in host:port
 //		form. If this is empty, localhost:8084 will be used.
 //
+// This requires go1.14 or higher
 func Register(ctx context.Context, t T, x interface{}, topic string) error {
 	registryAddr := os.Getenv("KAFKA_REGISTRY_ADDR")
 	if registryAddr == "" {
