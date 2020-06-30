@@ -2,7 +2,47 @@
 jobs:
   test:
     runs-on: ${{ matrix.platform }}
-    services: {}
+    # container: ubuntu:latest
+    services:
+      registry:
+        image: lensesio/fast-data-dev:2.3.0
+        ports:
+          - 8081:8081
+
+      # zookeeper:
+      #   image: confluentinc/cp-zookeeper:5.4.1
+      #   ports:
+      #     - 32181:32181
+      #   env:
+      #     ZOOKEEPER_CLIENT_PORT: "32181"
+      #     ZOOKEEPER_SERVER_ID: 1
+      #     ZOOKEEPER_TICK_TIME: "2000"
+
+      # kafka:
+      #   image: confluentinc/cp-kafka:5.4.1
+      #   env:
+      #     KAFKA_BROKER_ID: "1"
+      #     KAFKA_ZOOKEEPER_CONNECT: localhost:32181
+      #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      #   ports:
+      #     - 9092:9092
+      #     - 29092:29092
+
+      # schemaregistry:
+      #   image: confluentinc/cp-schema-registry:5.4.1
+      #   ports:
+      #     - 8081:8081
+      #   env:
+      #     SCHEMA_REGISTRY_HOST_NAME: schemaregistry
+      #     SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: localhost:32181
+      #     SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://localhost:29092
+
     steps:
     - name: Install Go
       uses: actions/setup-go@v1
@@ -10,7 +50,13 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v1
+    # - name: Install curl gcc
+    #   run: |-
+    #     apt update
+    #     apt install --yes curl gcc
     - name: Test
+      env:
+        KAFKA_REGISTRY_ADDR: localhost:${{ job.services.registry.ports['8081'] }}
       run: |-
         set -ex
         tgz=$(mktemp)
@@ -21,7 +67,8 @@ jobs:
         (cd ~/go/bin && tar xzf $tgz cue)
         go install ./cmd/... &&
         go generate . ./cmd/...  &&
-        go test ./...
+        go test ./... ||
+        docker logs -f $(docker ps -f 'name=registry' -q)
     strategy:
       matrix:
         go-version:
