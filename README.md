@@ -72,3 +72,22 @@ type UnionNullInt struct {
 
 With `heetch/avro`, the above type is simply represented as a `*int`, a representation
 likely to be familiar to most Go users.
+
+## Integration testing
+
+A `github.com/heetch/avro/avroregistrytest` package is provided to run
+integration test against a real schema registry.
+
+```go
+import "github.com/heetch/avro/avroregistrytest"
+
+type X struct {
+   A int
+}
+
+avroregistrytest.Register(context.Background(), t, A{}, "test-topic")
+```
+
+This code snippet register an avro type for `X` struct for
+`test-topic` in the schema registry defined by `KAFKA_REGISTRY_ADDR`
+environment variable that must set to `host:port` form.
