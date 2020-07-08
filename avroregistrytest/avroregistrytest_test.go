@@ -1,6 +1,6 @@
 // +build go1.14
 
-package avrotest
+package avroregistrytest
 
 import (
 	"context"
