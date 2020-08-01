@@ -92,7 +92,7 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	// TODO pass in wType so that we can determine a schema
 	// even for partially specified Go types (e.g. interface{} values)
 	// See https://github.com/heetch/avro/issues/34
-	schemaVal, err := gts.schemaForGoType(t)
+	schemaVal, err := gts.schemaForGoType(t, false)
 	if err != nil {
 		return nil, err
 	}
@@ -129,9 +129,11 @@ type goTypeSchema struct {
 	defs  map[reflect.Type]goTypeDef
 }
 
-func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
+// `ignoreCache` parameter prevents reusing registered type for an Anonymous field in a struct
+// This is helpful since the Anonymous fields must be merged to the current struct
+func (gts *goTypeSchema) schemaForGoType(t reflect.Type, ignoreCache bool) (interface{}, error) {
 	d, ok := gts.defs[t]
-	if ok {
+	if !ignoreCache && ok {
 		// We've already defined a name for this type, so use it.
 		return d.name, nil
 	}
@@ -167,7 +169,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		if t.Elem() == byteType {
 			return "bytes", nil
 		}
-		items, err := gts.schemaForGoType(t.Elem())
+		items, err := gts.schemaForGoType(t.Elem(), false)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +182,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		if t.Key().Kind() != reflect.String {
 			return nil, fmt.Errorf("map must have string key")
 		}
-		values, err := gts.schemaForGoType(t.Elem())
+		values, err := gts.schemaForGoType(t.Elem(), false)
 		if err != nil {
 			return nil, err
 		}
@@ -198,24 +200,34 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		case nullType:
 			return "null", nil
 		}
+
 		// Define the struct type before filling in the definition
 		// so that we'll find the definition if there's a recursive type.
 		// The map returned by the define method holds a reference
 		// to the same object held in gts.defs, so changing it
 		// below will update the final definition.
-		def, err := gts.define(t, map[string]interface{}{
-			"type": "record",
-		}, "")
-		if err != nil {
-			return nil, err
+		def := map[string]interface{}{}
+		if !ignoreCache {
+			var err error
+			def, err = gts.define(t, map[string]interface{}{
+				"type": "record",
+			}, "")
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		// Note: don't start with nil fields because gogen-avro
 		// doesn't like the nil value.
 		fields := []interface{}{}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.Anonymous {
-				return nil, fmt.Errorf("anonymous fields not yet supported (in %s)", t)
+				if err := gts.schemaForAnonymousField(f, &fields); err != nil {
+					return nil, err
+				}
+
+				continue
 			}
 			// Technically in Go, every field is optional because
 			// that's the way that the encoding/json package works,
@@ -226,7 +238,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 			if name == "" {
 				continue
 			}
-			ftype, err := gts.schemaForGoType(f.Type)
+			ftype, err := gts.schemaForGoType(f.Type, false)
 			if err != nil {
 				return nil, err
 			}
@@ -254,7 +266,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		if t.Elem().Kind() == reflect.Ptr {
 			return nil, fmt.Errorf("can only cope with a single level of pointer indirection")
 		}
-		elem, err := gts.schemaForGoType(t.Elem())
+		elem, err := gts.schemaForGoType(t.Elem(), false)
 		if err != nil {
 			return nil, err
 		}
@@ -268,6 +280,36 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("cannot make Avro schema for Go type %s", t)
 	}
+}
+
+func (gts *goTypeSchema) schemaForAnonymousField(field reflect.StructField, fields *[]interface{}) error {
+	// Analyze the Anonymous struct as for others (it will end in the switch case "Struct" in all cases)
+	anonymousDefinition, err := gts.schemaForGoType(field.Type, true)
+	if err != nil {
+		return err
+	}
+
+	// Cast to process it in the loop
+	castedAnonymousDefinition := anonymousDefinition.(map[string]interface{})
+	castedAnonymousDefinitionFields := castedAnonymousDefinition["fields"].([]interface{})
+
+	// Merge anonymous fields with the parent ones
+	for _, definitionField := range castedAnonymousDefinitionFields {
+		// Before merging we make sure nested anonymous structures do not define an already existing property
+		// This could come from the parent structure, or a sibling anonymous structure
+		for _, parentField := range *fields {
+			castedDefinitionField := definitionField.(map[string]interface{})
+			castedParentField := parentField.(map[string]interface{})
+
+			if castedDefinitionField["name"] == castedParentField["name"] {
+				return fmt.Errorf("an anonymous structure tries to define the existing property %s", castedDefinitionField["name"])
+			}
+		}
+
+		*fields = append(*fields, definitionField)
+	}
+
+	return err
 }
 
 func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName string) (map[string]interface{}, error) {
