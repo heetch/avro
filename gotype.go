@@ -229,6 +229,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type, ignoreCache bool) (inte
 
 				continue
 			}
+
 			// Technically in Go, every field is optional because
 			// that's the way that the encoding/json package works,
 			// so we'll make them all optional.
@@ -238,10 +239,48 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type, ignoreCache bool) (inte
 			if name == "" {
 				continue
 			}
+
 			ftype, err := gts.schemaForGoType(f.Type, false)
 			if err != nil {
 				return nil, err
 			}
+
+			// Check if the same property has already been added by an anonymous struct
+			exactSameProperty := false
+			for _, definedField := range fields {
+				castedDefinedField := definedField.(map[string]interface{})
+
+				if name == castedDefinedField["name"] {
+					// If it's also the same type, we can ignore this duplicate
+					// To do so, we have to manage the 2 Avro type representations (string and record)
+					var definedTypeName string
+					definedTypeName, ok = castedDefinedField["type"].(string)
+					if !ok {
+						recordType := castedDefinedField["type"].(map[string]interface{})
+						definedTypeName = recordType["name"].(string)
+					}
+
+					var currentTypeName string
+					currentTypeName, ok = ftype.(string)
+					if !ok {
+						recordType := ftype.(map[string]interface{})
+						currentTypeName = recordType["name"].(string)
+					}
+
+					if currentTypeName == definedTypeName {
+						exactSameProperty = true
+					} else {
+						return nil, fmt.Errorf("the field %q has already been added by an anonymous structure with a different type (current: %q, defined: %q)", castedDefinedField["name"], currentTypeName, definedTypeName)
+					}
+
+					break
+				}
+			}
+
+			if exactSameProperty {
+				continue
+			}
+
 			d, err := gts.defaultForType(f.Type)
 			if err != nil {
 				return nil, err
