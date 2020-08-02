@@ -252,25 +252,10 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type, ignoreCache bool) (inte
 
 				if name == castedDefinedField["name"] {
 					// If it's also the same type, we can ignore this duplicate
-					// To do so, we have to manage the 2 Avro type representations (string and record)
-					var definedTypeName string
-					definedTypeName, ok = castedDefinedField["type"].(string)
-					if !ok {
-						recordType := castedDefinedField["type"].(map[string]interface{})
-						definedTypeName = recordType["name"].(string)
-					}
-
-					var currentTypeName string
-					currentTypeName, ok = ftype.(string)
-					if !ok {
-						recordType := ftype.(map[string]interface{})
-						currentTypeName = recordType["name"].(string)
-					}
-
-					if currentTypeName == definedTypeName {
-						exactSameProperty = true
+					if err := gts.ensureCompatibleTypes(name, ftype, castedDefinedField["type"]); err != nil {
+						return nil, err
 					} else {
-						return nil, fmt.Errorf("the field %q has already been added by an anonymous structure with a different type (current: %q, defined: %q)", castedDefinedField["name"], currentTypeName, definedTypeName)
+						exactSameProperty = true
 					}
 
 					break
@@ -334,21 +319,53 @@ func (gts *goTypeSchema) schemaForAnonymousField(field reflect.StructField, fiel
 
 	// Merge anonymous fields with the parent ones
 	for _, definitionField := range castedAnonymousDefinitionFields {
-		// Before merging we make sure nested anonymous structures do not define an already existing property
+		// Before merging we make sure nested anonymous structures do not define an already existing property with different type
 		// This could come from the parent structure, or a sibling anonymous structure
+		exactSameProperty := false
 		for _, parentField := range *fields {
 			castedDefinitionField := definitionField.(map[string]interface{})
 			castedParentField := parentField.(map[string]interface{})
 
 			if castedDefinitionField["name"] == castedParentField["name"] {
-				return fmt.Errorf("an anonymous structure tries to define the existing property %s", castedDefinitionField["name"])
+				if err := gts.ensureCompatibleTypes(castedDefinitionField["name"].(string), castedDefinitionField["type"], castedParentField["type"]); err != nil {
+					return err
+				} else {
+					exactSameProperty = true
+				}
+
+				break
 			}
+		}
+
+		if exactSameProperty {
+			continue
 		}
 
 		*fields = append(*fields, definitionField)
 	}
 
 	return err
+}
+
+func (gts *goTypeSchema) ensureCompatibleTypes(propertyName string, type1 interface{}, type2 interface{}) error {
+	// We have to manage the 2 Avro type representations (string and record)
+	type1Name, ok := type1.(string)
+	if !ok {
+		recordType := type1.(map[string]interface{})
+		type1Name = recordType["name"].(string)
+	}
+
+	type2Name, ok := type2.(string)
+	if !ok {
+		recordType := type2.(map[string]interface{})
+		type2Name = recordType["name"].(string)
+	}
+
+	if type2Name != type1Name {
+		return fmt.Errorf("the field %q has already been added by an anonymous structure with a different type (current: %q, defined: %q)", propertyName, type2Name, type1Name)
+	}
+
+	return nil
 }
 
 func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName string) (map[string]interface{}, error) {
