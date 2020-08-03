@@ -1,0 +1,32 @@
+avsc2avdl -o out.avdl issue2867.avsc
+stderr '^out.avdl:3: WARNING: default value \({\n\t"x": 1234\n}\) for record-valued field in R\.S will cause an exception'
+cmp out.avdl expect.avdl
+-- expect.avdl --
+protocol _ {
+	record R {
+		S S = {
+			"x": 1234
+		};
+	}
+
+	record S {
+		int x;
+	}
+}
+-- issue2867.avsc --
+{
+  "type" : "record",
+  "name" : "R",
+  "fields" : [ {
+    "name" : "S",
+    "default": {"x": 1234},
+    "type" : {
+      "type" : "record",
+      "name" : "S",
+      "fields" : [ {
+        "name" : "x",
+        "type" : "int"
+      } ]
+    }
+  } ]
+}

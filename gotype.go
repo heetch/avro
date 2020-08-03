@@ -120,12 +120,18 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 }
 
 type goTypeDef struct {
+	// name holds the Avro name for the Go type.
 	name   string
+	// schema holds the JSON-marshalable schema for the type.
 	schema interface{}
 }
 
+// goTypeSchema holds execution context for the schemaForGoType
+// functionality (to avoid passing both arguments everywhere).
 type goTypeSchema struct {
 	names *Names
+	// defs maps from Go type to Avro definition for all
+	// types being traversed by schemaForGoType..
 	defs  map[reflect.Type]goTypeDef
 }
 
