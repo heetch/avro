@@ -94,47 +94,18 @@ type canonicalFields struct {
 	Items   interface{}        `json:"items,omitempty"`
 	Size    int                `json:"size,omitempty"`
 	Values  interface{}        `json:"values,omitempty"`
-	// The default field isn't mentioned in the specification, but
-	// it is important to store in the registry, so we allow it to be
+	// The default field isn't mentioned in the specification, but is
+	// important to store in the registry, so we allow it to be
 	// kept with the LeaveDefaults option to CanonicalString.
 	// TODO the Avro spec doesn't define canonicalization for
 	// numeric values, which could be an issue.
-	// "default" is set via custom marshalling due to the fact null could be a
-	// default value and we can't use omitempty in this case.
-	DefaultValue interface{} `json:"-"`
-	HasDefault   bool        `json:"-"`
+	Default interface{} `json:"default,omitempty"`
 	// Logical types aren't mentioned in the specification either,
 	// but they're important to maintain so that we can potentially
 	// guard against data corruption due to changed logical types.
 	LogicalType string `json:"logicalType,omitempty"`
 	Precision   int    `json:"precision,omitempty"`
 	Scale       int    `json:"scale,omitempty"`
-}
-
-// MarshalJSON implements json interface to print default null values if available
-func (cf *canonicalFields) MarshalJSON() ([]byte, error) {
-	// Alias set to avoid infinite loop and be less verbose
-	type alias canonicalFields
-	var v interface{}
-	v = &struct{ *alias }{alias: (*alias)(cf)}
-	if cf.HasDefault {
-		v = &struct {
-			*alias
-			Default interface{} `json:"default"`
-		}{
-			alias:   (*alias)(cf),
-			Default: cf.DefaultValue,
-		}
-	}
-	// Use encoder to disable escaping of HTML metacharacters.
-	var buf strings.Builder
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(v); err != nil {
-		return nil, err
-	}
-	return []byte(strings.TrimSuffix(buf.String(), "\n")), nil
-
 }
 
 func (c *canonicalizer) canonicalValue(at schema.AvroType) interface{} {
@@ -234,8 +205,13 @@ func (c *canonicalizer) canonicalValue1(at schema.AvroType) interface{} {
 					Type: c.canonicalValue(f.Type()),
 				}
 				if f.HasDefault() && (c.opts&RetainDefaults) != 0 {
-					cfields[i].DefaultValue = f.Default()
-					cfields[i].HasDefault = true
+					v := f.Default()
+					if v == nil {
+						// The default is nil but we don't want it to be omitted
+						// from the resulting JSON, so use a concrete nil type instead.
+						v = (*struct{})(nil)
+					}
+					cfields[i].Default = v
 				}
 			}
 			return cf
