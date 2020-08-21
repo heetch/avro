@@ -199,7 +199,7 @@ var canonicalStringTests = []struct {
 }`,
 	out: `{"name":"com.example.R","type":"record","fields":[{"name":"a","type":{"name":"com.example.E","type":"enum","symbols":["a","b"]}},{"name":"b","type":{"name":"foo.F","type":"enum","symbols":["a","b"]}},{"name":"c","type":"com.example.E"}]}`,
 }, {
-	testName: "primitive_types",
+	testName: "primitive-types",
 	in: `{
 	"name": "R",
 	"type": "record",
@@ -238,6 +238,30 @@ var canonicalStringTests = []struct {
 		"symbols": ["a", "b"]
 	}]`,
 	out: `["int","string",{"name":"E","type":"enum","symbols":["a","b"]}]`,
+}, {
+	testName: "union-with-default",
+	opts:     avro.RetainDefaults,
+	in: `{"type": "record",
+              "name": "R",
+              "fields":[
+              {"name": "U",
+               "type": ["int","string"],
+               "default": 3
+              }]
+        }`,
+	out: `{"name":"R","type":"record","fields":[{"name":"U","type":["int","string"],"default":3}]}`,
+}, {
+	testName: "union-with-default-null",
+	opts:     avro.RetainDefaults,
+	in: `{"type": "record",
+              "name": "R",
+              "fields":[
+              {"name": "U",
+               "type": ["null","string"],
+               "default": null
+              }]
+        }`,
+	out: `{"name":"R","type":"record","fields":[{"name":"U","type":["null","string"],"default":null}]}`,
 }, {
 	testName: "empty-record",
 	in: `{
