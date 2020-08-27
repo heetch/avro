@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/heetch/avro"
 	"io"
 	"regexp"
 	"sort"
@@ -102,7 +103,12 @@ func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) (string
 	if err != nil {
 		panic(err)
 	}
-	fprintf(w, "Schema: %s,\n", quote(schemaStr))
+	schemaType, err := avro.ParseType(schemaStr)
+	if err != nil {
+		return "", err
+	}
+	canonical := schemaType.CanonicalString(avro.RetainDefaults | avro.RetainLogicalTypes)
+	fprintf(w, "Schema: %s,\n", quote(canonical))
 	doneRequired := false
 	for i, f := range t.Fields() {
 		if f.HasDefault() {
