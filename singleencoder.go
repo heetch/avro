@@ -42,6 +42,31 @@ func NewSingleEncoder(r EncodingRegistry, names *Names) *SingleEncoder {
 	}
 }
 
+// NewSingleEncoderPreloaded returns a SingleEncoder instance that encodes single
+// messages along with their schema identifier and has all required schema IDs cached.
+//
+// To cache the schema IDs you need to pass objects of the types you plan to marshal later.
+//
+// Go values unmarshaled through Marshal will have their Avro schemas
+// translated with the given Names instance. If names is nil, the global
+// namespace will be used.
+func NewSingleEncoderPreloaded(ctx context.Context, r EncodingRegistry, names *Names, msgTypes []interface{}) (*SingleEncoder, error) {
+	if names == nil {
+		names = globalNames
+	}
+	se := &SingleEncoder{
+		registry: r,
+		names:    names,
+	}
+	for _, msgType := range msgTypes {
+		x := reflect.New(reflect.TypeOf(msgType)).Elem().Interface()
+		if err := se.CheckMarshalType(ctx, x); err != nil {
+			return nil, err
+		}
+	}
+	return se, nil
+}
+
 // CheckMarshalType checks that the given type can be marshaled with the encoder.
 // It also caches any type information obtained from the EncodingRegistry from the
 // type, so future calls to Marshal with that type won't call it.
