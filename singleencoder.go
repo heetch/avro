@@ -51,13 +51,7 @@ func NewSingleEncoder(r EncodingRegistry, names *Names) *SingleEncoder {
 // translated with the given Names instance. If names is nil, the global
 // namespace will be used.
 func NewSingleEncoderPreloaded(ctx context.Context, r EncodingRegistry, names *Names, msgTypes []interface{}) (*SingleEncoder, error) {
-	if names == nil {
-		names = globalNames
-	}
-	se := &SingleEncoder{
-		registry: r,
-		names:    names,
-	}
+	se := NewSingleEncoder(r, names)
 	for _, msgType := range msgTypes {
 		x := reflect.New(reflect.TypeOf(msgType)).Elem().Interface()
 		if err := se.CheckMarshalType(ctx, x); err != nil {
