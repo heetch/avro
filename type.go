@@ -223,9 +223,9 @@ func (c *canonicalizer) canonicalValue1(at schema.AvroType) interface{} {
 	}
 }
 
-// name returns the fully qualified Avro name for the type,
+// Name returns the fully qualified Avro Name for the type,
 // or the empty string if it's not a definition.
-func (t *Type) name() string {
+func (t *Type) Name() string {
 	ref, ok := t.avroType.(*schema.Reference)
 	if !ok {
 		return ""
