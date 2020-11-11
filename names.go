@@ -100,7 +100,7 @@ func (n *Names) RenameType(x interface{}, newName string, newAliases ...string) 
 	if err != nil {
 		panic(fmt.Errorf("cannot rename %T to %q: cannot get Avro type: %v", x, newName, err))
 	}
-	name := t.name()
+	name := t.Name()
 	if name == "" {
 		panic(fmt.Errorf("cannot rename %T to %q: it does not represent an Avro definition", x, newName))
 	}
