@@ -541,7 +541,7 @@ func operandString(op int) string {
 	return operandStrings[op]
 }
 
-const debugging = false
+const debugging = true
 
 func debugf(f string, a ...interface{}) {
 	if debugging {
