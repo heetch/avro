@@ -45,7 +45,7 @@ func Register(ctx context.Context, t T, x interface{}, topic string) error {
 	t.Cleanup(func() {
 		err := registry.DeleteSubject(ctx, topic)
 		if err != nil {
-			t.Errorf("cannot delete subject: %w", err)
+			t.Errorf("cannot delete subject %v: %v", topic, err)
 		}
 	})
 
