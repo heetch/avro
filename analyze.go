@@ -274,6 +274,9 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return fmt.Errorf("unbalanced exit")
 			}
 			path = path[:len(path)-1]
+		case vm.SetExitNull:
+			// Do nothing as Null value is treated in enter* functions
+
 		case vm.SetDefault:
 			index := inst.Operand
 			if index >= len(elem.info.Entries) {

@@ -217,6 +217,8 @@ func (d *decoder) eval(target reflect.Value) {
 			d.pc = inst.Operand
 			d.eval(target)
 			d.pc = curr
+		case vm.SetExitNull:
+			// This is a no-op by now as it's handled by isRef
 		case vm.Return:
 			return
 		case vm.Jump:
