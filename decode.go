@@ -219,6 +219,14 @@ func (d *decoder) eval(target reflect.Value) {
 			d.pc = curr
 		case vm.SetExitNull:
 			// This is a no-op by now as it's handled by isRef
+		case vm.HintSize:
+			// This is a performance improvement to put a capacity to slice
+			if target.Kind() == reflect.Slice && target.IsZero() {
+				target.Set(reflect.MakeSlice(target.Type(), 0, inst.Operand))
+				if debugging {
+					debugf("putting cap %d to %+v", inst.Operand, target)
+				}
+			} // It's also used for Maps but it's no-op here, see AppendMap for details.
 		case vm.Return:
 			return
 		case vm.Jump:

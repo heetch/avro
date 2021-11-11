@@ -337,7 +337,8 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			vm.MultLong,
 			vm.PushLoop,
 			vm.PopLoop,
-			vm.Read:
+			vm.Read,
+			vm.HintSize:
 			// We don't care about any of these instructions because
 			// they can't influence the types that we're traversing.
 		case vm.Halt:
