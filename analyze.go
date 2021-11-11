@@ -331,6 +331,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			stack[len(stack)-1] = inst.Operand - 1
 		case vm.EvalGreater,
 			vm.EvalEqual,
+			vm.SetInt,
 			vm.SetLong,
 			vm.AddLong,
 			vm.MultLong,

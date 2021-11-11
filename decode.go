@@ -235,6 +235,8 @@ func (d *decoder) eval(target reflect.Value) {
 			frame.Int += int64(inst.Operand)
 		case vm.SetLong:
 			frame.Int = int64(inst.Operand)
+		case vm.SetInt:
+			frame.Int = int64(inst.Operand)
 		case vm.MultLong:
 			frame.Int *= int64(inst.Operand)
 		case vm.PushLoop:
