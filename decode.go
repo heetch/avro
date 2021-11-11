@@ -172,8 +172,12 @@ func (d *decoder) eval(target reflect.Value) {
 				}
 			case vm.String:
 				if target.Type() == uuidType {
-					// uuid
-					target.Set(reflect.ValueOf(gouuid.FromStringOrNil(frame.String)))
+					val, err := gouuid.FromString(frame.String)
+					if err != nil {
+						d.error(fmt.Errorf("runtime error: invalid input UUID: %w", err))
+					} else {
+						target.Set(reflect.ValueOf(val))
+					}
 					break
 				}
 				target.SetString(frame.String)
