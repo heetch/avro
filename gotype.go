@@ -15,6 +15,7 @@ import (
 const (
 	timestampMicros = "timestamp-micros"
 	timestampMillis = "timestamp-millis"
+	uuid            = "uuid"
 )
 
 // globalNames holds the default namespace which maps all Go types
@@ -249,6 +250,13 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		def["fields"] = fields
 		return def, nil
 	case reflect.Array:
+		if t == uuidType {
+			return map[string]interface{}{
+				"type":        "string",
+				"logicalType": uuid,
+			}, nil
+		}
+
 		if t.Elem() != reflect.TypeOf(byte(0)) {
 			return nil, fmt.Errorf("the only array type supported is [...]byte, not %s", t)
 		}
@@ -440,6 +448,9 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) (interface{}, error) {
 	case reflect.Map:
 		return reflect.MakeMap(t).Interface(), nil
 	case reflect.Array:
+		if t == uuidType {
+			return "", nil
+		}
 		return strings.Repeat("\u0000", t.Len()), nil
 	case reflect.Struct:
 		switch t {

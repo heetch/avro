@@ -17,6 +17,7 @@ import (
 const (
 	timestampMicros = "timestamp-micros"
 	timestampMillis = "timestamp-millis"
+	uuid            = "uuid"
 )
 
 const nullType = "avrotypegen.Null"
@@ -489,7 +490,12 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 	case *schema.BytesField:
 		info.GoType = "[]byte"
 	case *schema.StringField:
-		info.GoType = "string"
+		if logicalType(t) == uuid {
+			info.GoType = "uuid.UUID"
+			gc.addImport("github.com/satori/go.uuid")
+		} else {
+			info.GoType = "string"
+		}
 	case *schema.UnionField:
 		types := t.AvroTypes()
 		switch {

@@ -16,3 +16,20 @@ tests: timestampMicros: {
 	inData: T: 1579176162000001
 	outData: inData
 }
+
+tests: uuid: {
+       inSchema: {
+                 type: "record"
+                 name: "R"
+                 fields: [{
+                         name: "T"
+                         type: {
+                               type:        "string"
+                               logicalType: "uuid"
+                         }
+                 }]
+       }
+       outSchema: inSchema
+       inData: T: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+       outData: inData
+}
