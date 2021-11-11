@@ -106,7 +106,7 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 	if debugging {
 		debugf("compiling:\nwriter type: %s\nreader type: %s\n", writerType, readerType)
 	}
-	prog, err := compiler.Compile(writerType.avroType, readerType.avroType)
+	prog, err := compiler.Compile(writerType.avroType, readerType.avroType, compiler.AllowLaxNames())
 	if err != nil {
 		return nil, fmt.Errorf("cannot create decoder: %v", err)
 	}
