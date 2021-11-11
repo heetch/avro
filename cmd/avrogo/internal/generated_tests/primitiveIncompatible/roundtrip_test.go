@@ -26,7 +26,7 @@ var tests = testutil.RoundTripTest{
                         "f": 2134
                     }`,
 		OutDataJSON: `null`,
-		ExpectError: map[testutil.ErrorType]string{`unmarshal`: `analysis failed: eval: cannot assign int to string`},
+		ExpectError: map[testutil.ErrorType]string{`unmarshal`: `cannot create decoder: Incompatible schemas: field f in reader has incompatible type in writer`},
 	}},
 }
 
