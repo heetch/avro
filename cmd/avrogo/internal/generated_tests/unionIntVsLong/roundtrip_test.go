@@ -33,7 +33,7 @@ var tests = testutil.RoundTripTest{
                     }`,
 		OutDataJSON: `{
                         "F": {
-                            "long": 999
+                            "int": 999
                         }
                     }`,
 	}},
