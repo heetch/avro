@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/parser"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 const (

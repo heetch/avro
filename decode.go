@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/rogpeppe/gogen-avro/v7/vm"
+	"github.com/actgardner/gogen-avro/v10/vm"
 )
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must

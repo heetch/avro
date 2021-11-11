@@ -3,9 +3,9 @@ package typeinfo
 import (
 	"fmt"
 
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/resolver"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/parser"
+	"github.com/actgardner/gogen-avro/v10/resolver"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 // ParseSchema parses the given Avro type and resolves

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/schema"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )

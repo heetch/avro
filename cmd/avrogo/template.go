@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/parser"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 func newTemplate(s string) *template.Template {

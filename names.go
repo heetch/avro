@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/parser"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 // Names represents a namespace that can rename schema names.

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rogpeppe/gogen-avro/v7/compiler"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
-	"github.com/rogpeppe/gogen-avro/v7/vm"
+	"github.com/actgardner/gogen-avro/v10/compiler"
+	"github.com/actgardner/gogen-avro/v10/schema"
+	"github.com/actgardner/gogen-avro/v10/vm"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )

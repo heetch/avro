@@ -13,7 +13,7 @@ import (
 
 	"github.com/heetch/avro/internal/typeinfo"
 
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
