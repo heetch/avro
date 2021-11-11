@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/actgardner/gogen-avro/v10/vm"
+	gouuid "github.com/satori/go.uuid"
 )
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must
@@ -170,6 +171,11 @@ func (d *decoder) eval(target reflect.Value) {
 					target.SetBytes(data)
 				}
 			case vm.String:
+				if target.Type() == uuidType {
+					// uuid
+					target.Set(reflect.ValueOf(gouuid.FromStringOrNil(frame.String)))
+					break
+				}
 				target.SetString(frame.String)
 			}
 		case vm.SetDefault:

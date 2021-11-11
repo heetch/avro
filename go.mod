@@ -8,6 +8,7 @@ require (
 	github.com/kr/pretty v0.3.0
 	github.com/linkedin/goavro/v2 v2.10.1
 	github.com/rogpeppe/go-internal v1.8.0
+	github.com/satori/go.uuid v1.2.0
 	gopkg.in/httprequest.v1 v1.2.1
 	gopkg.in/retry.v1 v1.0.3
 )
