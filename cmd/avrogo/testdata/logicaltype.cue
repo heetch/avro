@@ -33,3 +33,21 @@ tests: uuid: {
        inData: T: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
        outData: inData
 }
+
+tests: invalidUUID: {
+       inSchema: {
+                 type: "record"
+                 name: "R"
+                 fields: [{
+                         name: "T"
+                         type: {
+                               type:        "string"
+                               logicalType: "uuid"
+                         }
+                 }]
+       }
+       outSchema: inSchema
+       inData: T: "invalid_uuid"
+       outData: null
+       expectError: unmarshal: "runtime error: invalid input UUID: uuid: incorrect UUID length: invalid_uuid"
+}
