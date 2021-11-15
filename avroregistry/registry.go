@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/heetch/avro"
@@ -35,6 +36,18 @@ type Params struct {
 	// If Userame is empty, no authentication will be sent.
 	Username string
 	Password string
+}
+
+// Schema holds the schema metadata and actual schema stored in a Schema registry
+type Schema struct {
+	// Subject defines the name this schema is registered under
+	Subject string `json:"subject"`
+	// ID globally unique schema identifier
+	ID int64 `json:"id"`
+	// Version is the version of the schema
+	Version int `json:"version"`
+	// Schema is the actual schema in Avro format
+	Schema string `json:"schema"`
 }
 
 var defaultRetryStrategy = retry.LimitTime(5*time.Second, retry.Exponential{
@@ -117,6 +130,39 @@ func (r *Registry) SetCompatibility(ctx context.Context, subject string, mode av
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#delete--subjects-(string-%20subject)
 func (r *Registry) DeleteSubject(ctx context.Context, subject string) error {
 	return r.doRequest(r.newRequest(ctx, "DELETE", "/subjects/"+subject, nil), nil)
+}
+
+// Schema gets a specific version of the schema registered under this subject
+//
+// See https://docs.confluent.io/platform/current/schema-registry/develop/api.html#get--subjects-(string-%20subject)-versions-(versionId-%20version)
+func (r *Registry) Schema(ctx context.Context, subject, version string) (*Schema, error) {
+	// validate version
+	if err := validateVersion(version); err != nil {
+		return nil, err
+	}
+
+	req := r.newRequest(ctx, http.MethodGet, fmt.Sprintf("/subjects/%s/versions/%s", subject, version), nil)
+	schema := new(Schema)
+	if err := r.doRequest(req, schema); err != nil {
+		return nil, err
+	}
+
+	return schema, nil
+}
+
+func validateVersion(version string) error {
+	msg := `Invalid version. It should be between 1 and 2^31-1 or "latest"`
+	i, err := strconv.Atoi(version)
+	if err != nil {
+		if version == "latest" {
+			return nil
+		}
+		return fmt.Errorf("%s: %w", msg, err)
+	} else if i < 1 || i > 1<<31-1 {
+		return fmt.Errorf("%s: %d provided", msg, i)
+	}
+
+	return nil
 }
 
 func (r *Registry) newRequest(ctx context.Context, method string, urlStr string, body io.Reader) *http.Request {

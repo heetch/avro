@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -153,6 +154,91 @@ func TestSingleCodec(t *testing.T) {
 	_, err = dec.Unmarshal(ctx, data2, &x2)
 	c.Assert(err, qt.Equals, nil)
 	c.Assert(x2, qt.Equals, R1{11, 30})
+}
+
+func TestSchema(t *testing.T) {
+	c := qt.New(t)
+	defer c.Done()
+	ctx := context.Background()
+	r, subject := newTestRegistry(c)
+
+	c.Run("OK", func(c *qt.C) {
+		type R struct {
+			X int
+		}
+		id1, err := r.Register(ctx, subject, schemaOf(nil, R{}))
+		c.Assert(err, qt.IsNil)
+
+		schema1, err := r.Schema(ctx, subject, "latest")
+		c.Assert(err, qt.IsNil)
+		c.Assert(schema1, qt.DeepEquals, &avroregistry.Schema{
+			Subject: subject,
+			ID:      id1,
+			Version: 1,
+			Schema:  `{"type":"record","name":"R","fields":[{"name":"X","type":"long","default":0}]}`,
+		})
+
+		type R1 struct {
+			X int
+			Y string
+		}
+		names := new(avro.Names).RenameType(R1{}, "R")
+		id2, err := r.Register(ctx, subject, schemaOf(names, R1{}))
+		c.Assert(err, qt.IsNil)
+		c.Assert(id2, qt.Not(qt.Equals), id1)
+
+		schema2, err := r.Schema(ctx, subject, "2")
+		c.Assert(err, qt.IsNil)
+		c.Assert(schema2, qt.DeepEquals, &avroregistry.Schema{
+			Subject: subject,
+			ID:      id2,
+			Version: 2,
+			Schema:  `{"type":"record","name":"R","fields":[{"name":"X","type":"long","default":0},{"name":"Y","type":"string","default":""}]}`,
+		})
+
+		testSchema, err := r.Schema(ctx, subject, "latest")
+		c.Assert(err, qt.IsNil)
+		c.Assert(testSchema, qt.DeepEquals, schema2)
+		testSchema, err = r.Schema(ctx, subject, "1")
+		c.Assert(err, qt.IsNil)
+		c.Assert(testSchema, qt.DeepEquals, schema1)
+		c.Assert(schema1, qt.Not(qt.DeepEquals), schema2)
+	})
+
+	c.Run("Validate version", func(c *qt.C) {
+		tests := []struct {
+			testName string
+			in       string
+			err      string
+		}{
+			{
+				testName: "zero",
+				in:       "0",
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": 0 provided`,
+			}, {
+				testName: "> 2^31 < 2^64",
+				in:       strconv.FormatInt(1<<60, 10),
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* provided`,
+			}, {
+				testName: "empty",
+				in:       "",
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* invalid syntax`,
+			}, {
+				testName: "> 2^64",
+				in:       strconv.FormatUint(1<<63, 10),
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* value out of range`,
+			},
+		}
+
+		for _, test := range tests {
+			c.Run(test.testName, func(c *qt.C) {
+				s, err := r.Schema(ctx, subject, test.in)
+				c.Assert(err, qt.ErrorMatches, test.err)
+				c.Assert(s, qt.IsNil)
+			})
+		}
+
+	})
 }
 
 func TestRetryOnError(t *testing.T) {
@@ -421,6 +507,8 @@ func parseType(s string) *avro.Type {
 	return t
 }
 
+// newTestRegistry returns a registry instance connected server
+// pointed by AVRO_REGISTRY_URL env var with a random subject to use.
 func newTestRegistry(c *qt.C) (*avroregistry.Registry, string) {
 	ctx := context.Background()
 	serverURL := os.Getenv("AVRO_REGISTRY_URL")

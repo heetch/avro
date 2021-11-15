@@ -44,12 +44,7 @@ func (r encodingRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (i
 	}
 	req := r.r.newRequest(ctx, "POST", "/subjects/"+r.subject, bytes.NewReader(data))
 
-	var resp struct {
-		Subject string `json:"subject"`
-		ID      int64  `json:"id"`
-		Version int    `json:"version"`
-		Schema  string `json:"schema"`
-	}
+	var resp Schema
 	if err := r.r.doRequest(req, &resp); err != nil {
 		return 0, err
 	}
