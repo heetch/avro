@@ -21,7 +21,7 @@ import (
 
 func TestRegister(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 
 	type R struct {
@@ -38,7 +38,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegisterWithEmptyStruct(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	type Empty struct{}
 	type R struct {
@@ -51,7 +51,7 @@ func TestRegisterWithEmptyStruct(t *testing.T) {
 
 func TestSchemaCompatibility(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	err := r.SetCompatibility(ctx, subject, avro.BackwardTransitive)
@@ -95,7 +95,7 @@ func TestSchemaCompatibility(t *testing.T) {
 
 func TestSchemasRetainLogicalTypes(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	type R struct {
@@ -110,7 +110,7 @@ func TestSchemasRetainLogicalTypes(t *testing.T) {
 
 func TestSingleCodec(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	err := r.SetCompatibility(ctx, subject, avro.BackwardTransitive)
@@ -158,7 +158,7 @@ func TestSingleCodec(t *testing.T) {
 
 func TestSchema(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	ctx := context.Background()
 	r, subject := newTestRegistry(c)
 
@@ -243,7 +243,7 @@ func TestSchema(t *testing.T) {
 
 func TestRetryOnError(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	c.Patch(&http.DefaultClient.Transport, errorTransport(tmpError(true)))
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL: "http://0.1.2.3",
@@ -263,7 +263,7 @@ func TestRetryOnError(t *testing.T) {
 
 func TestCanceledRetry(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		time.Sleep(30 * time.Millisecond)
@@ -284,7 +284,7 @@ func TestCanceledRetry(t *testing.T) {
 
 func TestRetryOn500(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	failCount := 3
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if failCount == 0 {
@@ -293,7 +293,7 @@ func TestRetryOn500(t *testing.T) {
 		failCount--
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
-		w.Write([]byte(`{"error_code":50001,"message":"Failed to update compatibility level"}`))
+		_, _ = w.Write([]byte(`{"error_code":50001,"message":"Failed to update compatibility level"}`))
 	}))
 	defer srv.Close()
 	registry, err := avroregistry.New(avroregistry.Params{
@@ -320,13 +320,13 @@ func TestRetryOn500(t *testing.T) {
 
 func TestNoRetryOnNon5XXStatus(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		calls++
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(409)
-		w.Write([]byte(`{"error_code":409,"message":"incompatible wotsit"}`))
+		_, _ = w.Write([]byte(`{"error_code":409,"message":"incompatible wotsit"}`))
 	}))
 	defer srv.Close()
 	registry, err := avroregistry.New(avroregistry.Params{
@@ -336,6 +336,7 @@ func TestNoRetryOnNon5XXStatus(t *testing.T) {
 			Delay: 10 * time.Millisecond,
 		}),
 	})
+	c.Assert(err, qt.IsNil)
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
 	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): incompatible wotsit`)
 	c.Assert(calls, qt.Equals, 1)
@@ -343,13 +344,13 @@ func TestNoRetryOnNon5XXStatus(t *testing.T) {
 
 func TestUnavailableError(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	// When the service in unavailable, the response is probably not
 	// formatted as JSON.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(500)
-		w.Write([]byte(`
+		_, _ = w.Write([]byte(`
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html><head>
 <title>502 Proxy Error</title>
@@ -522,7 +523,7 @@ func newTestRegistry(c *qt.C) (*avroregistry.Registry, string) {
 		RetryStrategy: noRetry,
 	})
 	c.Assert(err, qt.Equals, nil)
-	c.Defer(func() {
+	c.Cleanup(func() {
 		err := registry.DeleteSubject(ctx, subject)
 		c.Check(err, qt.Equals, nil)
 	})
