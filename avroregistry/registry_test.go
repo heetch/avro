@@ -69,11 +69,11 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names := new(avro.Names).RenameType(R1{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 
 	// Check that we can't rename the schema.
 	_, err = r.Register(ctx, subject, schemaOf(nil, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 
 	// Check that we can change the field to a compatible union.
 	type R2 struct {
@@ -90,7 +90,7 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names = new(avro.Names).RenameType(R3{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R3{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 }
 
 func TestSchemasRetainLogicalTypes(t *testing.T) {
@@ -508,13 +508,14 @@ func parseType(s string) *avro.Type {
 }
 
 // newTestRegistry returns a registry instance connected server
-// pointed by AVRO_REGISTRY_URL env var with a random subject to use.
+// pointed by KAFKA_REGISTRY_ADDR env var with a random subject to use.
 func newTestRegistry(c *qt.C) (*avroregistry.Registry, string) {
 	ctx := context.Background()
-	serverURL := os.Getenv("AVRO_REGISTRY_URL")
-	if serverURL == "" {
-		c.Skip("no AVRO_REGISTRY_URL configured")
+	serverAddr := os.Getenv("KAFKA_REGISTRY_ADDR")
+	if serverAddr == "" {
+		c.Skip("no KAFKA_REGISTRY_ADDR configured")
 	}
+	serverURL := "http://" + serverAddr
 	subject := randomString()
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL:     serverURL,
