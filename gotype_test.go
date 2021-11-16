@@ -7,7 +7,7 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
-	uuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 
 	"github.com/heetch/avro"
 	"github.com/heetch/avro/internal/testtypes"
@@ -203,11 +203,13 @@ func TestGoTypeWithUUID(t *testing.T) {
 	c := qt.New(t)
 
 	type R struct {
-		T uuid.UUID
+		T gouuid.UUID
 	}
 
 	c.Run("With Data", func(c *qt.C) {
-		v4 := uuid.NewV4()
+		v4, err := gouuid.NewRandom()
+		c.Assert(err, qt.IsNil)
+
 		data, wType, err := avro.Marshal(R{
 			T: v4,
 		})

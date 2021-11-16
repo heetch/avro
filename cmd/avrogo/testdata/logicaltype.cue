@@ -49,5 +49,5 @@ tests: invalidUUID: {
        outSchema: inSchema
        inData: T: "invalid_uuid"
        outData: null
-       expectError: unmarshal: "runtime error: invalid input UUID: uuid: incorrect UUID length: invalid_uuid"
+       expectError: unmarshal: "invalid UUID in Avro encoding: invalid UUID length: 12"
 }
