@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/actgardner/gogen-avro/v10/schema"
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )
@@ -233,7 +233,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			if lt := logicalType(at); lt == uuid {
 				return uuidEncoder
 			} else {
-				return errorEncoder(fmt.Errorf("cannot encode satori/go.uuid as string with logical type %q", lt))
+				return errorEncoder(fmt.Errorf("cannot encode %v as string with logical type %q", t, lt))
 			}
 		}
 		return stringEncoder
@@ -266,11 +266,11 @@ func timestampMicrosEncoder(e *encodeState, v reflect.Value) {
 }
 
 func uuidEncoder(e *encodeState, v reflect.Value) {
-	t := v.Interface().(gouuid.UUID)
-	if t == gouuid.Nil {
+	if v.IsZero() {
 		e.writeLong(int64(0))
 		e.WriteString("")
 	} else {
+		t := v.Interface().(gouuid.UUID)
 		s := t.String()
 		e.writeLong(int64(len(s)))
 		e.WriteString(s)

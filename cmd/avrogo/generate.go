@@ -492,7 +492,7 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 	case *schema.StringField:
 		if logicalType(t) == uuid {
 			info.GoType = "uuid.UUID"
-			gc.addImport("github.com/satori/go.uuid")
+			gc.addImport("github.com/google/uuid")
 		} else {
 			info.GoType = "string"
 		}

@@ -46,7 +46,7 @@ type errorSchema struct {
 //	- string encodes as "string"
 //	- Null{} encodes as "null"
 //	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
-//	- github.com/satori/go.uuid.UUID encodes as {"type": "string", "logicalType": "string"}
+//	- github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
 //	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
 //	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
 //	- []T encodes as {"type": "array", "items": TypeOf(T)}

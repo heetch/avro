@@ -29,7 +29,7 @@ var tests = testutil.RoundTripTest{
                         "T": "invalid_uuid"
                     }`,
 		OutDataJSON: `null`,
-		ExpectError: map[testutil.ErrorType]string{`unmarshal`: `runtime error: invalid input UUID: uuid: incorrect UUID length: invalid_uuid`},
+		ExpectError: map[testutil.ErrorType]string{`unmarshal`: `invalid UUID in Avro encoding: invalid UUID length: 12`},
 	}},
 }
 

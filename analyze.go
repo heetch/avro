@@ -10,7 +10,7 @@ import (
 	"github.com/actgardner/gogen-avro/v10/compiler"
 	"github.com/actgardner/gogen-avro/v10/schema"
 	"github.com/actgardner/gogen-avro/v10/vm"
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )
