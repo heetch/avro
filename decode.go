@@ -149,12 +149,16 @@ func (d *decoder) eval(target reflect.Value) {
 				// need more information from the VM to be able to
 				// do that, so support only timestamp-micros for now.
 				// See https://github.com/heetch/avro/issues/3
-				if target.Type() == timeType {
+				switch target.Type() {
+				case timeType:
 					// timestamp-micros
 					target.Set(reflect.ValueOf(time.Unix(frame.Int/1e6, frame.Int%1e6*1e3)))
-					break
+				case durationType:
+					// duration-nanos
+					target.Set(reflect.ValueOf(time.Duration(frame.Int)))
+				default:
+					target.SetInt(frame.Int)
 				}
-				target.SetInt(frame.Int)
 			case vm.Int:
 				target.SetInt(frame.Int)
 			case vm.Float, vm.Double:

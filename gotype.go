@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	durationNanos   = "duration-nanos"
 	timestampMicros = "timestamp-micros"
 	timestampMillis = "timestamp-millis"
 	uuid            = "uuid"
@@ -45,6 +46,7 @@ type errorSchema struct {
 //	- float64 encodes as "double"
 //	- string encodes as "string"
 //	- Null{} encodes as "null"
+//	- time.Duration encodes as {"type": "long", "logicalType": "duration-nanos"}
 //	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
 //	- github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
 //	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
@@ -123,7 +125,7 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 
 type goTypeDef struct {
 	// name holds the Avro name for the Go type.
-	name   string
+	name string
 	// schema holds the JSON-marshalable schema for the type.
 	schema interface{}
 }
@@ -134,7 +136,7 @@ type goTypeSchema struct {
 	names *Names
 	// defs maps from Go type to Avro definition for all
 	// types being traversed by schemaForGoType..
-	defs  map[reflect.Type]goTypeDef
+	defs map[reflect.Type]goTypeDef
 }
 
 func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
@@ -164,6 +166,12 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	case reflect.String:
 		return "string", nil
 	case reflect.Int, reflect.Int64, reflect.Uint32:
+		if t == durationType {
+			return map[string]interface{}{
+				"type":        "long",
+				"logicalType": durationNanos,
+			}, nil
+		}
 		return "long", nil
 	case reflect.Int32, reflect.Int16, reflect.Uint16, reflect.Int8, reflect.Uint8:
 		return "int", nil

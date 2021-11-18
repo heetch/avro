@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	durationNanos   = "duration-nanos"
 	timestampMicros = "timestamp-micros"
 	timestampMillis = "timestamp-millis"
 	uuid            = "uuid"
@@ -476,11 +477,15 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 		// Note: Go int is at least 32 bits.
 		info.GoType = "int"
 	case *schema.LongField:
-		// TODO support timestampMillis. https://github.com/heetch/avro/issues/3
-		if logicalType(t) == timestampMicros {
+		switch logicalType(t) {
+		case timestampMicros:
+			// TODO support timestampMillis. https://github.com/heetch/avro/issues/3
 			info.GoType = "time.Time"
 			gc.addImport("time")
-		} else {
+		case durationNanos:
+			info.GoType = "time.Duration"
+			gc.addImport("time")
+		default:
 			info.GoType = "int64"
 		}
 	case *schema.FloatField:
