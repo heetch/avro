@@ -15,6 +15,7 @@ import (
 const (
 	timestampMicros = "timestamp-micros"
 	timestampMillis = "timestamp-millis"
+	uuid            = "uuid"
 )
 
 // globalNames holds the default namespace which maps all Go types
@@ -45,6 +46,7 @@ type errorSchema struct {
 //	- string encodes as "string"
 //	- Null{} encodes as "null"
 //	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
+//	- github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
 //	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
 //	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
 //	- []T encodes as {"type": "array", "items": TypeOf(T)}
@@ -249,6 +251,13 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		def["fields"] = fields
 		return def, nil
 	case reflect.Array:
+		if t == uuidType {
+			return map[string]interface{}{
+				"type":        "string",
+				"logicalType": uuid,
+			}, nil
+		}
+
 		if t.Elem() != reflect.TypeOf(byte(0)) {
 			return nil, fmt.Errorf("the only array type supported is [...]byte, not %s", t)
 		}
@@ -440,6 +449,9 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) (interface{}, error) {
 	case reflect.Map:
 		return reflect.MakeMap(t).Interface(), nil
 	case reflect.Array:
+		if t == uuidType {
+			return "", nil
+		}
 		return strings.Repeat("\u0000", t.Len()), nil
 	case reflect.Struct:
 		switch t {

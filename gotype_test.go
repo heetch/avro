@@ -7,6 +7,7 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
+	gouuid "github.com/google/uuid"
 
 	"github.com/heetch/avro"
 	"github.com/heetch/avro/internal/testtypes"
@@ -196,6 +197,58 @@ func TestGoTypeWithZeroTime(t *testing.T) {
 		c.Assert(err, qt.Equals, nil)
 		c.Assert(x, qt.DeepEquals, R{})
 	}
+}
+
+func TestGoTypeWithUUID(t *testing.T) {
+	c := qt.New(t)
+
+	type R struct {
+		T gouuid.UUID
+	}
+
+	c.Run("With Data", func(c *qt.C) {
+		v4, err := gouuid.NewRandom()
+		c.Assert(err, qt.IsNil)
+
+		data, wType, err := avro.Marshal(R{
+			T: v4,
+		})
+		c.Assert(err, qt.IsNil)
+		var x R
+		_, err = avro.Unmarshal(data, &x, wType)
+		c.Assert(err, qt.IsNil)
+		c.Assert(x, qt.DeepEquals, R{
+			T: v4,
+		})
+
+		c.Assert(mustTypeOf(R{}).String(), qt.JSONEquals, json.RawMessage(`{
+			"type": "record",
+			"name": "R",
+			"fields": [{
+				"name": "T",
+				"default": "",
+				"type": {
+					"logicalType": "uuid",
+					"type": "string"
+				}
+			}]
+		}`))
+	})
+
+	c.Run("zero", func(c *qt.C) {
+		data, wType, err := avro.Marshal(R{})
+		c.Assert(err, qt.IsNil)
+		{
+			type R struct {
+				T string
+			}
+			var x R
+			_, err = avro.Unmarshal(data, &x, wType)
+			c.Assert(err, qt.IsNil)
+			c.Assert(x, qt.DeepEquals, R{})
+		}
+	})
+
 }
 
 func TestGoTypeWithStructField(t *testing.T) {

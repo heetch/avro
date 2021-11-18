@@ -10,6 +10,7 @@ import (
 	"github.com/actgardner/gogen-avro/v10/compiler"
 	"github.com/actgardner/gogen-avro/v10/schema"
 	"github.com/actgardner/gogen-avro/v10/vm"
+	gouuid "github.com/google/uuid"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )
@@ -17,6 +18,7 @@ import (
 var (
 	timeType = reflect.TypeOf(time.Time{})
 	byteType = reflect.TypeOf(byte(0))
+	uuidType = reflect.TypeOf(gouuid.UUID{})
 )
 
 type decodeProgram struct {
@@ -499,7 +501,7 @@ func canAssignVMType(operand int, dstType reflect.Type) bool {
 		}
 		return dstKind == reflect.Slice && dstType.Elem() == byteType
 	case vm.String:
-		return dstKind == reflect.String
+		return dstKind == reflect.String || dstType == uuidType
 	default:
 		return false
 	}

@@ -164,11 +164,11 @@ var tests = testutil.RoundTripTest{
                         "body": null,
                         "header": {
                             "headerworks.Data0": {
+                                "uuid": null,
                                 "hostname": {
                                     "string": "myhost.com"
                                 },
-                                "trace": null,
-                                "uuid": null
+                                "trace": null
                             }
                         }
                     }`,
@@ -176,11 +176,11 @@ var tests = testutil.RoundTripTest{
                         "body": null,
                         "header": {
                             "headerworks.Data0": {
+                                "uuid": null,
                                 "hostname": {
                                     "string": "myhost.com"
                                 },
-                                "trace": null,
-                                "uuid": null
+                                "trace": null
                             }
                         }
                     }`,
