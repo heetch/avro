@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 
 func TestRegister(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 
 	type R struct {
@@ -37,7 +38,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegisterWithEmptyStruct(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	type Empty struct{}
 	type R struct {
@@ -50,7 +51,7 @@ func TestRegisterWithEmptyStruct(t *testing.T) {
 
 func TestSchemaCompatibility(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	err := r.SetCompatibility(ctx, subject, avro.BackwardTransitive)
@@ -68,11 +69,11 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names := new(avro.Names).RenameType(R1{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 
 	// Check that we can't rename the schema.
 	_, err = r.Register(ctx, subject, schemaOf(nil, R1{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 
 	// Check that we can change the field to a compatible union.
 	type R2 struct {
@@ -89,12 +90,12 @@ func TestSchemaCompatibility(t *testing.T) {
 	}
 	names = new(avro.Names).RenameType(R3{}, "R")
 	_, err = r.Register(ctx, subject, schemaOf(names, R3{}))
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema`)
+	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): Schema being registered is incompatible with an earlier schema for subject "`+subject+`"`)
 }
 
 func TestSchemasRetainLogicalTypes(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	type R struct {
@@ -109,7 +110,7 @@ func TestSchemasRetainLogicalTypes(t *testing.T) {
 
 func TestSingleCodec(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	r, subject := newTestRegistry(c)
 	ctx := context.Background()
 	err := r.SetCompatibility(ctx, subject, avro.BackwardTransitive)
@@ -155,9 +156,94 @@ func TestSingleCodec(t *testing.T) {
 	c.Assert(x2, qt.Equals, R1{11, 30})
 }
 
+func TestSchema(t *testing.T) {
+	c := qt.New(t)
+
+	ctx := context.Background()
+	r, subject := newTestRegistry(c)
+
+	c.Run("OK", func(c *qt.C) {
+		type R struct {
+			X int
+		}
+		id1, err := r.Register(ctx, subject, schemaOf(nil, R{}))
+		c.Assert(err, qt.IsNil)
+
+		schema1, err := r.Schema(ctx, subject, "latest")
+		c.Assert(err, qt.IsNil)
+		c.Assert(schema1, qt.DeepEquals, &avroregistry.Schema{
+			Subject: subject,
+			ID:      id1,
+			Version: 1,
+			Schema:  `{"type":"record","name":"R","fields":[{"name":"X","type":"long","default":0}]}`,
+		})
+
+		type R1 struct {
+			X int
+			Y string
+		}
+		names := new(avro.Names).RenameType(R1{}, "R")
+		id2, err := r.Register(ctx, subject, schemaOf(names, R1{}))
+		c.Assert(err, qt.IsNil)
+		c.Assert(id2, qt.Not(qt.Equals), id1)
+
+		schema2, err := r.Schema(ctx, subject, "2")
+		c.Assert(err, qt.IsNil)
+		c.Assert(schema2, qt.DeepEquals, &avroregistry.Schema{
+			Subject: subject,
+			ID:      id2,
+			Version: 2,
+			Schema:  `{"type":"record","name":"R","fields":[{"name":"X","type":"long","default":0},{"name":"Y","type":"string","default":""}]}`,
+		})
+
+		testSchema, err := r.Schema(ctx, subject, "latest")
+		c.Assert(err, qt.IsNil)
+		c.Assert(testSchema, qt.DeepEquals, schema2)
+		testSchema, err = r.Schema(ctx, subject, "1")
+		c.Assert(err, qt.IsNil)
+		c.Assert(testSchema, qt.DeepEquals, schema1)
+		c.Assert(schema1, qt.Not(qt.DeepEquals), schema2)
+	})
+
+	c.Run("Validate version", func(c *qt.C) {
+		tests := []struct {
+			testName string
+			in       string
+			err      string
+		}{
+			{
+				testName: "zero",
+				in:       "0",
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": 0 provided`,
+			}, {
+				testName: "> 2^31 < 2^64",
+				in:       strconv.FormatInt(1<<60, 10),
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* provided`,
+			}, {
+				testName: "empty",
+				in:       "",
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* invalid syntax`,
+			}, {
+				testName: "> 2^64",
+				in:       strconv.FormatUint(1<<63, 10),
+				err:      `Invalid version. It should be between 1 and 2\^31-1 or "latest": .* value out of range`,
+			},
+		}
+
+		for _, test := range tests {
+			c.Run(test.testName, func(c *qt.C) {
+				s, err := r.Schema(ctx, subject, test.in)
+				c.Assert(err, qt.ErrorMatches, test.err)
+				c.Assert(s, qt.IsNil)
+			})
+		}
+
+	})
+}
+
 func TestRetryOnError(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	c.Patch(&http.DefaultClient.Transport, errorTransport(tmpError(true)))
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL: "http://0.1.2.3",
@@ -177,7 +263,7 @@ func TestRetryOnError(t *testing.T) {
 
 func TestCanceledRetry(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		time.Sleep(30 * time.Millisecond)
@@ -198,7 +284,7 @@ func TestCanceledRetry(t *testing.T) {
 
 func TestRetryOn500(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	failCount := 3
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if failCount == 0 {
@@ -207,7 +293,7 @@ func TestRetryOn500(t *testing.T) {
 		failCount--
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
-		w.Write([]byte(`{"error_code":50001,"message":"Failed to update compatibility level"}`))
+		_, _ = w.Write([]byte(`{"error_code":50001,"message":"Failed to update compatibility level"}`))
 	}))
 	defer srv.Close()
 	registry, err := avroregistry.New(avroregistry.Params{
@@ -234,13 +320,13 @@ func TestRetryOn500(t *testing.T) {
 
 func TestNoRetryOnNon5XXStatus(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		calls++
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(409)
-		w.Write([]byte(`{"error_code":409,"message":"incompatible wotsit"}`))
+		_, _ = w.Write([]byte(`{"error_code":409,"message":"incompatible wotsit"}`))
 	}))
 	defer srv.Close()
 	registry, err := avroregistry.New(avroregistry.Params{
@@ -250,6 +336,7 @@ func TestNoRetryOnNon5XXStatus(t *testing.T) {
 			Delay: 10 * time.Millisecond,
 		}),
 	})
+	c.Assert(err, qt.IsNil)
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
 	c.Assert(err, qt.ErrorMatches, `Avro registry error \(HTTP status 409\): incompatible wotsit`)
 	c.Assert(calls, qt.Equals, 1)
@@ -257,13 +344,13 @@ func TestNoRetryOnNon5XXStatus(t *testing.T) {
 
 func TestUnavailableError(t *testing.T) {
 	c := qt.New(t)
-	defer c.Done()
+
 	// When the service in unavailable, the response is probably not
 	// formatted as JSON.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(500)
-		w.Write([]byte(`
+		_, _ = w.Write([]byte(`
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html><head>
 <title>502 Proxy Error</title>
@@ -421,19 +508,22 @@ func parseType(s string) *avro.Type {
 	return t
 }
 
+// newTestRegistry returns a registry instance connected server
+// pointed by KAFKA_REGISTRY_ADDR env var with a random subject to use.
 func newTestRegistry(c *qt.C) (*avroregistry.Registry, string) {
 	ctx := context.Background()
-	serverURL := os.Getenv("AVRO_REGISTRY_URL")
-	if serverURL == "" {
-		c.Skip("no AVRO_REGISTRY_URL configured")
+	serverAddr := os.Getenv("KAFKA_REGISTRY_ADDR")
+	if serverAddr == "" {
+		c.Skip("no KAFKA_REGISTRY_ADDR configured")
 	}
+	serverURL := "http://" + serverAddr
 	subject := randomString()
 	registry, err := avroregistry.New(avroregistry.Params{
 		ServerURL:     serverURL,
 		RetryStrategy: noRetry,
 	})
 	c.Assert(err, qt.Equals, nil)
-	c.Defer(func() {
+	c.Cleanup(func() {
 		err := registry.DeleteSubject(ctx, subject)
 		c.Check(err, qt.Equals, nil)
 	})
