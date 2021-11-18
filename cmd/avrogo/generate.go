@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rogpeppe/gogen-avro/v7/parser"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
+	"github.com/actgardner/gogen-avro/v10/parser"
+	"github.com/actgardner/gogen-avro/v10/schema"
 )
 
 const (
@@ -586,8 +586,8 @@ func goTypeForDefinition(def schema.Definition) goType {
 	pkg, _ := def.Attribute("go.package").(string)
 	name, _ := def.Attribute("go.name").(string)
 	if name == "" {
-		// TODO This might be wrong: SimpleName might be unexported.
-		name = def.SimpleName()
+		// Using GoType to set a name
+		name = def.GoType()
 	}
 	return goType{
 		PkgPath: pkg,

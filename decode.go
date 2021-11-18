@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/rogpeppe/gogen-avro/v7/vm"
+	"github.com/actgardner/gogen-avro/v10/vm"
 )
 
 // Unmarshal unmarshals the given Avro-encoded binary data, which must
@@ -217,6 +217,16 @@ func (d *decoder) eval(target reflect.Value) {
 			d.pc = inst.Operand
 			d.eval(target)
 			d.pc = curr
+		case vm.SetExitNull:
+			// This is a no-op by now as it's handled by isRef
+		case vm.HintSize:
+			// This is a performance improvement to put a capacity to slice
+			if target.Kind() == reflect.Slice && target.IsZero() {
+				target.Set(reflect.MakeSlice(target.Type(), 0, inst.Operand))
+				if debugging {
+					debugf("putting cap %d to %+v", inst.Operand, target)
+				}
+			} // It's also used for Maps but it's no-op here, see AppendMap for details.
 		case vm.Return:
 			return
 		case vm.Jump:
@@ -232,6 +242,8 @@ func (d *decoder) eval(target reflect.Value) {
 		case vm.AddLong:
 			frame.Int += int64(inst.Operand)
 		case vm.SetLong:
+			frame.Int = int64(inst.Operand)
+		case vm.SetInt:
 			frame.Int = int64(inst.Operand)
 		case vm.MultLong:
 			frame.Int *= int64(inst.Operand)

@@ -86,5 +86,5 @@ tests: primitiveIncompatible: {
 	}
 	inData: f: 2134
 	outData: null
-	expectError: unmarshal: "analysis failed: eval: cannot assign int to string"
+	expectError: unmarshal: "cannot create decoder: Incompatible schemas: field f in reader has incompatible type in writer"
 }

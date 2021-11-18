@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rogpeppe/gogen-avro/v7/compiler"
-	"github.com/rogpeppe/gogen-avro/v7/schema"
-	"github.com/rogpeppe/gogen-avro/v7/vm"
+	"github.com/actgardner/gogen-avro/v10/compiler"
+	"github.com/actgardner/gogen-avro/v10/schema"
+	"github.com/actgardner/gogen-avro/v10/vm"
 
 	"github.com/heetch/avro/internal/typeinfo"
 )
@@ -106,7 +106,7 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 	if debugging {
 		debugf("compiling:\nwriter type: %s\nreader type: %s\n", writerType, readerType)
 	}
-	prog, err := compiler.Compile(writerType.avroType, readerType.avroType)
+	prog, err := compiler.Compile(writerType.avroType, readerType.avroType, compiler.AllowLaxNames())
 	if err != nil {
 		return nil, fmt.Errorf("cannot create decoder: %v", err)
 	}
@@ -274,6 +274,9 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 				return fmt.Errorf("unbalanced exit")
 			}
 			path = path[:len(path)-1]
+		case vm.SetExitNull:
+			// Do nothing as Null value is treated in enter* functions
+
 		case vm.SetDefault:
 			index := inst.Operand
 			if index >= len(elem.info.Entries) {
@@ -328,12 +331,14 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			stack[len(stack)-1] = inst.Operand - 1
 		case vm.EvalGreater,
 			vm.EvalEqual,
+			vm.SetInt,
 			vm.SetLong,
 			vm.AddLong,
 			vm.MultLong,
 			vm.PushLoop,
 			vm.PopLoop,
-			vm.Read:
+			vm.Read,
+			vm.HintSize:
 			// We don't care about any of these instructions because
 			// they can't influence the types that we're traversing.
 		case vm.Halt:
