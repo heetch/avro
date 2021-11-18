@@ -251,6 +251,51 @@ func TestGoTypeWithUUID(t *testing.T) {
 
 }
 
+func TestGoTypeWithDuration(t *testing.T) {
+	c := qt.New(t)
+	type R struct {
+		D time.Duration
+	}
+
+	data, wType, err := avro.Marshal(R{
+		D: 15 * time.Second,
+	})
+	c.Assert(err, qt.IsNil)
+	var x R
+	_, err = avro.Unmarshal(data, &x, wType)
+	c.Assert(err, qt.IsNil)
+	c.Assert(x, qt.DeepEquals, R{
+		D: 15 * time.Second,
+	})
+
+	c.Assert(mustTypeOf(R{}).String(), qt.JSONEquals, json.RawMessage(`{
+		"type": "record",
+		"name": "R",
+		"fields": [{
+			"name": "D",
+			"default": 0,
+			"type": {
+				"logicalType": "duration-nanos",
+				"type": "long"
+			}
+		}]
+        }`))
+
+	c.Run("zero", func(c *qt.C) {
+		data, wType, err := avro.Marshal(R{})
+		c.Assert(err, qt.IsNil)
+		{
+			type R struct {
+				D int64
+			}
+			var x R
+			_, err = avro.Unmarshal(data, &x, wType)
+			c.Assert(err, qt.IsNil)
+			c.Assert(x, qt.DeepEquals, R{})
+		}
+	})
+}
+
 func TestGoTypeWithStructField(t *testing.T) {
 	c := qt.New(t)
 	type F2 struct {

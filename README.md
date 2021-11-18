@@ -38,6 +38,7 @@ When the `avrogo` command generates Go datatypes from Avro schemas, it uses the 
   as `time.Time` type
 - `{"type": "string", "logicalType": "uuid"}` is represented as
   [github.com/google/uuid.UUID](https://pkg.go.dev/github.com/google/uuid#UUID) type.
+- `{"type": "long", "name": "duration-nanos"}` is represented as `time.Duration` type.
 
 If a definition has a `go.package` annotation the type from that package will be used instead of generating a Go type. The type must be compatible with the Avro schema (it may contain extra fields, but all fields in common must be compatible).
 

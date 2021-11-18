@@ -219,15 +219,23 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 	case *schema.NullField:
 		return nullEncoder
 	case *schema.LongField:
-		if t == timeType {
+		switch t {
+		case timeType:
 			if lt := logicalType(at); lt == timestampMicros {
 				return timestampMicrosEncoder
 			} else {
 				// TODO timestamp-millis support.
 				return errorEncoder(fmt.Errorf("cannot encode time.Time as long with logical type %q", lt))
 			}
+		case durationType:
+			if lt := logicalType(at); lt == durationNanos {
+				return durationNanosEncoder
+			} else {
+				return errorEncoder(fmt.Errorf("cannot encode %t as long with logical type %q", t, lt))
+			}
+		default:
+			return longEncoder
 		}
-		return longEncoder
 	case *schema.StringField:
 		if t == uuidType {
 			if lt := logicalType(at); lt == uuid {
@@ -275,6 +283,11 @@ func uuidEncoder(e *encodeState, v reflect.Value) {
 		e.writeLong(int64(len(s)))
 		e.WriteString(s)
 	}
+}
+
+func durationNanosEncoder(e *encodeState, v reflect.Value) {
+	d := v.Interface().(time.Duration)
+	e.writeLong(d.Nanoseconds())
 }
 
 type fixedEncoder struct {

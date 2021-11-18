@@ -51,3 +51,20 @@ tests: invalidUUID: {
        outData: null
        expectError: unmarshal: "invalid UUID in Avro encoding: invalid UUID length: 12"
 }
+
+tests: durationNanos: {
+	inSchema: {
+		type: "record"
+		name: "R"
+		fields: [{
+			name: "D"
+			type: {
+				type:        "long"
+				logicalType: "duration-nanos"
+			}
+		}]
+	}
+	outSchema: inSchema
+	inData: D: 15000000000
+	outData: inData
+}

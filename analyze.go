@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	timeType = reflect.TypeOf(time.Time{})
-	byteType = reflect.TypeOf(byte(0))
-	uuidType = reflect.TypeOf(gouuid.UUID{})
+	timeType     = reflect.TypeOf(time.Time{})
+	durationType = reflect.TypeOf(time.Duration(0))
+	byteType     = reflect.TypeOf(byte(0))
+	uuidType     = reflect.TypeOf(gouuid.UUID{})
 )
 
 type decodeProgram struct {
@@ -492,7 +493,7 @@ func canAssignVMType(operand int, dstType reflect.Type) bool {
 	case vm.Boolean:
 		return dstKind == reflect.Bool
 	case vm.Int, vm.Long:
-		return dstType == timeType || reflect.Int <= dstKind && dstKind <= reflect.Int64
+		return dstType == timeType || dstType == durationType || reflect.Int <= dstKind && dstKind <= reflect.Int64
 	case vm.Float, vm.Double:
 		return dstKind == reflect.Float64 || dstKind == reflect.Float32
 	case vm.Bytes:
