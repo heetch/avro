@@ -1,5 +1,7 @@
 # Avro - Go-idiomatic encoding and decoding of Avro data
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/heetch/avro.svg)](https://pkg.go.dev/github.com/heetch/avro)
+
 This package provides both a [code generator](https://pkg.go.dev/github.com/heetch/avro/cmd/avrogo) that generates Go data
 structures from [Avro schemas](https://avro.apache.org/docs/1.9.1/spec.html) and a mapping between native
 Go data types and Avro schemas.
@@ -38,7 +40,7 @@ When the `avrogo` command generates Go datatypes from Avro schemas, it uses the 
   as `time.Time` type
 - `{"type": "string", "logicalType": "uuid"}` is represented as
   [github.com/google/uuid.UUID](https://pkg.go.dev/github.com/google/uuid#UUID) type.
-- `{"type": "long", "name": "duration-nanos"}` is represented as `time.Duration` type.
+- `{"type": "long", "logicalType": "duration-nanos"}` is represented as `time.Duration` type.
 
 If a definition has a `go.package` annotation the type from that package will be used instead of generating a Go type. The type must be compatible with the Avro schema (it may contain extra fields, but all fields in common must be compatible).
 
