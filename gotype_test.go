@@ -247,6 +247,11 @@ func TestGoTypeWithUUID(t *testing.T) {
 			c.Assert(err, qt.IsNil)
 			c.Assert(x, qt.DeepEquals, R{})
 		}
+
+		var x R
+		_, err = avro.Unmarshal(data, &x, wType)
+		c.Assert(err, qt.IsNil)
+		c.Assert(x, qt.DeepEquals, R{})
 	})
 
 }

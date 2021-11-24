@@ -178,7 +178,9 @@ func (d *decoder) eval(target reflect.Value) {
 				if target.Type() == uuidType {
 					val, err := gouuid.Parse(frame.String)
 					if err != nil {
-						d.error(fmt.Errorf("invalid UUID in Avro encoding: %w", err))
+						if len(frame.String) != 0 {
+							d.error(fmt.Errorf("invalid UUID in Avro encoding: %w", err))
+						} // We allow written "" on encoding zero UUID value, so we do in decoding part
 					} else {
 						target.Set(reflect.ValueOf(val))
 					}
