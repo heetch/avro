@@ -30,3 +30,17 @@ func TestCompatString(t *testing.T) {
 		})
 	}
 }
+
+func TestCompatParse(t *testing.T) {
+	c := qt.New(t)
+	for _, test := range compatStringTests {
+		c.Run(test.s, func(c *qt.C) {
+			if test.s == "UNKNOWN" {
+				// We can't return same data we don't know
+				c.Assert(avro.ParseCompatMode(test.s), qt.Equals, avro.CompatMode(-1))
+			} else {
+				c.Assert(avro.ParseCompatMode(test.s), qt.Equals, test.m)
+			}
+		})
+	}
+}

@@ -37,3 +37,25 @@ func (m CompatMode) String() string {
 	}
 	return s
 }
+
+// ParseCompatMode returns the CompatMode from a string.
+// It returns -1 if no matches are found.
+func ParseCompatMode(s string) CompatMode {
+	switch s {
+	case "BACKWARD":
+		return Backward
+	case "FORWARD":
+		return Forward
+	case "FULL":
+		return Full
+	case "BACKWARD_TRANSITIVE":
+		return BackwardTransitive
+	case "FORWARD_TRANSITIVE":
+		return ForwardTransitive
+	case "FULL_TRANSITIVE":
+		return FullTransitive
+	case "NONE":
+		return 0
+	}
+	return -1
+}
