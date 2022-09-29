@@ -14,8 +14,8 @@
 //	  -p string
 //	    	package name (defaults to $GOPACKAGE)
 //	  -t	generated files will have _test.go suffix
-//	  -map string
-//	    	map from Avro namespace to Go package.
+//	  -s string
+//	    	suffix for generated files (default "_gen")
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -49,6 +49,7 @@ var (
 	dirFlag  = flag.String("d", ".", "directory to write Go files to")
 	pkgFlag  = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
 	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	suffixFlag = flag.String("s", "_gen", "suffix for generated files")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
@@ -148,7 +149,7 @@ func outputPath(filename string, testFile bool) string {
 	filename = filepath.Clean(filename)
 	filename = filename[len(filepath.VolumeName(filename)):]
 	filename = filepath.ToSlash(filename)
-	filename = strings.TrimSuffix(filename, filepath.Ext(filename)) + "_gen"
+	filename = strings.TrimSuffix(filename, filepath.Ext(filename)) + *suffixFlag
 	if testFile {
 		filename += "_test"
 	}
