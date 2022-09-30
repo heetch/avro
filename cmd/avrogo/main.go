@@ -32,6 +32,7 @@ import (
 	"go/format"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,9 +47,9 @@ import (
 //go:generate go run ./generatetestcode.go
 
 var (
-	dirFlag  = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag  = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
-	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	dirFlag    = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag    = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag   = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
 	suffixFlag = flag.String("s", "_gen", "suffix for generated files")
 )
 
@@ -82,20 +83,63 @@ func main1() int {
 	return 0
 }
 
+func getPackageName(name schema.QualifiedName) string {
+	items := strings.Split(name.Namespace, ".")
+
+	if len(items) == 1 {
+		return items[0]
+	}
+
+	return items[len(items)-1]
+}
+
 func generateFiles(files []string) error {
+
+	// agrogo -p location -d ../contracts/dummy ../contracts/generated/avro/java/location/entities/point/v0/point.avsc
+
 	ns, fileDefinitions, err := parseFiles(files)
 	if err != nil {
 		return err
 	}
-	outfiles, err := outputPaths(files, *testFlag)
+	_, err = outputPaths(files, *testFlag)
 	if err != nil {
 		return err
 	}
-	for i, f := range files {
-		if err := generateFile(f, outfiles[f], ns, fileDefinitions[i]); err != nil {
-			return fmt.Errorf("cannot generate code for %s: %v", f, err)
+
+	for i := range fileDefinitions {
+		qualifiedNames := fileDefinitions[i]
+		for qualifiedCpt := range qualifiedNames {
+			qualifiedName := qualifiedNames[qualifiedCpt]
+			namespace := getPackageName(qualifiedName)
+			outputPath := path.Join(strings.ToLower(qualifiedName.Name) + *suffixFlag + ".go")
+			qualifiedName.Namespace = namespace
+			singleFileList := []schema.QualifiedName{fileDefinitions[0][0]}
+
+			if err := generateFile(outputPath, ns, singleFileList); err != nil {
+				return fmt.Errorf("cannot generate code for %s: %v", namespace, err)
+			}
 		}
 	}
+
+	//for i := range ns.Roots {
+	//	namespace := getPackageName(ns.Roots[i].AvroName())
+	//	fmt.Println(namespace, fileDefinitions, outfiles)
+	//	outputPath := path.Join(strings.ToLower(ns.Roots[i].Name()) + *suffixFlag + ".go")
+	//	if err := generateFile(outputPath, ns, fileDefinitions[i]); err != nil {
+	//		return fmt.Errorf("cannot generate code for %s: %v", namespace, err)
+	//	}
+	//}
+
+	//for i, f := range files {
+	//	for definitionCpt := range fileDefinitions[i] {
+	//		definition := fileDefinitions[definitionCpt]
+	//		//namespace := getPackageName(definition)
+	//		fmt.Println(definition)
+	//	}
+	//	if err := generateFile(f, outfiles[f], ns, fileDefinitions[i]); err != nil {
+	//		return fmt.Errorf("cannot generate code for %s: %v", f, err)
+	//	}
+	//}
 	return nil
 }
 
@@ -176,7 +220,7 @@ func baseN(name string, n int) (string, bool) {
 	return strings.Join(parts, "_"), ok
 }
 
-func generateFile(f, outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+func generateFile(outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	var buf bytes.Buffer
 	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
 		return err
