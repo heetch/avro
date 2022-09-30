@@ -32,6 +32,7 @@ import (
 	"go/format"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,10 +47,11 @@ import (
 //go:generate go run ./generatetestcode.go
 
 var (
-	dirFlag  = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag  = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
-	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	dirFlag    = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag    = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag   = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
 	suffixFlag = flag.String("s", "_gen", "suffix for generated files")
+	splitFlag  = flag.Bool("split", false, "generate one dedicated file per message")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
@@ -87,15 +89,31 @@ func generateFiles(files []string) error {
 	if err != nil {
 		return err
 	}
+
 	outfiles, err := outputPaths(files, *testFlag)
 	if err != nil {
 		return err
 	}
-	for i, f := range files {
-		if err := generateFile(f, outfiles[f], ns, fileDefinitions[i]); err != nil {
-			return fmt.Errorf("cannot generate code for %s: %v", f, err)
+
+	if *splitFlag {
+		for _, fileDefinition := range fileDefinitions {
+			for _, qualifiedName := range fileDefinition {
+				outputPath := path.Join(strings.ToLower(qualifiedName.Name) + *suffixFlag + ".go")
+				singleFileList := []schema.QualifiedName{qualifiedName}
+
+				if err := generateFile(outputPath, ns, singleFileList); err != nil {
+					return fmt.Errorf("cannot generate code for %s.%s: %v", qualifiedName.Namespace, qualifiedName.Name, err)
+				}
+			}
+		}
+	} else {
+		for i, f := range files {
+			if err := generateFile(outfiles[f], ns, fileDefinitions[i]); err != nil {
+				return fmt.Errorf("cannot generate code for %s: %v", f, err)
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -176,7 +194,7 @@ func baseN(name string, n int) (string, bool) {
 	return strings.Join(parts, "_"), ok
 }
 
-func generateFile(f, outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+func generateFile(outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	var buf bytes.Buffer
 	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
 		return err
