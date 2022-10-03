@@ -1,5 +1,6 @@
 // The avrogo command generates Go types for the Avro schemas specified on the
-// command line. Each schema file results in a Go file with the same basename but with a ".go" suffix.
+// command line. Each schema file results in a Go file with the same basename but with a ".go" suffix,
+// or multiple files if -split is set.
 // If multiple schema files have the same basename, successively more elements of their
 // full path are used (replacing path separators with "_") until they're not the same any more.
 //
@@ -16,6 +17,8 @@
 //	  -t	generated files will have _test.go suffix
 //	  -s string
 //	    	suffix for generated files (default "_gen")
+//    -split
+//          if true, generate one dedicated file per type found in the schema files
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
