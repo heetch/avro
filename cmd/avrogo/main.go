@@ -106,14 +106,20 @@ func generateFiles(files []string) error {
 		return err
 	}
 
-	for i := range fileDefinitions {
-		qualifiedNames := fileDefinitions[i]
-		for qualifiedCpt := range qualifiedNames {
-			qualifiedName := qualifiedNames[qualifiedCpt]
+	/*for i := range ns.Definitions {
+		def := ns.Definitions[i].(*schema.RecordDefinition)
+		def.
+	}*/
+
+	for _, fileDefinition := range fileDefinitions {
+		//qualifiedNames := fileDefinitions[i]
+		for _, qualifiedName := range fileDefinition {
+			//qualifiedName := qualifiedNames[qualifiedCpt]
 			namespace := getPackageName(qualifiedName)
 			outputPath := path.Join(strings.ToLower(qualifiedName.Name) + *suffixFlag + ".go")
-			qualifiedName.Namespace = namespace
-			singleFileList := []schema.QualifiedName{fileDefinitions[0][0]}
+			//qualifiedName.Namespace = namespace
+			//ns.RegisterDefinition(schema.NewRecordDefinition())
+			singleFileList := []schema.QualifiedName{qualifiedName}
 
 			if err := generateFile(outputPath, ns, singleFileList); err != nil {
 				return fmt.Errorf("cannot generate code for %s: %v", namespace, err)
