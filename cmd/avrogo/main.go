@@ -17,7 +17,7 @@
 //	  -t	generated files will have _test.go suffix
 //	  -s string
 //	    	suffix for generated files (default "_gen")
-//    -split
+//    -tokenize
 //          if true, generate one dedicated file per type found in the schema files
 //
 // By default, a type is generated for each Avro definition
@@ -50,11 +50,11 @@ import (
 //go:generate go run ./generatetestcode.go
 
 var (
-	dirFlag    = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag    = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
-	testFlag   = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
-	suffixFlag = flag.String("s", "_gen", "suffix for generated files")
-	splitFlag  = flag.Bool("split", false, "generate one dedicated file per message")
+	dirFlag      = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag      = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag     = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	suffixFlag   = flag.String("s", "_gen", "suffix for generated files")
+	tokenizeFlag = flag.Bool("tokenize", false, "generate one dedicated file per message")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
@@ -98,7 +98,7 @@ func generateFiles(files []string) error {
 		return err
 	}
 
-	if *splitFlag {
+	if *tokenizeFlag {
 		for _, fileDefinition := range fileDefinitions {
 			for _, qualifiedName := range fileDefinition {
 				outputPath := path.Join(strings.ToLower(qualifiedName.Name) + *suffixFlag + ".go")
