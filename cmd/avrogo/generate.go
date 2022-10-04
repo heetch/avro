@@ -42,7 +42,13 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 		imports:  make(map[string]string),
 		extTypes: extTypes,
 	}
-	gc.addImport("github.com/heetch/avro/avrotypegen")
+	// Add avrotypegen package conditionally when there is a RecordDefinition in the namespace.
+	for _, def := range ns.Definitions {
+		if _, ok := def.(*schema.RecordDefinition); ok {
+			gc.addImport("github.com/heetch/avro/avrotypegen")
+			break
+		}
+	}
 	var body bytes.Buffer
 	if err := bodyTemplate.Execute(&body, bodyTemplateParams{
 		Definitions: localDefinitions,

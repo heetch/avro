@@ -1,0 +1,9 @@
+{
+                "name": "MyEnum",
+                "type": "enum",
+                "symbols": [
+                    "a",
+                    "b",
+                    "c"
+                ]
+            }
