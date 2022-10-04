@@ -42,9 +42,9 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 		imports:  make(map[string]string),
 		extTypes: extTypes,
 	}
-	// Add avrotypegen package conditionally when there is a RecordDefinition in it.
+	// Add avrotypegen package conditionally when there is a RecordDefinition in the namespace.
 	for _, def := range ns.Definitions {
-		if typeof(def) == "RecordDefinition" {
+		if _, ok := def.(*schema.RecordDefinition); ok {
 			gc.addImport("github.com/heetch/avro/avrotypegen")
 			break
 		}
