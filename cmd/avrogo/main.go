@@ -18,7 +18,7 @@
 //	  -s string
 //	    	suffix for generated files (default "_gen")
 //    -tokenize
-//          if true, generate one dedicated file per type found in the schema files
+//          if true, generate one dedicated file per qualified name found in the schema files
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -54,7 +54,7 @@ var (
 	pkgFlag      = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
 	testFlag     = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
 	suffixFlag   = flag.String("s", "_gen", "suffix for generated files")
-	tokenizeFlag = flag.Bool("tokenize", false, "generate one dedicated file per message")
+	tokenizeFlag = flag.Bool("tokenize", false, "generate one dedicated file per qualified name found in the input schema files")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
