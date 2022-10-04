@@ -18,6 +18,17 @@ tests: simpleEnum: {
 	outData: inData
 }
 
+tests: justEnum: {
+       inSchema: {
+                type: "enum"
+                name: "MyEnum"
+		symbols: ["a", "b", "c"]
+       }
+       outSchema: inSchema
+       inData: "b"
+       outData: inData
+}
+
 tests: simpleEnum: otherTests: """
 	package simpleEnum
 	import (
