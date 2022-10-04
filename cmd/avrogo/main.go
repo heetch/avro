@@ -1,5 +1,6 @@
 // The avrogo command generates Go types for the Avro schemas specified on the
-// command line. Each schema file results in a Go file with the same basename but with a ".go" suffix.
+// command line. Each schema file results in a Go file with the same basename but with a ".go" suffix,
+// or multiple files if -split is set.
 // If multiple schema files have the same basename, successively more elements of their
 // full path are used (replacing path separators with "_") until they're not the same any more.
 //
@@ -16,6 +17,8 @@
 //	  -t	generated files will have _test.go suffix
 //	  -s string
 //	    	suffix for generated files (default "_gen")
+//    -tokenize
+//          if true, generate one dedicated file per qualified name found in the schema files
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -32,6 +35,7 @@ import (
 	"go/format"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,10 +50,11 @@ import (
 //go:generate go run ./generatetestcode.go
 
 var (
-	dirFlag  = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag  = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
-	testFlag = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
-	suffixFlag = flag.String("s", "_gen", "suffix for generated files")
+	dirFlag      = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag      = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag     = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	suffixFlag   = flag.String("s", "_gen", "suffix for generated files")
+	tokenizeFlag = flag.Bool("tokenize", false, "generate one dedicated file per qualified name found in the input schema files")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
@@ -87,15 +92,31 @@ func generateFiles(files []string) error {
 	if err != nil {
 		return err
 	}
+
 	outfiles, err := outputPaths(files, *testFlag)
 	if err != nil {
 		return err
 	}
-	for i, f := range files {
-		if err := generateFile(f, outfiles[f], ns, fileDefinitions[i]); err != nil {
-			return fmt.Errorf("cannot generate code for %s: %v", f, err)
+
+	if *tokenizeFlag {
+		for _, fileDefinition := range fileDefinitions {
+			for _, qualifiedName := range fileDefinition {
+				outputPath := path.Join(strings.ToLower(qualifiedName.Name) + *suffixFlag + ".go")
+				singleFileList := []schema.QualifiedName{qualifiedName}
+
+				if err := generateFile(outputPath, ns, singleFileList); err != nil {
+					return fmt.Errorf("cannot generate code for %s.%s: %v", qualifiedName.Namespace, qualifiedName.Name, err)
+				}
+			}
+		}
+	} else {
+		for i, f := range files {
+			if err := generateFile(outfiles[f], ns, fileDefinitions[i]); err != nil {
+				return fmt.Errorf("cannot generate code for %s: %v", f, err)
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -176,7 +197,7 @@ func baseN(name string, n int) (string, bool) {
 	return strings.Join(parts, "_"), ok
 }
 
-func generateFile(f, outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+func generateFile(outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	var buf bytes.Buffer
 	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
 		return err
