@@ -28,9 +28,9 @@ const nullType = "avrotypegen.Null"
 func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.QualifiedName) bool {
 	for _, def := range namespace.Definitions {
 		defToGenerateIdx := sort.Search(len(definitions), func(i int) bool {
-			return definitions[i].Name == def.Name()
+			return definitions[i].Name == def.AvroName().Name
 		})
-		if defToGenerateIdx < len(definitions) && def.Name() == definitions[defToGenerateIdx].Name {
+		if defToGenerateIdx < len(definitions) && def.AvroName().Name == definitions[defToGenerateIdx].Name {
 			if _, ok := def.(*schema.RecordDefinition); ok {
 				return true
 			}
