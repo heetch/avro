@@ -34,6 +34,9 @@ func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.Q
 			if _, ok := def.(*schema.RecordDefinition); ok {
 				return true
 			}
+			if _, ok := def.(*schema.FixedDefinition); ok {
+				return true
+			}
 		}
 	}
 	return false
