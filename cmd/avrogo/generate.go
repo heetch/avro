@@ -24,7 +24,7 @@ const (
 const nullType = "avrotypegen.Null"
 
 // shouldImportAvroTypeGen return true if avrotypegen is required. It checks that the definitions given are of type
-// schema.RecordDefinition  by looking at their match within given parsed namespace
+// schema.RecordDefinition by looking at their match within given parsed namespace
 func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.QualifiedName) bool {
 	for _, def := range namespace.Definitions {
 		defToGenerateIdx := sort.Search(len(definitions), func(i int) bool {
