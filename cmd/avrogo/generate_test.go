@@ -9,74 +9,72 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
-var eventNameQualifiedName = schema.QualifiedName{Namespace: "EventName", Name: "EventName"}
-var eventNameAsRecordDefinition = schema.NewRecordDefinition(eventNameQualifiedName, make([]avro.QualifiedName, 0, 0), make([]*avro.Field, 0), "", map[string]interface{}{})
-var modelDefinitionQualifiedName = schema.QualifiedName{Namespace: "ModelDefinition", Name: "ModelDefinition"}
-var modelAsEnumDefinition = schema.NewEnumDefinition(modelDefinitionQualifiedName, make([]avro.QualifiedName, 0, 0), []string{"", ""}, "", "defaultValue", map[string]interface{}{})
-
-var shouldImportAvroTypeGenTests = []struct {
-	testName    string
-	namespace   *parser.Namespace
-	definitions []schema.QualifiedName
-	expect      bool
-}{
-	{
-		testName: "true-definition-only-present-in-namespace-and-is-record-type",
-		namespace: &parser.Namespace{
-			Definitions: map[schema.QualifiedName]schema.Definition{
-				eventNameQualifiedName: eventNameAsRecordDefinition,
-			},
-			Roots:       nil,
-			ShortUnions: false,
-		},
-		definitions: []schema.QualifiedName{eventNameQualifiedName},
-		expect:      true,
-	},
-	{
-		testName: "true-definition-present-in-namespace-and-is-record-type",
-		namespace: &parser.Namespace{
-			Definitions: map[schema.QualifiedName]schema.Definition{
-				eventNameQualifiedName:       eventNameAsRecordDefinition,
-				modelDefinitionQualifiedName: modelAsEnumDefinition,
-			},
-			Roots:       nil,
-			ShortUnions: false,
-		},
-		definitions: []schema.QualifiedName{eventNameQualifiedName},
-		expect:      true,
-	},
-	{
-		testName: "false-definition-present-in-namespace-and-not-record-type",
-		namespace: &parser.Namespace{
-			Definitions: map[schema.QualifiedName]schema.Definition{
-				eventNameQualifiedName:       eventNameAsRecordDefinition,
-				modelDefinitionQualifiedName: modelAsEnumDefinition,
-			},
-			Roots:       nil,
-			ShortUnions: false,
-		},
-		definitions: []schema.QualifiedName{modelDefinitionQualifiedName},
-		expect:      false,
-	},
-	{
-		testName: "false-definition-not-present-in-namespace-and-not-record-type",
-		namespace: &parser.Namespace{
-			Definitions: map[schema.QualifiedName]schema.Definition{},
-			Roots:       nil,
-			ShortUnions: false,
-		},
-		definitions: []schema.QualifiedName{modelDefinitionQualifiedName},
-		expect:      false,
-	},
-}
-
 func TestShouldImportAvroTypeGen(t *testing.T) {
+	var eventNameQualifiedName = schema.QualifiedName{Namespace: "EventName", Name: "EventName"}
+	var eventNameAsRecordDefinition = schema.NewRecordDefinition(eventNameQualifiedName, []avro.QualifiedName{}, []*avro.Field{}, "", map[string]interface{}{})
+	var modelDefinitionQualifiedName = schema.QualifiedName{Namespace: "ModelDefinition", Name: "ModelDefinition"}
+	var modelAsEnumDefinition = schema.NewEnumDefinition(modelDefinitionQualifiedName, []avro.QualifiedName{}, []string{"", ""}, "", "defaultValue", map[string]interface{}{})
+
+	var shouldImportAvroTypeGenTests = []struct {
+		testName                string
+		namespace               *parser.Namespace
+		definitions             []schema.QualifiedName
+		shouldImportAvroTypeGen bool
+	}{
+		{
+			testName: "true-definition-only-present-in-namespace-and-is-record-type",
+			namespace: &parser.Namespace{
+				Definitions: map[schema.QualifiedName]schema.Definition{
+					eventNameQualifiedName: eventNameAsRecordDefinition,
+				},
+			},
+			definitions:             []schema.QualifiedName{eventNameQualifiedName},
+			shouldImportAvroTypeGen: true,
+		},
+		{
+			testName: "true-definition-present-in-namespace-and-is-record-type",
+			namespace: &parser.Namespace{
+				Definitions: map[schema.QualifiedName]schema.Definition{
+					eventNameQualifiedName:       eventNameAsRecordDefinition,
+					modelDefinitionQualifiedName: modelAsEnumDefinition,
+				},
+				Roots:       nil,
+				ShortUnions: false,
+			},
+			definitions:             []schema.QualifiedName{eventNameQualifiedName},
+			shouldImportAvroTypeGen: true,
+		},
+		{
+			testName: "false-definition-present-in-namespace-and-not-record-type",
+			namespace: &parser.Namespace{
+				Definitions: map[schema.QualifiedName]schema.Definition{
+					eventNameQualifiedName:       eventNameAsRecordDefinition,
+					modelDefinitionQualifiedName: modelAsEnumDefinition,
+				},
+				Roots:       nil,
+				ShortUnions: false,
+			},
+			definitions:             []schema.QualifiedName{modelDefinitionQualifiedName},
+			shouldImportAvroTypeGen: false,
+		},
+		{
+			testName: "false-definition-not-present-in-namespace-and-not-record-type",
+			namespace: &parser.Namespace{
+				Definitions: map[schema.QualifiedName]schema.Definition{},
+				Roots:       nil,
+				ShortUnions: false,
+			},
+			definitions:             []schema.QualifiedName{modelDefinitionQualifiedName},
+			shouldImportAvroTypeGen: false,
+		},
+	}
+
 	c := qt.New(t)
 
 	for _, test := range shouldImportAvroTypeGenTests {
 		c.Run(test.testName, func(c *qt.C) {
 			value := shouldImportAvroTypeGen(test.namespace, test.definitions)
-			c.Assert(value, qt.Equals, test.expect)
+			c.Assert(value, qt.Equals, test.shouldImportAvroTypeGen)
 		})
 	}
 }
