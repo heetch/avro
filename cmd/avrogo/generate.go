@@ -44,9 +44,14 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 	}
 	// Add avrotypegen package conditionally when there is a RecordDefinition in the namespace.
 	for _, def := range ns.Definitions {
-		if _, ok := def.(*schema.RecordDefinition); ok {
-			gc.addImport("github.com/heetch/avro/avrotypegen")
-			break
+		defToGenerateIdx := sort.Search(len(definitions), func(i int) bool {
+			return definitions[i].Name == def.Name()
+		})
+		if defToGenerateIdx < len(definitions) && def.Name() == definitions[defToGenerateIdx].Name {
+			if _, ok := def.(*schema.RecordDefinition); ok {
+				gc.addImport("github.com/heetch/avro/avrotypegen")
+				break
+			}
 		}
 	}
 	var body bytes.Buffer
