@@ -23,6 +23,25 @@ const (
 
 const nullType = "avrotypegen.Null"
 
+// shouldImportAvroTypeGen return true if avrotypegen is required. It checks that the definitions given are of type
+// schema.RecordDefinition by looking at their match within given parsed namespace
+func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.QualifiedName) bool {
+	for _, def := range namespace.Definitions {
+		defToGenerateIdx := sort.Search(len(definitions), func(i int) bool {
+			return definitions[i].Name == def.AvroName().Name
+		})
+		if defToGenerateIdx < len(definitions) && def.AvroName().Name == definitions[defToGenerateIdx].Name {
+			if _, ok := def.(*schema.RecordDefinition); ok {
+				return true
+			}
+			if _, ok := def.(*schema.FixedDefinition); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	extTypes, err := externalTypeMap(ns)
 	if err != nil {
@@ -43,11 +62,8 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 		extTypes: extTypes,
 	}
 	// Add avrotypegen package conditionally when there is a RecordDefinition in the namespace.
-	for _, def := range ns.Definitions {
-		if _, ok := def.(*schema.RecordDefinition); ok {
-			gc.addImport("github.com/heetch/avro/avrotypegen")
-			break
-		}
+	if shouldImportAvroTypeGen(ns, definitions) {
+		gc.addImport("github.com/heetch/avro/avrotypegen")
 	}
 	var body bytes.Buffer
 	if err := bodyTemplate.Execute(&body, bodyTemplateParams{
