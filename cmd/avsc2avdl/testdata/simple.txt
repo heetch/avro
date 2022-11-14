@@ -18,7 +18,7 @@ cmp stdout expect.avdl
   }, {
     "name" : "fstrWithDefault",
     "type" : "string",
-    "doc" : "* doc comment on field with\n\t\t * newline",
+    "doc" : "* doc comment on field with\n * newline",
     "default" : ""
   }, {
     "name" : "fStrNoDefault",
@@ -90,10 +90,7 @@ protocol _ {
 		/** doc comment on field */
 		@fieldMetadata(245)
 		map<string> fmap;
-		/**
-		 * doc comment on field with
-		 * newline
-		 */
+		/** * doc comment on field with  * newline */
 		string fstrWithDefault = "";
 		string fStrNoDefault = "";
 		@logicalType("timestamp-micros")
