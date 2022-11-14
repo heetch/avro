@@ -1,6 +1,6 @@
 module github.com/heetch/avro
 
-go 1.15
+go 1.16
 
 require (
 	github.com/actgardner/gogen-avro/v10 v10.2.1
