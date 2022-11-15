@@ -233,6 +233,8 @@ func (g *generator) writeMetadata(d interface{}, indent string) {
 	if m.doc != "" {
 		g.printf("%s", indent)
 		if strings.Contains(m.doc, "\n") {
+			// This is dead-code by now https://github.com/actgardner/gogen-avro/pull/177
+			// as gogen-avro removes the whitespaces.
 			// idl2schemata strips leading and trailing whitespace,
 			// so put some back again if it's a multiline comment.
 			g.printf("/**\n%s %s\n%s */\n", indent, m.doc, indent)
