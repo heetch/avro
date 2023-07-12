@@ -103,11 +103,6 @@ jobs:
           path: |
             ${{ env.bin_dir }}/
           key: setup-go-test-env-${{ runner.arch }}-${{ steps.generate-cache-key.outputs.cache_key }}
-      - name: Set up private repos
-        if: ${{ !steps.cache-tools.outputs.cache-hit }}
-        uses: heetch/actions/setup-git@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - shell: bash
         if: ${{ !steps.cache-tools.outputs.cache-hit }}
         run: |
