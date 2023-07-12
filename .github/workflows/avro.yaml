@@ -1,0 +1,27 @@
+name: avro
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
+
+jobs:
+  build:
+    uses: heetch/actions/.github/workflows/reusable-go-library.yml@main
+    with:
+      directory: "."
+      test_runner_labels: ${{ vars.PRIVATE_RUNNER_TAGS }}
+      allow_lint_failure: true
+    secrets:
+      git_token: ${{ secrets.ORG_GITHUB_TOKEN }}
+
