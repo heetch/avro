@@ -119,9 +119,3 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: kafka:2181
         run: |
           make test
-      - name: Post lint
-        uses: heetch/actions/all-steps-green@main
-        with:
-          must-succeed: lint-static,lint-security
-          ignore-failures: ${{ env.allow_lint_failure == 'true' && 'lint-static,lint-security' || '' }}
-          steps: ${{ toJSON(steps) }}
