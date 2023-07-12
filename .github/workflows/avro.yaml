@@ -90,14 +90,7 @@ jobs:
 #        if: ${{ !steps.cache-tools.outputs.cache-hit }}
         run: |
           export GOBIN=${GITHUB_WORKSPACE}/${{ steps.get-bin-dir.outputs.bin_dir }}
-          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.3.1
-          go install github.com/pressly/goose/cmd/goose@v2.6.0
-          ln -s $GOBIN/goose $GOBIN/goose-v2
           go install github.com/mfridman/tparse@v0.12.1
-          go install gotest.tools/gotestsum@v1.9.0
-          go install github.com/heetch/universe/src/tools/uni@master
-          wget -O $GOBIN/datadog-ci https://github.com/DataDog/datadog-ci/releases/download/v2.7.0/datadog-ci_$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')-$(echo ${{ runner.arch }} | tr '[:upper:]' '[:lower:]')
-          chmod u+x $GOBIN/datadog-ci
       - name: Add tools dir to PATH
         env:
           bin_dir: ${{ steps.get-bin-dir.outputs.bin_dir }}
