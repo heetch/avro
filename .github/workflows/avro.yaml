@@ -1,0 +1,104 @@
+name: avro
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+env:
+  directory: "."
+  allow_lint_failure: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up env
+        uses: actions/setup-go@v3
+        with:
+          cache: true
+          check-latest: true
+          cache-dependency-path: ${{ env.directory }}/go.sum
+          go-version-file: ${{ env.directory }}/go.mod
+      - name: Build
+        run: |
+          make build
+  test:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/heetch/containers/heetch-base-testenv:1
+    services:
+      registry:
+        image: lensesio/fast-data-dev:2.6.2-L0
+    steps:
+      - name: Purge initial context
+        run: |
+          rm -rf $HOME/* $HOME/.* || true
+      - name: Get BIN dir
+        id: get-bin-dir
+        shell: bash
+        run: |
+          echo bin_dir=.go-test-env >> $GITHUB_OUTPUT
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up env
+        uses: actions/setup-go@v3
+        with:
+          cache: true
+          check-latest: true
+          cache-dependency-path: ${{ env.directory }}/go.sum
+          go-version-file: ${{ env.directory }}/go.mod
+      - name: Install Tools
+        shell: bash
+        run: |
+          export GOBIN=${GITHUB_WORKSPACE}/${{ steps.get-bin-dir.outputs.bin_dir }}
+          go install github.com/mfridman/tparse@v0.12.1
+          tgz=$(mktemp)
+          ARCH="$(uname -s)_$(uname -m)"
+          curl "https://github.com/cuelang/cue/releases/download/v0.0.15/cue_0.0.15_$ARCH.tar.gz" -L -o $tgz
+          (cd $GOBIN && tar xzf $tgz cue)
+      - name: Add tools dir to PATH
+        env:
+          bin_dir: ${{ steps.get-bin-dir.outputs.bin_dir }}
+        shell: bash
+        run: |
+          echo ${GITHUB_WORKSPACE}/${{ env.bin_dir }} >> $GITHUB_PATH
+      - name: "Lint: static"
+        id: lint-static
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.52.2
+          working-directory: ${{ env.directory }}
+          args: --timeout=5m
+          skip-cache: true
+      - name: "Lint: security"
+        id: lint-security
+        continue-on-error: true
+        working-directory: ${{ env.directory }}
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+      - name: Unit tests
+        working-directory: ${{ env.directory }}
+        env:
+          CGO_ENABLED: "1"
+          KAFKA_REGISTRY_ADDR: registry:8081
+        run: |
+          make test
