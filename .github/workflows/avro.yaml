@@ -97,16 +97,6 @@ jobs:
         shell: bash
         run: |
           echo ${GITHUB_WORKSPACE}/${{ env.bin_dir }} >> $GITHUB_PATH
-      - id: save-cache
-        if: ${{ !steps.cache-tools.outputs.cache-hit }}
-        uses: actions/cache/save@v3
-        env:
-          bin_dir: ${{ steps.get-bin-dir.outputs.bin_dir }}
-        with:
-          path: |
-            ${{ env.bin_dir }}/
-          key: setup-go-test-env-${{ runner.arch }}-${{ steps.generate-cache-key.outputs.cache_key }}
-
       - name: "Lint: static"
         id: lint-static
         continue-on-error: true
