@@ -21,6 +21,7 @@ concurrency:
 
 env:
   directory: "."
+  allow_lint_failure: "true"
 
 jobs:
   build:
@@ -38,4 +39,89 @@ jobs:
       - name: Build
         run: |
           make build
-
+  test:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/heetch/containers/heetch-base-testenv:1
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:13.6
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+      consul:
+        image: public.ecr.aws/hashicorp/consul:1.14
+        env:
+          CONSUL_LOCAL_CONFIG: |
+            {
+              "limits": {
+                "http_max_conns_per_client": 600
+              },
+              "protocol": 3
+            }
+      redis:
+        image: public.ecr.aws/docker/library/redis:6.2
+      rabbitmq:
+        image: ghcr.io/heetch/containers/heetch-rabbitmq:3.9.9
+        env:
+          RABBITMQ_ERLANG_COOKIE: secure_stuff_here
+          RABBITMQ_NODENAME: rabbit@rabbitmq
+          LANG: en_US.UTF-8
+          TZ: Europe/Paris
+      kafka:
+        image: ghcr.io/heetch/containers/heetch-kafka:6.2.7
+        env:
+          KAFKA_ADVERTISED_LISTENERS: INTERNAL://127.0.0.1:29092,PLAINTEXT://kafka:9092
+      tile38:
+        image: ghcr.io/heetch/containers/heetch-tile38:1.25.3
+    steps:
+      - name: Purge initial context
+        run: |
+          rm -rf $HOME/* $HOME/.* || true
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up env
+        uses: actions/setup-go@v3
+        with:
+          cache: true
+          check-latest: true
+          cache-dependency-path: ${{ env.directory }}/go.sum
+          go-version-file: ${{ env.directory }}/go.mod
+      - name: "Lint: static"
+        id: lint-static
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.52.2
+          working-directory: ${{ env.directory }}
+          args: --timeout=5m
+          # cache managed by setup-go
+          skip-cache: true
+          # only-new-issues: true # incompatible with working-directory input
+      - name: "Lint: security"
+        id: lint-security
+        continue-on-error: true
+        working-directory: ${{ env.directory }}
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+      - name: Unit tests
+        working-directory: ${{ env.directory }}
+        env:
+          CGO_ENABLED: "1"
+          POSTGRESQL_DATASOURCE: postgres://postgres:5432/postgres?user=postgres&password=heetch&sslmode=disable
+          KAFKA_ADDRS: kafka:9092
+          KAFKA_REGISTRY_ADDR: kafka:8081
+          REDIS_URL: redis://redis:6379/0
+          RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+          CONSUL_ADDR: consul:8500
+          PGSQL_HOST: postgres
+          TILE38_ADDR: tile38:9851
+          KAFKA_ZOOKEEPER_CONNECT: kafka:2181
+        run: |
+          make test
+      - name: Post lint
+        uses: heetch/actions/all-steps-green@main
+        with:
+          must-succeed: lint-static,lint-security
+          ignore-failures: ${{ env.allow_lint_failure == 'true' && 'lint-static,lint-security' || '' }}
+          steps: ${{ toJSON(steps) }}
