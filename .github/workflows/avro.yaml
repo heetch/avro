@@ -86,25 +86,8 @@ jobs:
           check-latest: true
           cache-dependency-path: ${{ env.directory }}/go.sum
           go-version-file: ${{ env.directory }}/go.mod
-
-      - id: get-bin-dir
-        shell: bash
-        run: |
-          echo bin_dir=.go-test-env >> $GITHUB_OUTPUT
-      - id: generate-cache-key
-        shell: bash
-        run: |
-          echo cache_key=$(md5sum ${GITHUB_ACTION_PATH}/action.yml | cut -d ' ' -f1) >> $GITHUB_OUTPUT
-      - id: cache-tools
-        uses: actions/cache/restore@v3
-        env:
-          bin_dir: ${{ steps.get-bin-dir.outputs.bin_dir }}
-        with:
-          path: |
-            ${{ env.bin_dir }}/
-          key: setup-go-test-env-${{ runner.arch }}-${{ steps.generate-cache-key.outputs.cache_key }}
       - shell: bash
-        if: ${{ !steps.cache-tools.outputs.cache-hit }}
+#        if: ${{ !steps.cache-tools.outputs.cache-hit }}
         run: |
           export GOBIN=${GITHUB_WORKSPACE}/${{ steps.get-bin-dir.outputs.bin_dir }}
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.3.1
