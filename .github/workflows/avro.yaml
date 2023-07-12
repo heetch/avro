@@ -5,15 +5,15 @@ on:
     branches:
       - master
       - main
-#    paths:
-#      - '**.go'
-#      - 'go.*'
-#      - Makefile
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
   pull_request:
-#    paths:
-#      - '**.go'
-#      - 'go.*'
-#      - Makefile
+    paths:
+      - '**.go'
+      - 'go.*'
+      - Makefile
 
 jobs:
   build:

@@ -62,7 +62,7 @@ type pcInfo struct {
 	path []pathElem
 
 	// traces holds the set of call stacks we've found that lead
-	// to this instruction.
+	// to this instruction..
 	traces [][]int
 }
 
