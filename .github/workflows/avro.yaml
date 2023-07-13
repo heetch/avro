@@ -43,41 +43,42 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: ghcr.io/heetch/containers/heetch-base-testenv:1
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:13.6
-        env:
-          POSTGRES_HOST_AUTH_METHOD: trust
-      consul:
-        image: public.ecr.aws/hashicorp/consul:1.14
-        env:
-          CONSUL_LOCAL_CONFIG: |
-            {
-              "limits": {
-                "http_max_conns_per_client": 600
-              },
-              "protocol": 3
-            }
-      redis:
-        image: public.ecr.aws/docker/library/redis:6.2
-      rabbitmq:
-        image: ghcr.io/heetch/containers/heetch-rabbitmq:3.9.9
-        env:
-          RABBITMQ_ERLANG_COOKIE: secure_stuff_here
-          RABBITMQ_NODENAME: rabbit@rabbitmq
-          LANG: en_US.UTF-8
-          TZ: Europe/Paris
-      kafka:
-        image: ghcr.io/heetch/containers/heetch-kafka:6.2.7
-        env:
-          KAFKA_ADVERTISED_LISTENERS: INTERNAL://127.0.0.1:29092,PLAINTEXT://kafka:9092
-      tile38:
-        image: ghcr.io/heetch/containers/heetch-tile38:1.25.3
+#    services:
+#      postgres:
+#        image: public.ecr.aws/docker/library/postgres:13.6
+#        env:
+#          POSTGRES_HOST_AUTH_METHOD: trust
+#      consul:
+#        image: public.ecr.aws/hashicorp/consul:1.14
+#        env:
+#          CONSUL_LOCAL_CONFIG: |
+#            {
+#              "limits": {
+#                "http_max_conns_per_client": 600
+#              },
+#              "protocol": 3
+#            }
+#      redis:
+#        image: public.ecr.aws/docker/library/redis:6.2
+#      rabbitmq:
+#        image: ghcr.io/heetch/containers/heetch-rabbitmq:3.9.9
+#        env:
+#          RABBITMQ_ERLANG_COOKIE: secure_stuff_here
+#          RABBITMQ_NODENAME: rabbit@rabbitmq
+#          LANG: en_US.UTF-8
+#          TZ: Europe/Paris
+#      kafka:
+#        image: ghcr.io/heetch/containers/heetch-kafka:6.2.7
+#        env:
+#          KAFKA_ADVERTISED_LISTENERS: INTERNAL://127.0.0.1:29092,PLAINTEXT://kafka:9092
+#      tile38:
+#        image: ghcr.io/heetch/containers/heetch-tile38:1.25.3
     steps:
       - name: Purge initial context
         run: |
           rm -rf $HOME/* $HOME/.* || true
-      - id: get-bin-dir
+      - name: Get BIN dir
+        id: get-bin-dir
         shell: bash
         run: |
           echo bin_dir=.go-test-env >> $GITHUB_OUTPUT
