@@ -133,7 +133,7 @@ jobs:
           CGO_ENABLED: "1"
           POSTGRESQL_DATASOURCE: postgres://postgres:5432/postgres?user=postgres&password=heetch&sslmode=disable
           KAFKA_ADDRS: kafka:9092
-          KAFKA_REGISTRY_ADDR: localhost:${{ job.services.registry.ports['8081'] }}
+          KAFKA_REGISTRY_ADDR: registry:8081
           REDIS_URL: redis://redis:6379/0
           RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
           CONSUL_ADDR: consul:8500
