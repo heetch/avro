@@ -77,6 +77,10 @@ jobs:
       - name: Purge initial context
         run: |
           rm -rf $HOME/* $HOME/.* || true
+      - id: get-bin-dir
+        shell: bash
+        run: |
+          echo bin_dir=.go-test-env >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up env
@@ -86,8 +90,8 @@ jobs:
           check-latest: true
           cache-dependency-path: ${{ env.directory }}/go.sum
           go-version-file: ${{ env.directory }}/go.mod
-      - shell: bash
-#        if: ${{ !steps.cache-tools.outputs.cache-hit }}
+      - name: Install Tools
+        shell: bash
         run: |
           export GOBIN=${GITHUB_WORKSPACE}/${{ steps.get-bin-dir.outputs.bin_dir }}
           go install github.com/mfridman/tparse@v0.12.1
@@ -105,9 +109,7 @@ jobs:
           version: v1.52.2
           working-directory: ${{ env.directory }}
           args: --timeout=5m
-          # cache managed by setup-go
           skip-cache: true
-          # only-new-issues: true # incompatible with working-directory input
       - name: "Lint: security"
         id: lint-security
         continue-on-error: true
