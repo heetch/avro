@@ -32,9 +32,9 @@ jobs:
       registry:
         image: lensesio/fast-data-dev:2.6.2-L0
     steps:
-      - name: Purge initial context
-        run: |
-          rm -rf $HOME/* $HOME/.* || true
+#      - name: Purge initial context
+#        run: |
+#          rm -rf $HOME/* $HOME/.* || true
 #      - name: Get BIN dir
 #        id: get-bin-dir
 #        shell: bash
