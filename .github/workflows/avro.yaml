@@ -26,8 +26,8 @@ env:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/heetch/containers/heetch-base-testenv:1
+#    container:
+#      image: ghcr.io/heetch/containers/heetch-base-testenv:1
     services:
       registry:
         image: lensesio/fast-data-dev:2.6.2-L0
