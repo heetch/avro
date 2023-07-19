@@ -31,6 +31,8 @@ jobs:
     services:
       registry:
         image: lensesio/fast-data-dev:2.6.2-L0
+        ports:
+          - 8081:8081
     steps:
 #      - name: Purge initial context
 #        run: |
@@ -87,6 +89,6 @@ jobs:
         working-directory: ${{ env.directory }}
         env:
           CGO_ENABLED: "1"
-          KAFKA_REGISTRY_ADDR: registry:8081
+          KAFKA_REGISTRY_ADDR: 127.0.0.1:8081
         run: |
           make test
