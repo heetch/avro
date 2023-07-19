@@ -24,37 +24,14 @@ env:
   allow_lint_failure: "true"
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up env
-        uses: actions/setup-go@v3
-        with:
-          cache: true
-          check-latest: true
-          cache-dependency-path: ${{ env.directory }}/go.sum
-          go-version-file: ${{ env.directory }}/go.mod
-      - name: Build
-        run: |
-          make build
   test:
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/heetch/containers/heetch-base-testenv:1
     services:
       registry:
         image: lensesio/fast-data-dev:2.6.2-L0
+        ports:
+          - 8081:8081
     steps:
-      - name: Purge initial context
-        run: |
-          rm -rf $HOME/* $HOME/.* || true
-      - name: Get BIN dir
-        id: get-bin-dir
-        shell: bash
-        run: |
-          echo bin_dir=.go-test-env >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up env
@@ -95,10 +72,13 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
+      - name: Build
+        run: |
+          make build
       - name: Unit tests
         working-directory: ${{ env.directory }}
         env:
           CGO_ENABLED: "1"
-          KAFKA_REGISTRY_ADDR: registry:8081
+          KAFKA_REGISTRY_ADDR: 127.0.0.1:8081
         run: |
           make test
