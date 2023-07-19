@@ -24,21 +24,6 @@ env:
   allow_lint_failure: "true"
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up env
-        uses: actions/setup-go@v3
-        with:
-          cache: true
-          check-latest: true
-          cache-dependency-path: ${{ env.directory }}/go.sum
-          go-version-file: ${{ env.directory }}/go.mod
-      - name: Build
-        run: |
-          make build
   test:
     runs-on: ubuntu-22.04
     container:
@@ -95,6 +80,9 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
+      - name: Build
+        run: |
+          make build
       - name: Unit tests
         working-directory: ${{ env.directory }}
         env:
