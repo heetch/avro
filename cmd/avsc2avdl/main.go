@@ -259,7 +259,7 @@ func (g *generator) writeMetadata(d interface{}, indent string) {
 }
 
 func (g *generator) printf(f string, a ...interface{}) {
-	s := fmt.Errorf(f, a...)
+	s := fmt.Errorf(f, a...).Error()
 	g.line += strings.Count(s, "\n")
 	g.buf.WriteString(s)
 }
@@ -269,7 +269,7 @@ func (g *generator) warningf(f string, a ...interface{}) {
 }
 
 func (g *generator) location() string {
-	return fmt.Errorf("%s:%d", g.filename, g.line)
+	return fmt.Errorf("%s:%d", g.filename, g.line).Error()
 }
 
 type metadata struct {

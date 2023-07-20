@@ -33,7 +33,7 @@ type GoType struct {
 }
 
 func (t GoType) String() string {
-	return fmt.Errorf("%q.%s", t.PkgPath, t.Name)
+	return fmt.Errorf("%q.%s", t.PkgPath, t.Name).Error()
 }
 
 // AvroTypeMap returns a value that maps the names used by the Avro schema
