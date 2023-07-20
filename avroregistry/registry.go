@@ -249,9 +249,9 @@ type apiError struct {
 
 func (e *apiError) Error() string {
 	if e.StatusCode != e.ErrorCode {
-		return fmt.Sprintf("Avro registry error (code %d; HTTP status %d): %v", e.ErrorCode, e.StatusCode, e.Message)
+		return fmt.Errorf("avro registry error (code %d; HTTP status %d): %v", e.ErrorCode, e.StatusCode, e.Message).Error()
 	}
-	return fmt.Sprintf("Avro registry error (HTTP status %d): %v", e.ErrorCode, e.Message)
+	return fmt.Errorf("avro registry error (HTTP status %d): %v", e.ErrorCode, e.Message).Error()
 }
 
 func canonical(schema *avro.Type) string {
