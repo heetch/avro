@@ -259,17 +259,17 @@ func (g *generator) writeMetadata(d interface{}, indent string) {
 }
 
 func (g *generator) printf(f string, a ...interface{}) {
-	s := fmt.Sprintf(f, a...)
+	s := fmt.Errorf(f, a...)
 	g.line += strings.Count(s, "\n")
 	g.buf.WriteString(s)
 }
 
 func (g *generator) warningf(f string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, "%s: WARNING: %s\n", g.location(), fmt.Sprintf(f, a...))
+	fmt.Fprintf(os.Stderr, "%s: WARNING: %s\n", g.location(), fmt.Errorf(f, a...))
 }
 
 func (g *generator) location() string {
-	return fmt.Sprintf("%s:%d", g.filename, g.line)
+	return fmt.Errorf("%s:%d", g.filename, g.line)
 }
 
 type metadata struct {

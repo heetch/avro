@@ -290,7 +290,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		if !ok {
 			return "", fmt.Errorf("must be boolean but got %s", jsonMarshal(v))
 		}
-		return fmt.Sprintf("%v", v), nil
+		return fmt.Errorf("%v", v), nil
 	case *schema.IntField:
 		return numberDefault(v, "int")
 	case *schema.LongField:
@@ -308,13 +308,13 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		if err != nil {
 			return "", fmt.Errorf("cannot decode bytes literal %v: %v", jsonMarshal(v), err)
 		}
-		return fmt.Sprintf("[]byte(%q)", bytes), nil
+		return fmt.Errorf("[]byte(%q)", bytes), nil
 	case *schema.StringField:
 		s, ok := v.(string)
 		if !ok {
 			return "", fmt.Errorf("must be string but got %v", jsonMarshal(v))
 		}
-		return fmt.Sprintf("%q", s), nil
+		return fmt.Errorf("%q", s), nil
 	case *schema.ArrayField:
 		a, ok := v.([]interface{})
 		if !ok {
@@ -444,7 +444,7 @@ func decodeBytes(s string) ([]byte, error) {
 func numberDefault(v interface{}, goType string) (string, error) {
 	switch v := v.(type) {
 	case float64:
-		s := fmt.Sprintf("%v", v)
+		s := fmt.Errorf("%v", v)
 		switch {
 		case goType == "int" && isValidInt(s):
 			return s, nil
@@ -452,7 +452,7 @@ func numberDefault(v interface{}, goType string) (string, error) {
 			return s, nil
 		}
 		// TODO omit type conversion when it's not needed?
-		return fmt.Sprintf("%s(%v)", goType, v), nil
+		return fmt.Errorf("%s(%v)", goType, v), nil
 	default:
 		return "", fmt.Errorf("must be number but got %T", v)
 	}
@@ -575,7 +575,7 @@ func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
 		}
 		info.GoType = name
 	default:
-		panic(fmt.Sprintf("unknown avro type %T", t))
+		panic(fmt.Errorf("unknown avro type %T", t))
 	}
 	return info
 }

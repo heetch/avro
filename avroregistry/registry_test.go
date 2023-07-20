@@ -538,7 +538,7 @@ func randomString() string {
 	if err != nil {
 		panic(err)
 	}
-	return fmt.Sprintf("test-%x", buf)
+	return fmt.Errorf("test-%x", buf).Error()
 }
 
 type transportFunc func(*http.Request) (*http.Response, error)
@@ -556,7 +556,7 @@ func errorTransport(err error) http.RoundTripper {
 type tmpError bool
 
 func (e tmpError) Error() string {
-	return fmt.Sprintf("temporary test error %t", e)
+	return fmt.Errorf("temporary test error %t", e).Error()
 }
 
 func (e tmpError) Temporary() bool {

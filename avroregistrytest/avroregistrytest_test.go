@@ -1,3 +1,4 @@
+//go:build go1.14
 // +build go1.14
 
 package avroregistrytest
@@ -43,5 +44,5 @@ func randomName(prefix string) string {
 	if _, err := rand.Read(buf); err != nil {
 		panic(err)
 	}
-	return fmt.Sprintf("%s%x", prefix, buf)
+	return fmt.Errorf("%s%x", prefix, buf)
 }
