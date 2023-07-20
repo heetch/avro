@@ -255,6 +255,15 @@ func logicalType(t schema.AvroType) string {
 	return s
 }
 
+func timestampMillisEncoder(e *encodeState, v reflect.Value) {
+	t := v.Interface().(time.Time)
+	if t.IsZero() {
+		e.writeLong(0)
+	} else {
+		e.writeLong(t.Unix()*1e3 + int64(t.Nanosecond())/int64(time.Millisecond))
+	}
+}
+
 func timestampMicrosEncoder(e *encodeState, v reflect.Value) {
 	t := v.Interface().(time.Time)
 	if t.IsZero() {
