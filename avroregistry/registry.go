@@ -102,7 +102,7 @@ func (r *Registry) Register(ctx context.Context, subject string, schema *avro.Ty
 	if err != nil {
 		return 0, err
 	}
-	req := r.newRequest(ctx, "POST", fmt.Sprintf("/subjects/%s/versions", subject), bytes.NewReader(data))
+	req := r.newRequest(ctx, "POST", fmt.Errorf("/subjects/%s/versions", subject).Error(), bytes.NewReader(data))
 	var resp struct {
 		ID int64 `json:"id"`
 	}
@@ -141,7 +141,7 @@ func (r *Registry) Schema(ctx context.Context, subject, version string) (*Schema
 		return nil, err
 	}
 
-	req := r.newRequest(ctx, http.MethodGet, fmt.Sprintf("/subjects/%s/versions/%s", subject, version), nil)
+	req := r.newRequest(ctx, http.MethodGet, fmt.Errorf("/subjects/%s/versions/%s", subject, version).Error(), nil)
 	schema := new(Schema)
 	if err := r.doRequest(req, schema); err != nil {
 		return nil, err
