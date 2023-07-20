@@ -88,7 +88,9 @@ func TestEmptyGoStructType(t *testing.T) {
 func TestGoTypeWithOmittedFields(t *testing.T) {
 	c := qt.New(t)
 	type R struct {
+		omit1 int
 		A     int
+		omit2 int
 		Omit3 int `json:"-"`
 		B     string
 	}
@@ -306,7 +308,8 @@ func TestGoTypeWithStructField(t *testing.T) {
 	}
 	type F1 struct {
 		// Make sure we're respecting JSON tags and unexported fields.
-		F2 F2 `json:"f2"`
+		ignore int
+		F2     F2 `json:"f2"`
 	}
 	type R struct {
 		F1 F1
