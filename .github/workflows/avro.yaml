@@ -58,7 +58,7 @@ jobs:
           tgz=$(mktemp)
           ARCH="$(uname -s)_$(uname -m)"
           curl "https://github.com/cuelang/cue/releases/download/v0.0.15/cue_0.0.15_$ARCH.tar.gz" -L -o $tgz
-          (cd $GOBIN && tar xzf $tgz cue)
+          (cd /usr/local/bin/ && tar xzf $tgz cue)
       - name: "Lint: static"
         id: lint-static
         continue-on-error: true
