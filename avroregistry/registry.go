@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -249,7 +250,7 @@ type apiError struct {
 
 func (e *apiError) Error() string {
 	if e.StatusCode != e.ErrorCode {
-		return fmt.Errorf("avro registry error (code %d; HTTP status %d): %v", e.ErrorCode, e.StatusCode, e.Message).Error()
+		return errors.Newf("avro registry error (code %d; HTTP status %d): %v", e.ErrorCode, e.StatusCode, e.Message).Error()
 	}
 	return fmt.Errorf("avro registry error (HTTP status %d): %v", e.ErrorCode, e.Message).Error()
 }
