@@ -238,13 +238,13 @@ type compatibilityError struct {
 }
 
 func (e *compatibilityError) Error() string {
-	return fmt.Errorf("incompatible at %s: %v", e.path, e.msg)
+	return fmt.Sprintf("incompatible at %s: %v", e.path, e.msg)
 }
 
 func compatErrorf(path string, f string, args ...interface{}) error {
 	return &compatibilityError{
 		path: path,
-		msg:  fmt.Errorf(f, args...),
+		msg:  fmt.Sprintf(f, args...),
 	}
 }
 
@@ -316,7 +316,7 @@ func checkGoCompatible(path string, t1, t2 schema.AvroType, checked map[schema.A
 			return fmt.Errorf("union type mismatch")
 		}
 		for i := range itemTypes1 {
-			if err := checkGoCompatible(path+fmt.Errorf("[u%d]", i), itemTypes1[i], itemTypes2[i], checked); err != nil {
+			if err := checkGoCompatible(path+fmt.Sprintf("[u%d]", i), itemTypes1[i], itemTypes2[i], checked); err != nil {
 				return err
 			}
 		}

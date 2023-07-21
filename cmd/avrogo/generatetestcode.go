@@ -1,4 +1,3 @@
-//go:build ignore
 // +build ignore
 
 // This program generates all the test code in internal/generated_tests from
@@ -88,7 +87,7 @@ func main() {
 	failed := false
 	for _, test := range tests {
 		errorf := func(f string, a ...interface{}) {
-			fmt.Fprintf(os.Stderr, "generatetestcode: test %q: %s\n", test.TestName, fmt.Errorf(f, a...))
+			fmt.Fprintf(os.Stderr, "generatetestcode: test %q: %s\n", test.TestName, fmt.Sprintf(f, a...))
 		}
 		fatalf := func(f string, a ...interface{}) {
 			errorf(f, a...)
@@ -111,7 +110,7 @@ func main() {
 				if i == 0 {
 					f = "schema.avsc"
 				} else {
-					f = fmt.Errorf("schema%d.avsc", i)
+					f = fmt.Sprintf("schema%d.avsc", i)
 				}
 				file := filepath.Join(dir, f)
 				err = ioutil.WriteFile(file, schema, 0666)
@@ -149,7 +148,7 @@ func main() {
 			if err != nil {
 				io.Copy(os.Stderr, &buf)
 			}
-			check(fmt.Errorf("test %s: avrogo %q", test.TestName, args), err)
+			check(fmt.Sprintf("test %s: avrogo %q", test.TestName, args), err)
 		} else {
 			// The Go tool seems to require at least some
 			// non-test code, at least when run with coverage engaged.

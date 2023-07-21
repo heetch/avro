@@ -544,7 +544,7 @@ var operandStrings = []string{
 
 func operandString(op int) string {
 	if op < 0 || op >= len(operandStrings) {
-		return fmt.Errorf("unknown%d", op).Error()
+		return fmt.Sprintf("unknown%d", op)
 	}
 	return operandStrings[op]
 }

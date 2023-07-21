@@ -74,7 +74,7 @@ func (r decodingRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#get--schemas-ids-int-%20id
 func (r decodingRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
-	req := r.r.newRequest(ctx, "GET", fmt.Errorf("/schemas/ids/%d", id).Error(), nil)
+	req := r.r.newRequest(ctx, "GET", fmt.Sprintf("/schemas/ids/%d", id), nil)
 	var resp struct {
 		Schema string `json:"schema"`
 	}
