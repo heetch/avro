@@ -9,7 +9,6 @@ require (
 	github.com/kr/pretty v0.3.0
 	github.com/linkedin/goavro/v2 v2.11.1
 	github.com/rogpeppe/go-internal v1.9.0
-	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/httprequest.v1 v1.2.1
 	gopkg.in/retry.v1 v1.0.3
 )
