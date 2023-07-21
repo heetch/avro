@@ -1,7 +1,7 @@
 package avro
 
 import (
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"reflect"
 	"sync"
 
@@ -68,7 +68,7 @@ func (names *Names) Marshal(x interface{}) ([]byte, *Type, error) {
 // Rename panics if oldName is any of the built-in Avro types.
 func (n *Names) Rename(oldName string, newName string, newAliases ...string) *Names {
 	if builtinTypes[oldName] {
-		panic(fmt.Errorf("rename of built-in type %q to %q", oldName, newName))
+		panic(errors.Newf("rename of built-in type %q to %q", oldName, newName))
 	}
 	n1 := &Names{
 		renames: make(map[string][]string),
@@ -98,11 +98,11 @@ func (n *Names) RenameType(x interface{}, newName string, newAliases ...string) 
 	// See https://github.com/heetch/avro/issues/38
 	t, err := TypeOf(x)
 	if err != nil {
-		panic(fmt.Errorf("cannot rename %T to %q: cannot get Avro type: %v", x, newName, err))
+		panic(errors.Newf("cannot rename %T to %q: cannot get Avro type: %v", x, newName, err))
 	}
 	name := t.Name()
 	if name == "" {
-		panic(fmt.Errorf("cannot rename %T to %q: it does not represent an Avro definition", x, newName))
+		panic(errors.Newf("cannot rename %T to %q: it does not represent an Avro definition", x, newName))
 	}
 	return n.Rename(name, newName, newAliases...)
 }
@@ -157,7 +157,7 @@ func (names *Names) renameSchema1(at schema.AvroType, enclosingNamespace string,
 		case *schema.FixedDefinition:
 		case *schema.EnumDefinition:
 		default:
-			panic(fmt.Errorf("unknown definition type %T", adef))
+			panic(errors.Newf("unknown definition type %T", adef))
 		}
 		delete(def, "namespace")
 		def["name"] = relativeName(enclosingNamespace, qname)
@@ -215,7 +215,7 @@ func copyOfSchemaObj(at interface{}) map[string]interface{} {
 		}
 		return obj1
 	default:
-		panic(fmt.Errorf("unexpected type for Avro definition %T", obj))
+		panic(errors.Newf("unexpected type for Avro definition %T", obj))
 	}
 }
 

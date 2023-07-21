@@ -91,7 +91,7 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 		Imports:   importList,
 		ImportIds: gc.imports,
 	}); err != nil {
-		return fmt.Errorf("cannot execute header template: %v", err)
+		return errors.Newf("cannot execute header template: %v", err)
 	}
 	if _, err := w.Write(body.Bytes()); err != nil {
 		return err
@@ -154,7 +154,7 @@ func (gc *generateContext) RecordInfoLiteral(t *schema.RecordDefinition) (string
 		fprintf(w, "%d: ", i)
 		lit, err := gc.defaultFuncLiteral(f.Default(), f.Type())
 		if err != nil {
-			return "", fmt.Errorf("cannot generate code for field %s of record %v: %v", f.Name(), t.AvroName(), err)
+			return "", errors.Newf("cannot generate code for field %s of record %v: %v", f.Name(), t.AvroName(), err)
 		} else {
 			fprintf(w, "func() interface{} {\nreturn %s\n},\n", lit)
 		}
@@ -282,13 +282,13 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		return gc.defaultFuncLiteral(v, t.AvroTypes()[0])
 	case *schema.NullField:
 		if v != nil {
-			return "", fmt.Errorf("must be null but got %s", jsonMarshal(v))
+			return "", errors.Newf("must be null but got %s", jsonMarshal(v))
 		}
 		return nullType + "{}", nil
 	case *schema.BoolField:
 		v, ok := v.(bool)
 		if !ok {
-			return "", fmt.Errorf("must be boolean but got %s", jsonMarshal(v))
+			return "", errors.Newf("must be boolean but got %s", jsonMarshal(v))
 		}
 		return fmt.Sprintf("%v", v), nil
 	case *schema.IntField:
@@ -302,30 +302,30 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 	case *schema.BytesField:
 		s, ok := v.(string)
 		if !ok {
-			return "", fmt.Errorf("must be string but got %v", jsonMarshal(v))
+			return "", errors.Newf("must be string but got %v", jsonMarshal(v))
 		}
 		bytes, err := decodeBytes(s)
 		if err != nil {
-			return "", fmt.Errorf("cannot decode bytes literal %v: %v", jsonMarshal(v), err)
+			return "", errors.Newf("cannot decode bytes literal %v: %v", jsonMarshal(v), err)
 		}
 		return fmt.Sprintf("[]byte(%q)", bytes), nil
 	case *schema.StringField:
 		s, ok := v.(string)
 		if !ok {
-			return "", fmt.Errorf("must be string but got %v", jsonMarshal(v))
+			return "", errors.Newf("must be string but got %v", jsonMarshal(v))
 		}
 		return fmt.Sprintf("%q", s), nil
 	case *schema.ArrayField:
 		a, ok := v.([]interface{})
 		if !ok {
-			return "", fmt.Errorf("must be array but got %v", jsonMarshal(v))
+			return "", errors.Newf("must be array but got %v", jsonMarshal(v))
 		}
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "[]%s{", gc.GoTypeOf(t.ItemType()).GoType)
 		for i, item := range a {
 			val, err := gc.defaultFuncLiteral(item, t.ItemType())
 			if err != nil {
-				return "", fmt.Errorf("at index %d: %v", i, err)
+				return "", errors.Newf("at index %d: %v", i, err)
 			}
 			buf.WriteString(val)
 			buf.WriteString(",")
@@ -335,7 +335,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 	case *schema.MapField:
 		m, ok := v.(map[string]interface{})
 		if !ok {
-			return "", fmt.Errorf("must be map but got %v", jsonMarshal(v))
+			return "", errors.Newf("must be map but got %v", jsonMarshal(v))
 		}
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "map[string]%s{\n", gc.GoTypeOf(t.ItemType()).GoType)
@@ -347,7 +347,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		for _, key := range keys {
 			val, err := gc.defaultFuncLiteral(m[key], t.ItemType())
 			if err != nil {
-				return "", fmt.Errorf("at key %q: %v", key, err)
+				return "", errors.Newf("at key %q: %v", key, err)
 			}
 			fmt.Fprintf(&buf, "%q: %s,\n", key, val)
 		}
@@ -358,25 +358,25 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		case *schema.EnumDefinition:
 			s, ok := v.(string)
 			if !ok {
-				return "", fmt.Errorf("enum default value must be string, not %s", jsonMarshal(v))
+				return "", errors.Newf("enum default value must be string, not %s", jsonMarshal(v))
 			}
 			for _, sym := range def.Symbols() {
 				if sym == s {
 					return def.SymbolName(s), nil
 				}
 			}
-			return "", fmt.Errorf("unknown value %q for enum %s", s, def.Name())
+			return "", errors.Newf("unknown value %q for enum %s", s, def.Name())
 		case *schema.FixedDefinition:
 			s, ok := v.(string)
 			if !ok {
-				return "", fmt.Errorf("fixed default value must be string, not %s", jsonMarshal(v))
+				return "", errors.Newf("fixed default value must be string, not %s", jsonMarshal(v))
 			}
 			b, err := decodeBytes(s)
 			if err != nil {
-				return "", fmt.Errorf("invalid fixed default value %q: %v", b, err)
+				return "", errors.Newf("invalid fixed default value %q: %v", b, err)
 			}
 			if len(b) != def.SizeBytes() {
-				return "", fmt.Errorf("fixed value %s is wrong length (got %d; want %d)", jsonMarshal(v), len(b), def.SizeBytes())
+				return "", errors.Newf("fixed value %s is wrong length (got %d; want %d)", jsonMarshal(v), len(b), def.SizeBytes())
 			}
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "%s{", def.Name())
@@ -388,7 +388,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 		case *schema.RecordDefinition:
 			m, ok := v.(map[string]interface{})
 			if !ok {
-				return "", fmt.Errorf("invalid record default value %s", jsonMarshal(v))
+				return "", errors.Newf("invalid record default value %s", jsonMarshal(v))
 			}
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "%s{\n", def.Name())
@@ -396,11 +396,11 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 				fieldVal, ok := m[field.Name()]
 				var lit string
 				if !ok {
-					return "", fmt.Errorf("field %q of record %s must be present in default value but is missing", field.Name(), t.TypeName)
+					return "", errors.Newf("field %q of record %s must be present in default value but is missing", field.Name(), t.TypeName)
 				}
 				lit, err := gc.defaultFuncLiteral(fieldVal, field.Type())
 				if err != nil {
-					return "", fmt.Errorf("at field %s: %v", field.Name(), err)
+					return "", errors.Newf("at field %s: %v", field.Name(), err)
 				}
 				ident, err := goName(field.Name())
 				if err != nil {
@@ -411,11 +411,11 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 			buf.WriteString("}")
 			return buf.String(), nil
 		default:
-			return "", fmt.Errorf("unknown definition type %T", def)
+			return "", errors.Newf("unknown definition type %T", def)
 		}
 
 	default:
-		return "", fmt.Errorf("literal of type %T not yet implemented", t)
+		return "", errors.Newf("literal of type %T not yet implemented", t)
 	}
 }
 
@@ -425,7 +425,7 @@ func goName(s string) (string, error) {
 	name := s[lastIndex+1:]
 	name = strings.Title(strings.Trim(name, "_"))
 	if !isExportedGoIdentifier(name) {
-		return "", fmt.Errorf("cannot form an exported Go identifier from %q", s)
+		return "", errors.Newf("cannot form an exported Go identifier from %q", s)
 	}
 	return name, nil
 }
@@ -434,7 +434,7 @@ func decodeBytes(s string) ([]byte, error) {
 	b := make([]byte, 0, len(s))
 	for _, r := range s {
 		if r > 0xff {
-			return nil, fmt.Errorf("rune out of range (%d) in byte literal %q", r, s)
+			return nil, errors.Newf("rune out of range (%d) in byte literal %q", r, s)
 		}
 		b = append(b, byte(r))
 	}
@@ -454,7 +454,7 @@ func numberDefault(v interface{}, goType string) (string, error) {
 		// TODO omit type conversion when it's not needed?
 		return fmt.Sprintf("%s(%v)", goType, v), nil
 	default:
-		return "", fmt.Errorf("must be number but got %T", v)
+		return "", errors.Newf("must be number but got %T", v)
 	}
 }
 

@@ -2,7 +2,7 @@ package avro_test
 
 import (
 	"context"
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -176,7 +176,7 @@ func (m memRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 func (m memRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
 	t, ok := m[id]
 	if !ok {
-		return nil, fmt.Errorf("schema not found for id %d", id)
+		return nil, errors.Newf("schema not found for id %d", id)
 	}
 	return t, nil
 }
@@ -194,5 +194,5 @@ func (m memRegistry) IDForSchema(ctx context.Context, schema *avro.Type) (int64,
 			return id, nil
 		}
 	}
-	return 0, fmt.Errorf("schema not found")
+	return 0, errors.Newf("schema not found")
 }

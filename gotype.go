@@ -3,6 +3,7 @@ package avro
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"reflect"
 	"strings"
 
@@ -40,30 +41,30 @@ type errorSchema struct {
 // Otherwise TypeOf(T) is derived according to
 // the following rules:
 //
-//	- int, int64 and uint32 encode as "long"
-//	- int32, int16, uint16, int8 and uint8 encode as "int"
-//	- float32 encodes as "float"
-//	- float64 encodes as "double"
-//	- string encodes as "string"
-//	- Null{} encodes as "null"
-//	- time.Duration encodes as {"type": "long", "logicalType": "duration-nanos"}
-//	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
-//	- github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
-//	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
-//	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
-//	- []T encodes as {"type": "array", "items": TypeOf(T)}
-//	- map[string]T encodes as {"type": "map", "values": TypeOf(T)}
-//	- *T encodes as ["null", TypeOf(T)]
-//	- a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
-//		where the fields are encoded as described below.
-//	- interface types are disallowed.
+//   - int, int64 and uint32 encode as "long"
+//   - int32, int16, uint16, int8 and uint8 encode as "int"
+//   - float32 encodes as "float"
+//   - float64 encodes as "double"
+//   - string encodes as "string"
+//   - Null{} encodes as "null"
+//   - time.Duration encodes as {"type": "long", "logicalType": "duration-nanos"}
+//   - time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
+//   - github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
+//   - [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
+//   - a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
+//   - []T encodes as {"type": "array", "items": TypeOf(T)}
+//   - map[string]T encodes as {"type": "map", "values": TypeOf(T)}
+//   - *T encodes as ["null", TypeOf(T)]
+//   - a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
+//     where the fields are encoded as described below.
+//   - interface types are disallowed.
 //
 // Struct fields are encoded as follows:
 //
-//	- unexported struct fields are ignored
-//	- the field name is taken from the Go field name, or from a "json" tag for the field if present.
-//	- the default value for the field is the zero value for the type.
-//	- anonymous struct fields are disallowed (this restriction may be lifted in the future).
+//   - unexported struct fields are ignored
+//   - the field name is taken from the Go field name, or from a "json" tag for the field if present.
+//   - the default value for the field is the zero value for the type.
+//   - anonymous struct fields are disallowed (this restriction may be lifted in the future).
 func TypeOf(x interface{}) (*Type, error) {
 	return globalNames.TypeOf(x)
 }
@@ -102,7 +103,7 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	}
 	data, err := json.Marshal(schemaVal)
 	if err != nil {
-		return nil, fmt.Errorf("cannot marshal generated schema: %v", err)
+		return nil, errors.Newf("cannot marshal generated schema: %v", err)
 	}
 	at, err := ParseType(string(data))
 	if err != nil {
@@ -114,11 +115,11 @@ func avroTypeOfUncached(names *Names, t reflect.Type) (*Type, error) {
 	}
 	data1, err := json.Marshal(names.renameSchema(at.avroType))
 	if err != nil {
-		return nil, fmt.Errorf("cannot marshal generated renamed schema: %v", err)
+		return nil, errors.Newf("cannot marshal generated renamed schema: %v", err)
 	}
 	at, err = ParseType(string(data1))
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse generated renamed type: %v", err)
+		return nil, errors.Newf("cannot parse generated renamed type: %v", err)
 	}
 	return at, nil
 }
@@ -194,7 +195,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 	case reflect.Map:
 		// TODO support the same map keys types that JSON does.
 		if t.Key().Kind() != reflect.String {
-			return nil, fmt.Errorf("map must have string key")
+			return nil, errors.Newf("map must have string key")
 		}
 		values, err := gts.schemaForGoType(t.Elem())
 		if err != nil {
@@ -231,7 +232,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.Anonymous {
-				return nil, fmt.Errorf("anonymous fields not yet supported (in %s)", t)
+				return nil, errors.Newf("anonymous fields not yet supported (in %s)", t)
 			}
 			// Technically in Go, every field is optional because
 			// that's the way that the encoding/json package works,
@@ -267,7 +268,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		}
 
 		if t.Elem() != reflect.TypeOf(byte(0)) {
-			return nil, fmt.Errorf("the only array type supported is [...]byte, not %s", t)
+			return nil, errors.Newf("the only array type supported is [...]byte, not %s", t)
 		}
 		return gts.define(t, map[string]interface{}{
 			"type": "fixed",
@@ -275,7 +276,7 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		}, fmt.Sprintf("go.Fixed%d", t.Len()))
 	case reflect.Ptr:
 		if t.Elem().Kind() == reflect.Ptr {
-			return nil, fmt.Errorf("can only cope with a single level of pointer indirection")
+			return nil, errors.Newf("can only cope with a single level of pointer indirection")
 		}
 		elem, err := gts.schemaForGoType(t.Elem())
 		if err != nil {
@@ -287,9 +288,9 @@ func (gts *goTypeSchema) schemaForGoType(t reflect.Type) (interface{}, error) {
 		}, nil
 	case reflect.Interface:
 		// TODO fill in from the writer schema.
-		return nil, fmt.Errorf("interface types (%s) not yet supported (use avrogo instead)", t)
+		return nil, errors.Newf("interface types (%s) not yet supported (use avrogo instead)", t)
 	default:
-		return nil, fmt.Errorf("cannot make Avro schema for Go type %s", t)
+		return nil, errors.Newf("cannot make Avro schema for Go type %s", t)
 	}
 }
 
@@ -306,7 +307,7 @@ func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName st
 		// as well as the type name. See https://github.com/heetch/avro/issues/35
 		if name = t.Name(); name == "" {
 			if name = defaultName; name == "" {
-				return nil, fmt.Errorf("cannot use unnamed type %s as Avro type", t)
+				return nil, errors.Newf("cannot use unnamed type %s as Avro type", t)
 			}
 		}
 		def["name"] = name
@@ -314,7 +315,7 @@ func (gts *goTypeSchema) define(t reflect.Type, def0 interface{}, defaultName st
 	for _, def := range gts.defs {
 		if def.name == name {
 			// TODO use package path to disambiguate. See https://github.com/heetch/avro/issues/35
-			return nil, fmt.Errorf("duplicate struct type name %q", name)
+			return nil, errors.Newf("duplicate struct type name %q", name)
 		}
 	}
 	gts.defs[t] = goTypeDef{
@@ -472,13 +473,13 @@ func (gts *goTypeSchema) defaultForType(t reflect.Type) (interface{}, error) {
 			// It's a generated type - producing a correctly formed default value
 			// for it needs a bit more work so we punt on doing it for now.
 			// TODO make default values for struct-typed fields work in all cases.
-			return nil, fmt.Errorf("value fields of struct types generated by avrogo are not yet supported (type %s)", t)
+			return nil, errors.Newf("value fields of struct types generated by avrogo are not yet supported (type %s)", t)
 		}
 		fields := make(map[string]interface{})
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.Anonymous {
-				return nil, fmt.Errorf("anonymous fields not yet supported (in %s)", t)
+				return nil, errors.Newf("anonymous fields not yet supported (in %s)", t)
 			}
 			name, _ := typeinfo.JSONFieldName(f)
 			if name == "" {

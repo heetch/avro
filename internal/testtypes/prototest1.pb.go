@@ -7,13 +7,12 @@
 package testtypes
 
 import (
-	fmt "fmt"
 	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-//var _ = proto.Marshal
-var _ = fmt.Errorf
+// var _ = proto.Marshal
+var _ = errors.Newf
 var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
@@ -69,9 +68,10 @@ func (m *MessageA) Reset() { *m = MessageA{} }
 
 // This is commented out because otherwise the logging in tests
 // calls it, which we don't want.
-//func (m *MessageA) String() string {
-// 	return proto.CompactTextString(m)
-// }
+//
+//	func (m *MessageA) String() string {
+//		return proto.CompactTextString(m)
+//	}
 func (*MessageA) ProtoMessage() {}
 func (*MessageA) Descriptor() ([]byte, []int) {
 	return fileDescriptor_8f1e2929fcb7cefa, []int{0}
@@ -139,9 +139,10 @@ func (m *MessageB) Reset() { *m = MessageB{} }
 
 // This is commented out because otherwise the logging in tests
 // calls it, which we don't want.
-//func (m *MessageB) String() string {
-//	return proto.CompactTextString(m)
-//}
+//
+//	func (m *MessageB) String() string {
+//		return proto.CompactTextString(m)
+//	}
 func (*MessageB) ProtoMessage() {}
 func (*MessageB) Descriptor() ([]byte, []int) {
 	return fileDescriptor_8f1e2929fcb7cefa, []int{1}

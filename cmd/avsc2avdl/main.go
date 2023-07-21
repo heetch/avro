@@ -54,11 +54,11 @@ func avsc2avdl(avscFile, outFile string) error {
 	}
 	at, err := typeinfo.ParseSchema(string(data), nil)
 	if err != nil {
-		return fmt.Errorf("cannot parse schema from %q: %v", avscFile, err)
+		return errors.Newf("cannot parse schema from %q: %v", avscFile, err)
 	}
 	ref, ok := at.(*schema.Reference)
 	if !ok {
-		return fmt.Errorf("top level of schema is not a reference")
+		return errors.Newf("top level of schema is not a reference")
 	}
 	g := &generator{
 		filename: outFile,
@@ -90,7 +90,7 @@ func avsc2avdl(avscFile, outFile string) error {
 	} else {
 		err := ioutil.WriteFile(outFile, g.buf.Bytes(), 0666)
 		if err != nil {
-			return fmt.Errorf("cannot create output file: %v", err)
+			return errors.Newf("cannot create output file: %v", err)
 		}
 	}
 	return nil
@@ -163,7 +163,7 @@ func (g *generator) writeDefinition(def schema.Definition) {
 		writeNamespace()
 		g.printf("\tfixed %s(%d);\n", name.Name, def.SizeBytes())
 	default:
-		panic(fmt.Errorf("unknown definition type %T", def))
+		panic(errors.Newf("unknown definition type %T", def))
 	}
 }
 
@@ -224,7 +224,7 @@ func (g *generator) typeString(at schema.AvroType) string {
 		s += " }"
 		return s
 	default:
-		panic(fmt.Errorf("unknown Avro type %T", at))
+		panic(errors.Newf("unknown Avro type %T", at))
 	}
 }
 
@@ -302,7 +302,7 @@ func getMetadata(d interface{}) metadata {
 		def, _ := d.Definition(make(map[schema.QualifiedName]interface{}))
 		m.attrs, _ = def.(map[string]interface{})
 	default:
-		panic(fmt.Errorf("invalid type %T for definitionOf", d))
+		panic(errors.Newf("invalid type %T for definitionOf", d))
 	}
 	m.doc, _ = m.attrs["doc"].(string)
 	delete(m.attrs, "doc")
@@ -381,7 +381,7 @@ func (g *generator) namespace() string {
 func jsonMarshal(v interface{}, indent string) []byte {
 	data, err := json.MarshalIndent(v, indent, "\t")
 	if err != nil {
-		panic(fmt.Errorf("cannot json marshal default value: %v", err))
+		panic(errors.Newf("cannot json marshal default value: %v", err))
 	}
 	return data
 }

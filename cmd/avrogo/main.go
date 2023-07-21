@@ -9,16 +9,16 @@
 //
 // Usage:
 //
-//	usage: avrogo [flags] schema-file...
-//	  -d string
-//	    	directory to write Go files to (default ".")
-//	  -p string
-//	    	package name (defaults to $GOPACKAGE)
-//	  -t	generated files will have _test.go suffix
-//	  -s string
-//	    	suffix for generated files (default "_gen")
-//    -tokenize
-//          if true, generate one dedicated file per qualified name found in the schema files
+//		usage: avrogo [flags] schema-file...
+//		  -d string
+//		    	directory to write Go files to (default ".")
+//		  -p string
+//		    	package name (defaults to $GOPACKAGE)
+//		  -t	generated files will have _test.go suffix
+//		  -s string
+//		    	suffix for generated files (default "_gen")
+//	   -tokenize
+//	         if true, generate one dedicated file per qualified name found in the schema files
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -105,14 +105,14 @@ func generateFiles(files []string) error {
 				singleFileList := []schema.QualifiedName{qualifiedName}
 
 				if err := generateFile(outputPath, ns, singleFileList); err != nil {
-					return fmt.Errorf("cannot generate code for %s.%s: %v", qualifiedName.Namespace, qualifiedName.Name, err)
+					return errors.Newf("cannot generate code for %s.%s: %v", qualifiedName.Namespace, qualifiedName.Name, err)
 				}
 			}
 		}
 	} else {
 		for i, f := range files {
 			if err := generateFile(outfiles[f], ns, fileDefinitions[i]); err != nil {
-				return fmt.Errorf("cannot generate code for %s: %v", f, err)
+				return errors.Newf("cannot generate code for %s: %v", f, err)
 			}
 		}
 	}
@@ -156,7 +156,7 @@ func outputPaths(files []string, testFile bool) (map[string]string, error) {
 		if !allOK && len(fileset) > 0 {
 			// We've got to the end of some paths and failed to resolve all the files
 			// unambigously, so avoid the potential infinite loop by returning an error.
-			return nil, fmt.Errorf("could not make unambiguous output files from input files")
+			return nil, errors.Newf("could not make unambiguous output files from input files")
 		}
 	}
 	return result, nil
@@ -210,10 +210,10 @@ func generateFile(outFile string, ns *parser.Namespace, definitions []schema.Qua
 	resultData, err := format.Source(buf.Bytes())
 	if err != nil {
 		fmt.Printf("%s\n", buf.Bytes())
-		return fmt.Errorf("cannot format source: %v", err)
+		return errors.Newf("cannot format source: %v", err)
 	}
 	if err := os.MkdirAll(*dirFlag, 0777); err != nil {
-		return fmt.Errorf("cannot create output directory: %v", err)
+		return errors.Newf("cannot create output directory: %v", err)
 	}
 	outFile = filepath.Join(*dirFlag, outFile)
 	if err := ioutil.WriteFile(outFile, resultData, 0666); err != nil {
@@ -241,7 +241,7 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 		singleNS := parser.NewNamespace(false)
 		avroType, err := singleNS.TypeForSchema(data)
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid schema in %s: %v", f, err)
+			return nil, nil, errors.Newf("invalid schema in %s: %v", f, err)
 		}
 		if _, ok := avroType.(*schema.Reference); !ok {
 			// The schema doesn't have a top-level name.
@@ -251,7 +251,7 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 			// methods on it because it might be a union type which
 			// is represented by an interface type in Go.
 			// See https://github.com/heetch/avro/issues/13
-			return nil, nil, fmt.Errorf("cannot generate code for schema %q which hasn't got a name (%T)", f, avroType)
+			return nil, nil, errors.Newf("cannot generate code for schema %q which hasn't got a name (%T)", f, avroType)
 		}
 		for name, def := range singleNS.Definitions {
 			if name != def.AvroName() {
@@ -270,7 +270,7 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 		// Parse the schema again but use the global namespace
 		// this time so all the schemas can share the same definitions.
 		if _, err := ns.TypeForSchema(data); err != nil {
-			return nil, nil, fmt.Errorf("cannot parse schema in %s: %v", f, err)
+			return nil, nil, errors.Newf("cannot parse schema in %s: %v", f, err)
 		}
 	}
 	// Now we've accumulated all the available types,
@@ -280,7 +280,7 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
 			// TODO find out which file(s) the definition came from
 			// and include that file name in the error.
-			return nil, nil, fmt.Errorf("cannot resolve reference %q: %v", name, err)
+			return nil, nil, errors.Newf("cannot resolve reference %q: %v", name, err)
 		}
 	}
 	return ns, fileDefinitions, nil

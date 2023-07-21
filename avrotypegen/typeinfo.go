@@ -2,8 +2,6 @@
 // This is an implementation detail and this might change over time.
 package avrotypegen
 
-import "fmt"
-
 // AvroRecord is implemented by Go types generated
 // by the avrogo command.
 type AvroRecord interface {
@@ -58,7 +56,7 @@ type Null struct{}
 // the JSON value to be null.
 func (Null) UnmarshalJSON(data []byte) error {
 	if string(data) != "null" {
-		return fmt.Errorf("cannot unmarshal %q into avro.Null", data)
+		return errors.Newf("cannot unmarshal %q into avro.Null", data)
 	}
 	return nil
 }

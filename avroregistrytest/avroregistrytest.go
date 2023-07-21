@@ -2,7 +2,6 @@ package avroregistrytest
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/heetch/avro"
@@ -14,9 +13,9 @@ import (
 // The following environment variables can be used to
 // configure the connection parameters:
 //
-//	- $KAFKA_REGISTRY_ADDR
-//		The Kafka registry address in host:port
-//		form. If this is empty, localhost:8084 will be used.
+//   - $KAFKA_REGISTRY_ADDR
+//     The Kafka registry address in host:port
+//     form. If this is empty, localhost:8084 will be used.
 //
 // This requires go1.14 or higher
 func Register(ctx context.Context, t T, x interface{}, topic string) error {
@@ -29,17 +28,17 @@ func Register(ctx context.Context, t T, x interface{}, topic string) error {
 		ServerURL: "http://" + registryAddr,
 	})
 	if err != nil {
-		return fmt.Errorf("cannot connect to registry: %w", err)
+		return errors.Newf("cannot connect to registry: %w", err)
 	}
 
 	avroType, err := avro.TypeOf(x)
 	if err != nil {
-		return fmt.Errorf("cannot generate Avro schema for %T: %w", x, err)
+		return errors.Newf("cannot generate Avro schema for %T: %w", x, err)
 	}
 
 	_, err = registry.Register(ctx, topic, avroType)
 	if err != nil {
-		return fmt.Errorf("cannot register %T in %v: %w", x, topic, err)
+		return errors.Newf("cannot register %T in %v: %w", x, topic, err)
 	}
 
 	t.Cleanup(func() {

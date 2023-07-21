@@ -1,7 +1,7 @@
 package avro
 
 import (
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io"
 	"reflect"
 	"time"
@@ -30,7 +30,7 @@ func (names *Names) Unmarshal(data []byte, x interface{}, wType *Type) (*Type, e
 	v := reflect.ValueOf(x)
 	t := v.Type()
 	if t.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("destination is not a pointer %s", t)
+		return nil, errors.Newf("destination is not a pointer %s", t)
 	}
 	prog, err := compileDecoder(names, t.Elem(), wType)
 	if err != nil {
@@ -167,7 +167,7 @@ func (d *decoder) eval(target reflect.Value) {
 				if target.Kind() == reflect.Array {
 					n := reflect.Copy(target, reflect.ValueOf(frame.Bytes))
 					if n != len(frame.Bytes) {
-						d.error(fmt.Errorf("copied too little"))
+						d.error(errors.Newf("copied too little"))
 					}
 				} else {
 					data := make([]byte, len(frame.Bytes))
@@ -184,7 +184,7 @@ func (d *decoder) eval(target reflect.Value) {
 					}
 					val, err := gouuid.Parse(frame.String)
 					if err != nil {
-						d.error(fmt.Errorf("invalid UUID in Avro encoding: %w", err))
+						d.error(errors.Newf("invalid UUID in Avro encoding: %w", err))
 					} else {
 						target.Set(reflect.ValueOf(val))
 					}
@@ -194,7 +194,7 @@ func (d *decoder) eval(target reflect.Value) {
 			}
 		case vm.SetDefault:
 			if d.program.makeDefault[d.pc] == nil {
-				panic(fmt.Errorf("no makeDefault at PC %d; prog %p", d.pc, &d.program.makeDefault[0]))
+				panic(errors.Newf("no makeDefault at PC %d; prog %p", d.pc, &d.program.makeDefault[0]))
 			}
 			v := d.program.makeDefault[d.pc]()
 			target.Field(inst.Operand).Set(v)
@@ -279,9 +279,9 @@ func (d *decoder) eval(target reflect.Value) {
 				// This doesn't actually halt, but it doesn't seem to matter.
 				return
 			}
-			d.error(fmt.Errorf("runtime error: %v, frame: %v, pc: %v", d.program.Errors[inst.Operand-1], frame, d.pc))
+			d.error(errors.Newf("runtime error: %v, frame: %v, pc: %v", d.program.Errors[inst.Operand-1], frame, d.pc))
 		default:
-			d.error(fmt.Errorf("unknown instruction %v", d.program.Instructions[d.pc]))
+			d.error(errors.Newf("unknown instruction %v", d.program.Instructions[d.pc]))
 		}
 	}
 }

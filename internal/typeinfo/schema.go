@@ -1,8 +1,6 @@
 package typeinfo
 
 import (
-	"fmt"
-
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/resolver"
 	"github.com/actgardner/gogen-avro/v10/schema"
@@ -20,11 +18,11 @@ func ParseSchema(s string, ns *parser.Namespace) (schema.AvroType, error) {
 	}
 	avroType, err := ns.TypeForSchema([]byte(s))
 	if err != nil {
-		return nil, fmt.Errorf("invalid schema %q: %v", s, err)
+		return nil, errors.Newf("invalid schema %q: %v", s, err)
 	}
 	for _, def := range ns.Roots {
 		if err := resolver.ResolveDefinition(def, ns.Definitions); err != nil {
-			return nil, fmt.Errorf("cannot resolve references in schema\n%s\n: %v", s, err)
+			return nil, errors.Newf("cannot resolve references in schema\n%s\n: %v", s, err)
 		}
 	}
 	return avroType, nil

@@ -34,7 +34,7 @@ func (e Foo) String() string {
 // by returning the textual representation of Foo.
 func (e Foo) MarshalText() ([]byte, error) {
 	if e < 0 || int(e) >= len(_Foo_strings) {
-		return nil, fmt.Errorf("Foo value %d is out of bounds", e)
+		return nil, errors.Newf("Foo value %d is out of bounds", e)
 	}
 	return []byte(_Foo_strings[e]), nil
 }
@@ -49,7 +49,7 @@ func (e *Foo) UnmarshalText(data []byte) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("unknown value %q for Foo", data)
+	return errors.Newf("unknown value %q for Foo", data)
 }
 
 type R struct {

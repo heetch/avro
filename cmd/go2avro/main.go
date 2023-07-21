@@ -58,7 +58,7 @@ func main2() error {
 		var err error
 		p.Package, err = currentPkg()
 		if err != nil {
-			return fmt.Errorf("cannot get current package: %v", err)
+			return errors.Newf("cannot get current package: %v", err)
 		}
 		p.Type = pkgType
 	} else {
@@ -67,12 +67,12 @@ func main2() error {
 	}
 	var codeBuf bytes.Buffer
 	if err := tmpl.Execute(&codeBuf, p); err != nil {
-		return fmt.Errorf("cannot execute template: %v", err)
+		return errors.Newf("cannot execute template: %v", err)
 	}
 	code, err := format.Source(codeBuf.Bytes())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "invalid temporary Go code:\n-------\n%s-----\n", codeBuf.String())
-		return fmt.Errorf("invalid template code: %v", err)
+		return errors.Newf("invalid template code: %v", err)
 	}
 	// Build the binary before executing the code so we can
 	// distinguish between build errors and Avro errors.
@@ -89,13 +89,13 @@ func main2() error {
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
 		if errBuf.Len() > 0 {
-			return fmt.Errorf("cannot get Avro type: %s", strings.TrimSpace(errBuf.String()))
+			return errors.Newf("cannot get Avro type: %s", strings.TrimSpace(errBuf.String()))
 		}
 		return err
 	}
 	var indentJSON bytes.Buffer
 	if err := json.Indent(&indentJSON, outBuf.Bytes(), "", "    "); err != nil {
-		return fmt.Errorf("cannot indent JSON: %v", err)
+		return errors.Newf("cannot indent JSON: %v", err)
 	}
 	fmt.Printf("%s", indentJSON.String())
 	return nil
@@ -107,17 +107,17 @@ func buildGo(code []byte) (string, error) {
 	// TODO avoid the side-effect of adding the avro import, somehow.
 	tmpFile, err := ioutil.TempFile(".", "go2avro_temp_*.go")
 	if err != nil {
-		return "", fmt.Errorf("cannot generate temp file: %v", err)
+		return "", errors.Newf("cannot generate temp file: %v", err)
 	}
 	defer os.Remove(tmpFile.Name())
 	_, err = tmpFile.Write(code)
 	tmpFile.Close()
 	if err != nil {
-		return "", fmt.Errorf("cannot write %q: %v", tmpFile.Name(), err)
+		return "", errors.Newf("cannot write %q: %v", tmpFile.Name(), err)
 	}
 	tmpBinary, err := ioutil.TempFile(".", "go2avro_temp_bin")
 	if err != nil {
-		return "", fmt.Errorf("cannot generate temp binary file: %v", err)
+		return "", errors.Newf("cannot generate temp binary file: %v", err)
 	}
 	tmpBinary.Close()
 
@@ -126,7 +126,7 @@ func buildGo(code []byte) (string, error) {
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
 		defer os.Remove(tmpBinary.Name())
-		return "", fmt.Errorf("cannot build: %v", errBuf.String())
+		return "", errors.Newf("cannot build: %v", errBuf.String())
 	}
 	// Use explicit "./" prefix because . isn't always in $PATH.
 	return "." + string(filepath.Separator) + tmpBinary.Name(), nil

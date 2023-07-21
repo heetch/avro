@@ -80,7 +80,7 @@ func (w *walker) walk(at schema.AvroType, t reflect.Type, info typeinfo.Info) er
 			// We've found this name before. Check that it
 			// maps to the same Go type here.
 			if oldt != t {
-				return fmt.Errorf("type clash on %s: %v vs %v", at.TypeName, t, oldt)
+				return errors.Newf("type clash on %s: %v vs %v", at.TypeName, t, oldt)
 			}
 			return nil
 		} else {
@@ -89,18 +89,18 @@ func (w *walker) walk(at schema.AvroType, t reflect.Type, info typeinfo.Info) er
 		switch def := at.Def.(type) {
 		case *schema.RecordDefinition:
 			if t.Kind() != reflect.Struct {
-				return fmt.Errorf("expected struct")
+				return errors.Newf("expected struct")
 			}
 			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
 				info1, err := typeinfo.ForType(t)
 				if err != nil {
-					return fmt.Errorf("cannot get info for %s: %v", info.Type, err)
+					return errors.Newf("cannot get info for %s: %v", info.Type, err)
 				}
 				info = info1
 			}
 			if len(info.Entries) != len(def.Fields()) {
-				return fmt.Errorf("field count mismatch")
+				return errors.Newf("field count mismatch")
 			}
 			for i, f := range def.Fields() {
 				ft := t.Field(info.Entries[i].FieldIndex)
@@ -112,17 +112,17 @@ func (w *walker) walk(at schema.AvroType, t reflect.Type, info typeinfo.Info) er
 		}
 	case *schema.ArrayField:
 		if t.Kind() != reflect.Slice {
-			return fmt.Errorf("expected slice, got %s", t)
+			return errors.Newf("expected slice, got %s", t)
 		}
 		return w.walk(at.ItemType(), t.Elem(), info)
 	case *schema.MapField:
 		if t.Kind() != reflect.Map {
-			return fmt.Errorf("expected map, got %s", t)
+			return errors.Newf("expected map, got %s", t)
 		}
 		return w.walk(at.ItemType(), t.Elem(), info)
 	case *schema.UnionField:
 		if len(info.Entries) != len(at.ItemTypes()) {
-			return fmt.Errorf("union entry count mismatch")
+			return errors.Newf("union entry count mismatch")
 		}
 		for i, at := range at.ItemTypes() {
 			err := w.walk(at, info.Entries[i].Type, info.Entries[i])

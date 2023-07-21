@@ -48,7 +48,7 @@ func (e customEnum) String() string {
 // by returning the textual representation of customEnum.
 func (e customEnum) MarshalText() ([]byte, error) {
 	if e < 0 || int(e) >= len(_customEnum_strings) {
-		return nil, fmt.Errorf("customEnum value %d is out of bounds", e)
+		return nil, errors.Newf("customEnum value %d is out of bounds", e)
 	}
 	return []byte(_customEnum_strings[e]), nil
 }
@@ -63,7 +63,7 @@ func (e *customEnum) UnmarshalText(data []byte) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("unknown value %q for customEnum", data)
+	return errors.Newf("unknown value %q for customEnum", data)
 }
 
 type customFixed [2]byte

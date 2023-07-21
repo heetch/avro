@@ -2,7 +2,7 @@ package avro
 
 import (
 	"encoding/binary"
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io"
 	"math"
 )
@@ -77,7 +77,7 @@ func (d *decoder) readBytes() []byte {
 	// Make a temporary buffer for the bytes, limiting the size to
 	// an arbitrary sane default (~2.2GB).
 	if size < 0 || size > math.MaxInt32 {
-		d.error(fmt.Errorf("length out of range: %d", size))
+		d.error(errors.Newf("length out of range: %d", size))
 	}
 	return d.readFixed(int(size))
 }
@@ -110,7 +110,7 @@ func (d *decoder) readLong() int64 {
 	case nr == 0:
 		d.error(io.ErrUnexpectedEOF)
 	default:
-		d.error(fmt.Errorf("integer too large"))
+		d.error(errors.Newf("integer too large"))
 	}
 	panic("unreachable")
 }

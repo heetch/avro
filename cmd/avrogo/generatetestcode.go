@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // This program generates all the test code in internal/generated_tests from
@@ -190,7 +191,7 @@ func quote(b interface{}) string {
 	case string:
 		s = b
 	default:
-		panic(fmt.Errorf("cannot quote %T", b))
+		panic(errors.Newf("cannot quote %T", b))
 	}
 	if !strings.Contains(s, "`") {
 		return "`" + s + "`"

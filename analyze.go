@@ -2,6 +2,7 @@ package avro
 
 import (
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"log"
 	"reflect"
 	"strings"
@@ -104,18 +105,18 @@ func compileDecoder(names *Names, t reflect.Type, writerType *Type) (*decodeProg
 	// First determine the schema for the type.
 	readerType, err := avroTypeOf(names, t)
 	if err != nil {
-		return nil, fmt.Errorf("cannot determine schema for %s: %v", t, err)
+		return nil, errors.Newf("cannot determine schema for %s: %v", t, err)
 	}
 	if debugging {
 		debugf("compiling:\nwriter type: %s\nreader type: %s\n", writerType, readerType)
 	}
 	prog, err := compiler.Compile(writerType.avroType, readerType.avroType, compiler.AllowLaxNames())
 	if err != nil {
-		return nil, fmt.Errorf("cannot create decoder: %v", err)
+		return nil, errors.Newf("cannot create decoder: %v", err)
 	}
 	prog1, err := analyzeProgramTypes(prog, t, readerType.avroType)
 	if err != nil {
-		return nil, fmt.Errorf("analysis failed: %v", err)
+		return nil, errors.Newf("analysis failed: %v", err)
 	}
 	prog1.readerType = readerType
 	return prog1, nil
@@ -145,7 +146,7 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type, readerType schema.Avr
 		info:     info,
 		avroType: readerType,
 	}}); err != nil {
-		return nil, fmt.Errorf("eval: %v", err)
+		return nil, errors.Newf("eval: %v", err)
 	}
 	prog1 := &decodeProgram{
 		Program:     *prog,
@@ -158,11 +159,11 @@ func analyzeProgramTypes(prog *vm.Program, t reflect.Type, readerType schema.Avr
 		switch inst.Op {
 		case vm.Enter:
 			if prog1.enter[i] == nil {
-				return nil, fmt.Errorf("enter not set; pc %d; instruction %v", i, inst)
+				return nil, errors.Newf("enter not set; pc %d; instruction %v", i, inst)
 			}
 		case vm.SetDefault:
 			if prog1.makeDefault[i] == nil {
-				return nil, fmt.Errorf("makeDefault not set; pc %d; instruction %v", i, inst)
+				return nil, errors.Newf("makeDefault not set; pc %d; instruction %v", i, inst)
 			}
 		}
 	}
@@ -203,7 +204,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			// we should always be inside the same path if
 			// we're at the same PC.
 			if !equalPathRef(path, a.pcInfo[pc].path) {
-				return fmt.Errorf("type mismatch (\n\tprevious %s\n\tnew %s\n)", pathStr(a.pcInfo[pc].path), pathStr(path))
+				return errors.Newf("type mismatch (\n\tprevious %s\n\tnew %s\n)", pathStr(a.pcInfo[pc].path), pathStr(path))
 			}
 			if !a.pcInfo[pc].addTrace(stack) {
 				// We've been exactly here before,
@@ -235,7 +236,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			// TODO: sanity-check that if it's Set(Bytes), the previous
 			// instruction was Read(Bytes) (i.e. frame.Bytes hasn't been invalidated).
 			if !canAssignVMType(inst.Operand, elem.ftype) {
-				return fmt.Errorf("cannot assign %v to %s", operandString(inst.Operand), elem.ftype)
+				return errors.Newf("cannot assign %v to %s", operandString(inst.Operand), elem.ftype)
 			}
 		case vm.Enter:
 			index := inst.Operand
@@ -244,17 +245,17 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			}
 			enterf, newElem, err := enter(elem, index)
 			if err != nil {
-				return fmt.Errorf("cannot enter: %v", err)
+				return errors.Newf("cannot enter: %v", err)
 			}
 			path = append(path, newElem)
 			a.enter[pc] = enterf
 		case vm.AppendArray:
 			if elem.ftype.Kind() != reflect.Slice {
-				return fmt.Errorf("cannot append to %T", elem.ftype)
+				return errors.Newf("cannot append to %T", elem.ftype)
 			}
 			newElem, err := enterContainer(elem)
 			if err != nil {
-				return fmt.Errorf("cannot enter array: %v", err)
+				return errors.Newf("cannot enter array: %v", err)
 			}
 			path = append(path, newElem)
 			if debugging {
@@ -262,19 +263,19 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			}
 		case vm.AppendMap:
 			if elem.ftype.Kind() != reflect.Map {
-				return fmt.Errorf("cannot append to %T", elem.ftype)
+				return errors.Newf("cannot append to %T", elem.ftype)
 			}
 			if elem.ftype.Key().Kind() != reflect.String {
-				return fmt.Errorf("invalid key type for map %s", elem.ftype)
+				return errors.Newf("invalid key type for map %s", elem.ftype)
 			}
 			newElem, err := enterContainer(elem)
 			if err != nil {
-				return fmt.Errorf("cannot enter map: %v", err)
+				return errors.Newf("cannot enter map: %v", err)
 			}
 			path = append(path, newElem)
 		case vm.Exit:
 			if len(path) == 0 {
-				return fmt.Errorf("unbalanced exit")
+				return errors.Newf("unbalanced exit")
 			}
 			path = path[:len(path)-1]
 		case vm.SetExitNull:
@@ -283,11 +284,11 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 		case vm.SetDefault:
 			index := inst.Operand
 			if index >= len(elem.info.Entries) {
-				return fmt.Errorf("set-default index out of bounds; pc %d; type %s", pc, elem.ftype)
+				return errors.Newf("set-default index out of bounds; pc %d; type %s", pc, elem.ftype)
 			}
 			info := elem.info.Entries[index]
 			if info.MakeDefault == nil {
-				return fmt.Errorf("no default info found at index %d at %v", index, pathStr(path))
+				return errors.Newf("no default info found at index %d at %v", index, pathStr(path))
 			}
 			a.makeDefault[pc] = info.MakeDefault
 		case vm.Call:
@@ -306,7 +307,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 			}
 		case vm.Return:
 			if len(stack) == 0 {
-				return fmt.Errorf("empty stack")
+				return errors.Newf("empty stack")
 			}
 			stack = stack[:len(stack)-1]
 			calls = calls[:len(calls)-1]
@@ -347,7 +348,7 @@ func (a *analyzer) eval(stack []int, calls []int, path []pathElem) (retErr error
 		case vm.Halt:
 			return nil
 		default:
-			return fmt.Errorf("unknown instruction %v", inst.Op)
+			return errors.Newf("unknown instruction %v", inst.Op)
 		}
 		stack[len(stack)-1]++
 	}
@@ -370,10 +371,10 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 	case *schema.UnionField:
 		itemTypes := at.ItemTypes()
 		if len(elem.info.Entries) != len(itemTypes) {
-			return nil, pathElem{}, fmt.Errorf("union type mismatch")
+			return nil, pathElem{}, errors.Newf("union type mismatch")
 		}
 		if index >= len(elem.info.Entries) {
-			return nil, pathElem{}, fmt.Errorf("union index out of bounds")
+			return nil, pathElem{}, errors.Newf("union index out of bounds")
 		}
 
 		entryType = itemTypes[index]
@@ -383,7 +384,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 		case *schema.RecordDefinition:
 			fields := def.Fields()
 			if index >= len(fields) {
-				return nil, pathElem{}, fmt.Errorf("field index out of bounds (%d/%d)", index, len(fields))
+				return nil, pathElem{}, errors.Newf("field index out of bounds (%d/%d)", index, len(fields))
 			}
 			field := fields[index]
 			// The reader type might not exactly match the
@@ -394,15 +395,15 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 			// for a field that matches the Avro field.
 			info1, ok := entryByName(elem.info.Entries, field.Name())
 			if !ok {
-				return nil, pathElem{}, fmt.Errorf("could not find entry for field %q in %v", field.Name(), elem.ftype)
+				return nil, pathElem{}, errors.Newf("could not find entry for field %q in %v", field.Name(), elem.ftype)
 			}
 			info = info1
 			entryType = field.Type()
 		default:
-			return nil, pathElem{}, fmt.Errorf("unexpected Enter on Avro definition %T", def)
+			return nil, pathElem{}, errors.Newf("unexpected Enter on Avro definition %T", def)
 		}
 	default:
-		return nil, pathElem{}, fmt.Errorf("unexpected Enter on Avro type %T", at)
+		return nil, pathElem{}, errors.Newf("unexpected Enter on Avro type %T", at)
 	}
 	if info.Type == nil {
 		// Special case for the nil type. Return
@@ -415,7 +416,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 		// The type itself might contribute information.
 		info1, err := typeinfo.ForType(info.Type)
 		if err != nil {
-			return nil, pathElem{}, fmt.Errorf("cannot get info for %s: %v", info.Type, err)
+			return nil, pathElem{}, errors.Newf("cannot get info for %s: %v", info.Type, err)
 		}
 		info1.FieldIndex = info.FieldIndex
 		info = info1
@@ -439,7 +440,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 		}
 	case reflect.Ptr:
 		if len(elem.info.Entries) != 2 {
-			return nil, pathElem{}, fmt.Errorf("pointer type without a two-member union")
+			return nil, pathElem{}, errors.Newf("pointer type without a two-member union")
 		}
 		enter = func(v reflect.Value) (reflect.Value, bool) {
 			inner := reflect.New(info.Type)
@@ -447,7 +448,7 @@ func enter(elem pathElem, index int) (enterFunc, pathElem, error) {
 			return inner.Elem(), true
 		}
 	default:
-		return nil, pathElem{}, fmt.Errorf("unexpected type %v for Enter", elem.ftype)
+		return nil, pathElem{}, errors.Newf("unexpected type %v for Enter", elem.ftype)
 	}
 	return enter, newElem, nil
 }
@@ -468,7 +469,7 @@ func enterContainer(elem pathElem) (pathElem, error) {
 		// The type itself might contribute information.
 		info, err := typeinfo.ForType(elem1.ftype)
 		if err != nil {
-			return pathElem{}, fmt.Errorf("cannot get info for %s: %v", info.Type, err)
+			return pathElem{}, errors.Newf("cannot get info for %s: %v", info.Type, err)
 		}
 		elem1.info = info
 	}

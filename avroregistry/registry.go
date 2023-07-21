@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -61,10 +62,10 @@ func New(p Params) (*Registry, error) {
 		p.RetryStrategy = defaultRetryStrategy
 	}
 	if p.ServerURL == "" {
-		return nil, fmt.Errorf("no server address found for Avro registry")
+		return nil, errors.Newf("no server address found for Avro registry")
 	}
 	if u, err := url.Parse(p.ServerURL); err != nil || u.Scheme == "" {
-		return nil, fmt.Errorf("invalid server address %q", p.ServerURL)
+		return nil, errors.Newf("invalid server address %q", p.ServerURL)
 	}
 	return &Registry{
 		params: p,
@@ -157,9 +158,9 @@ func validateVersion(version string) error {
 		if version == "latest" {
 			return nil
 		}
-		return fmt.Errorf("%s: %w", msg, err)
+		return errors.Newf("%s: %w", msg, err)
 	} else if i < 1 || i > 1<<31-1 {
-		return fmt.Errorf("%s: %d provided", msg, i)
+		return errors.Newf("%s: %d provided", msg, i)
 	}
 
 	return nil
@@ -228,13 +229,13 @@ func unmarshalResponse(req *http.Request, resp *http.Response, result interface{
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
 		if err := httprequest.UnmarshalJSONResponse(resp, result); err != nil {
-			return fmt.Errorf("cannot unmarshal JSON response from %v: %v", req.URL, err)
+			return errors.Newf("cannot unmarshal JSON response from %v: %v", req.URL, err)
 		}
 		return nil
 	}
 	var apiErr apiError
 	if err := httprequest.UnmarshalJSONResponse(resp, &apiErr); err != nil {
-		return fmt.Errorf("cannot unmarshal JSON error response from %v: %v", req.URL, err)
+		return errors.Newf("cannot unmarshal JSON error response from %v: %v", req.URL, err)
 	}
 	apiErr.StatusCode = resp.StatusCode
 	return &apiErr

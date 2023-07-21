@@ -108,7 +108,7 @@ var bodyTemplate = newTemplate(`
 		// by returning the textual representation of «defName .».
 		func (e «defName .») MarshalText() ([]byte, error) {
 			if e < 0 || int(e) >= len(_«defName .»_strings) {
-				return nil, fmt.Errorf("«defName .» value %d is out of bounds", e)
+				return nil, errors.Newf("«defName .» value %d is out of bounds", e)
 			}
 			return []byte(_«defName .»_strings[e]), nil
 		}
@@ -123,7 +123,7 @@ var bodyTemplate = newTemplate(`
 					return nil
 				}
 			}
-			return fmt.Errorf("unknown value %q for «defName .»", data)
+			return errors.Newf("unknown value %q for «defName .»", data)
 		}
 	«else if eq (typeof .) "FixedDefinition"»
 		«- doc "// " . -»

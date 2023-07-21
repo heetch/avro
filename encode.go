@@ -3,7 +3,7 @@ package avro
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"math"
 	"reflect"
 	"sort"
@@ -114,13 +114,13 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 		switch def := at.Def.(type) {
 		case *schema.RecordDefinition:
 			if t.Kind() != reflect.Struct {
-				return errorEncoder(fmt.Errorf("expected struct"))
+				return errorEncoder(errors.Newf("expected struct"))
 			}
 			if len(info.Entries) == 0 {
 				// The type itself might contribute information.
 				info1, err := typeinfo.ForType(t)
 				if err != nil {
-					return errorEncoder(fmt.Errorf("cannot get info for %s: %v", info.Type, err))
+					return errorEncoder(errors.Newf("cannot get info for %s: %v", info.Type, err))
 				}
 				info = info1
 			}
@@ -143,7 +143,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			for i, f := range def.Fields() {
 				fieldInfo, ok := entryByName(info.Entries, f.Name())
 				if !ok {
-					return errorEncoder(fmt.Errorf("field %q not found in %s", f.Name(), t))
+					return errorEncoder(errors.Newf("field %q not found in %s", f.Name(), t))
 				}
 				fieldIndex := fieldInfo.FieldIndex
 				fieldEncoders[i] = b.typeEncoder(f.Type(), t.Field(fieldIndex).Type, info.Entries[i])
@@ -159,7 +159,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 		case *schema.FixedDefinition:
 			return fixedEncoder{def.SizeBytes()}.encode
 		default:
-			return errorEncoder(fmt.Errorf("unknown definition type %T", def))
+			return errorEncoder(errors.Newf("unknown definition type %T", def))
 		}
 	case *schema.UnionField:
 		atypes := at.ItemTypes()
@@ -167,7 +167,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 		case reflect.Ptr:
 			// It's a union of null and one other type, represented by a Go pointer.
 			if len(atypes) != 2 {
-				return errorEncoder(fmt.Errorf("unexpected item type count in union"))
+				return errorEncoder(errors.Newf("unexpected item type count in union"))
 			}
 			switch {
 			case info.Entries[0].Type == nil:
@@ -181,7 +181,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 					encodeElem: b.typeEncoder(atypes[0], info.Entries[0].Type, info.Entries[0]),
 				}.encode
 			default:
-				return errorEncoder(fmt.Errorf("unexpected types in union"))
+				return errorEncoder(errors.Newf("unexpected types in union"))
 			}
 		case reflect.Interface:
 			enc := unionEncoder{
@@ -200,7 +200,7 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			}
 			return enc.encode
 		default:
-			return errorEncoder(fmt.Errorf("union type is not pointer or interface"))
+			return errorEncoder(errors.Newf("union type is not pointer or interface"))
 		}
 	case *schema.MapField:
 		return mapEncoder{b.typeEncoder(at.ItemType(), t.Elem(), info)}.encode
@@ -225,13 +225,13 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 				return timestampMicrosEncoder
 			} else {
 				// TODO timestamp-millis support.
-				return errorEncoder(fmt.Errorf("cannot encode time.Time as long with logical type %q", lt))
+				return errorEncoder(errors.Newf("cannot encode time.Time as long with logical type %q", lt))
 			}
 		case durationType:
 			if lt := logicalType(at); lt == durationNanos {
 				return durationNanosEncoder
 			} else {
-				return errorEncoder(fmt.Errorf("cannot encode %t as long with logical type %q", t, lt))
+				return errorEncoder(errors.Newf("cannot encode %t as long with logical type %q", t, lt))
 			}
 		default:
 			return longEncoder
@@ -241,12 +241,12 @@ func (b *encoderBuilder) typeEncoder(at schema.AvroType, t reflect.Type, info ty
 			if lt := logicalType(at); lt == uuid {
 				return uuidEncoder
 			} else {
-				return errorEncoder(fmt.Errorf("cannot encode %v as string with logical type %q", t, lt))
+				return errorEncoder(errors.Newf("cannot encode %v as string with logical type %q", t, lt))
 			}
 		}
 		return stringEncoder
 	default:
-		return errorEncoder(fmt.Errorf("unknown avro schema type %T", at))
+		return errorEncoder(errors.Newf("unknown avro schema type %T", at))
 	}
 }
 
@@ -424,7 +424,7 @@ func (ue unionEncoder) encode(e *encodeState, v reflect.Value) {
 			e.writeLong(int64(ue.nullIndex))
 			return
 		}
-		e.error(fmt.Errorf("nil value not allowed"))
+		e.error(errors.Newf("nil value not allowed"))
 	}
 	v = v.Elem()
 	vt := v.Type()
@@ -435,7 +435,7 @@ func (ue unionEncoder) encode(e *encodeState, v reflect.Value) {
 			return
 		}
 	}
-	e.error(fmt.Errorf("unknown type for union %s", vt))
+	e.error(errors.Newf("unknown type for union %s", vt))
 }
 
 type ptrUnionEncoder struct {

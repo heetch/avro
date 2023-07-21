@@ -2,7 +2,7 @@ package avro
 
 import (
 	"encoding/json"
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"strings"
 	"sync"
 
@@ -216,10 +216,10 @@ func (c *canonicalizer) canonicalValue1(at schema.AvroType) interface{} {
 			}
 			return cf
 		default:
-			panic(fmt.Errorf("unknown definition type %T", def))
+			panic(errors.Newf("unknown definition type %T", def))
 		}
 	default:
-		panic(fmt.Errorf("unknown Avro type %T", at))
+		panic(errors.Newf("unknown Avro type %T", at))
 	}
 }
 

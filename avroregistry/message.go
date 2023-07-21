@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 
 	"github.com/heetch/avro"
 )
@@ -83,7 +84,7 @@ func (r decodingRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type
 	}
 	t, err := avro.ParseType(resp.Schema)
 	if err != nil {
-		return nil, fmt.Errorf("invalid schema (%q) in response: %v", resp.Schema, err)
+		return nil, errors.Newf("invalid schema (%q) in response: %v", resp.Schema, err)
 	}
 	return t, nil
 }

@@ -60,17 +60,17 @@ func externalTypeMap(ns *parser.Namespace) (map[schema.QualifiedName]goType, err
 		if !ok {
 			// We should have acquired the necessary info
 			// with externalTypeInfoForGoTypes above.
-			panic(fmt.Errorf("type info for %s not found", gt))
+			panic(errors.Newf("type info for %s not found", gt))
 		}
 		extType, err := typeinfo.ParseSchema(info.Schema, nil)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse schema from external type: %v", err)
+			return nil, errors.Newf("cannot parse schema from external type: %v", err)
 		}
 		if err := checkGoCompatible(name.String(), &schema.Reference{
 			TypeName: name,
 			Def:      def,
 		}, extType, make(map[schema.AvroType]bool)); err != nil {
-			return nil, fmt.Errorf("external type is not compatible; external schema %s; name %s: %v", info.Schema, name, err)
+			return nil, errors.Newf("external type is not compatible; external schema %s; name %s: %v", info.Schema, name, err)
 		}
 		for qname, extType := range info.Map {
 			name := parser.ParseAvroName("", qname)
@@ -79,7 +79,7 @@ func externalTypeMap(ns *parser.Namespace) (map[schema.QualifiedName]goType, err
 			} else if extType != extType0 {
 				// We've found another mention of the same Avro type that's
 				// associated with a different Go type.
-				return nil, fmt.Errorf("different external names for Avro name %s (%s vs %s)", name, extType, extType0)
+				return nil, errors.Newf("different external names for Avro name %s (%s vs %s)", name, extType, extType0)
 			}
 		}
 	}
@@ -126,12 +126,12 @@ func externalTypeInfoForGoTypes(gts map[goType]bool) (map[goType]avrotypemap.Ext
 	}
 	var buf bytes.Buffer
 	if err := typeInfoMainTemplate.Execute(&buf, mp); err != nil {
-		return nil, fmt.Errorf("cannot execute type info main template: %v", err)
+		return nil, errors.Newf("cannot execute type info main template: %v", err)
 	}
 	resultData, err := format.Source(buf.Bytes())
 	if err != nil {
 		fmt.Printf("%s\n", buf.Bytes())
-		return nil, fmt.Errorf("cannot format typeinfo source: %v", err)
+		return nil, errors.Newf("cannot format typeinfo source: %v", err)
 	}
 	f, err := ioutil.TempFile(*dirFlag, "avro-introspect*.go")
 	if err != nil {
@@ -141,7 +141,7 @@ func externalTypeInfoForGoTypes(gts map[goType]bool) (map[goType]avrotypemap.Ext
 	defer os.Remove(prog)
 	defer f.Close()
 	if _, err := f.Write(resultData); err != nil {
-		return nil, fmt.Errorf("cannot write %q: %v", f.Name(), err)
+		return nil, errors.Newf("cannot write %q: %v", f.Name(), err)
 	}
 	f.Close()
 	var runStdout bytes.Buffer
@@ -150,14 +150,14 @@ func externalTypeInfoForGoTypes(gts map[goType]bool) (map[goType]avrotypemap.Ext
 	cmd.Stdout = &runStdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to run introspect program: %v", err)
+		return nil, errors.Newf("failed to run introspect program: %v", err)
 	}
 	var resultSlice []avrotypemap.ExternalTypeResult
 	if err := json.Unmarshal(runStdout.Bytes(), &resultSlice); err != nil {
-		return nil, fmt.Errorf("cannot unmarshal introspect output %q: %v", runStdout.Bytes(), err)
+		return nil, errors.Newf("cannot unmarshal introspect output %q: %v", runStdout.Bytes(), err)
 	}
 	if len(resultSlice) != len(gts) {
-		return nil, fmt.Errorf("unexpected result count, got %d want %d", len(resultSlice), len(gts))
+		return nil, errors.Newf("unexpected result count, got %d want %d", len(resultSlice), len(gts))
 	}
 	results := make(map[goType]avrotypemap.ExternalTypeResult)
 	for i, result := range resultSlice {
@@ -222,11 +222,11 @@ func main() {
 func infoForType(t reflect.Type) (*avro.Type, map[string]avrotypemap.GoType, error) {
 	at, err := avro.TypeOf(reflect.Zero(t).Interface())
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot get Avro type for %s: %v", t, err)
+		return nil, nil, errors.Newf("cannot get Avro type for %s: %v", t, err)
 	}
 	m, err := avrotypemap.AvroTypeMap(t)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot get type map for %s: %v", t, err)
+		return nil, nil, errors.Newf("cannot get type map for %s: %v", t, err)
 	}
 	return at, m, nil
 }
@@ -303,7 +303,7 @@ func checkGoCompatible(path string, t1, t2 schema.AvroType, checked map[schema.A
 				return compatErrorf(path, "fixed size changed value")
 			}
 		default:
-			panic(fmt.Errorf("unknown definition type %T", t1def))
+			panic(errors.Newf("unknown definition type %T", t1def))
 		}
 	case *schema.UnionField:
 		// All members of the union must be compatible.
@@ -313,7 +313,7 @@ func checkGoCompatible(path string, t1, t2 schema.AvroType, checked map[schema.A
 		if len(itemTypes1) != len(itemTypes2) {
 			// TODO we could potentially let the external type add new
 			// union members.
-			return fmt.Errorf("union type mismatch")
+			return errors.Newf("union type mismatch")
 		}
 		for i := range itemTypes1 {
 			if err := checkGoCompatible(path+fmt.Sprintf("[u%d]", i), itemTypes1[i], itemTypes2[i], checked); err != nil {
@@ -327,7 +327,7 @@ func checkGoCompatible(path string, t1, t2 schema.AvroType, checked map[schema.A
 	case *schema.LongField:
 		if logicalType(t1) != logicalType(t2) {
 			// TODO check for timestamp-micros only?
-			return fmt.Errorf("logical type mismatch")
+			return errors.Newf("logical type mismatch")
 		}
 	}
 	// We already know the type matches and there's nothing

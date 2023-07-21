@@ -1,7 +1,6 @@
 package typeinfo
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -67,7 +66,7 @@ func ForType(t reflect.Type) (Info, error) {
 			if f.Anonymous {
 				// TODO consider struct embedding.
 				// https://github.com/heetch/avro/issues/40
-				return Info{}, fmt.Errorf("anonymous fields not supported")
+				return Info{}, errors.Newf("anonymous fields not supported")
 			}
 			if shouldOmitField(f) {
 				continue

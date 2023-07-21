@@ -3,7 +3,6 @@ package avrotestdata
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 )
@@ -35,14 +34,14 @@ func Load(dir string) (map[string]Test, error) {
 	cmd.Stdout = &buf
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("cue export failed: %v", err)
+		return nil, errors.Newf("cue export failed: %v", err)
 	}
 	var exported struct {
 		Tests map[string]Test `json:"tests"`
 	}
 	err = json.Unmarshal(buf.Bytes(), &exported)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal test data: %v", err)
+		return nil, errors.Newf("cannot unmarshal test data: %v", err)
 	}
 	return exported.Tests, nil
 }

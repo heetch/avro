@@ -2,7 +2,7 @@ package avro
 
 import (
 	"context"
-	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"reflect"
 	"sync"
 )
@@ -82,17 +82,17 @@ func NewSingleDecoder(r DecodingRegistry, names *Names) *SingleDecoder {
 func (c *SingleDecoder) Unmarshal(ctx context.Context, data []byte, x interface{}) (*Type, error) {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("cannot decode into non-pointer value %T", x)
+		return nil, errors.Newf("cannot decode into non-pointer value %T", x)
 	}
 	v = v.Elem()
 	vt := v.Type()
 	wID, body := c.registry.DecodeSchemaID(data)
 	if wID == 0 && body == nil {
-		return nil, fmt.Errorf("cannot get schema ID from message")
+		return nil, errors.Newf("cannot get schema ID from message")
 	}
 	prog, err := c.getProgram(ctx, vt, wID)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal: %v", err)
+		return nil, errors.Newf("cannot unmarshal: %v", err)
 	}
 	return unmarshal(nil, body, prog, v)
 }
