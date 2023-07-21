@@ -44,5 +44,5 @@ func randomName(prefix string) string {
 	if _, err := rand.Read(buf); err != nil {
 		panic(err)
 	}
-	return fmt.Errorf("%s%x", prefix, buf).Error()
+	return fmt.Errorf("%s%x", prefix, buf)
 }
