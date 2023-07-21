@@ -1,6 +1,7 @@
 package typeinfo
 
 import (
+	"gopkg.in/errgo.v2/fmt/errors"
 	"log"
 	"reflect"
 	"strings"

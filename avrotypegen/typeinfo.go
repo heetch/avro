@@ -2,6 +2,8 @@
 // This is an implementation detail and this might change over time.
 package avrotypegen
 
+import "gopkg.in/errgo.v2/fmt/errors"
+
 // AvroRecord is implemented by Go types generated
 // by the avrogo command.
 type AvroRecord interface {

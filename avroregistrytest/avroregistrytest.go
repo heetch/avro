@@ -2,6 +2,7 @@ package avroregistrytest
 
 import (
 	"context"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"os"
 
 	"github.com/heetch/avro"

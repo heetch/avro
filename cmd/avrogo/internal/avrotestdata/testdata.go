@@ -3,6 +3,7 @@ package avrotestdata
 import (
 	"bytes"
 	"encoding/json"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"os"
 	"os/exec"
 )

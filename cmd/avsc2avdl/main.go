@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	stdflag "flag"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io/ioutil"
 	"os"
 	"reflect"

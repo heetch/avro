@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io"
 	"regexp"
 	"sort"

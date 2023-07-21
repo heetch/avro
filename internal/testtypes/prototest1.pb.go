@@ -7,6 +7,7 @@
 package testtypes
 
 import (
+	"gopkg.in/errgo.v2/fmt/errors"
 	math "math"
 )
 

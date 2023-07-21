@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/format"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io/ioutil"
 	"os"
 	"os/exec"

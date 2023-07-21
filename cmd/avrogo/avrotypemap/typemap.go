@@ -4,6 +4,7 @@ package avrotypemap
 
 import (
 	"fmt"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"reflect"
 
 	"github.com/actgardner/gogen-avro/v10/schema"

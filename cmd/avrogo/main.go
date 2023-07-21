@@ -33,6 +33,7 @@ import (
 	stdflag "flag"
 	"fmt"
 	"go/format"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"io/ioutil"
 	"os"
 	"path"

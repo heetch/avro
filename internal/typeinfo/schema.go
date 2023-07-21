@@ -4,6 +4,7 @@ import (
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/resolver"
 	"github.com/actgardner/gogen-avro/v10/schema"
+	"gopkg.in/errgo.v2/fmt/errors"
 )
 
 // ParseSchema parses the given Avro type and resolves
