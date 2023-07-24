@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"io"
 	"regexp"
 	"sort"
@@ -423,7 +425,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 func goName(s string) (string, error) {
 	lastIndex := strings.LastIndex(s, ".")
 	name := s[lastIndex+1:]
-	name = strings.Title(strings.Trim(name, "_"))
+	name = cases.Title(language.Und).String(strings.Trim(name, "_"))
 	if !isExportedGoIdentifier(name) {
 		return "", fmt.Errorf("cannot form an exported Go identifier from %q", s)
 	}

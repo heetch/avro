@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -133,7 +132,7 @@ func externalTypeInfoForGoTypes(gts map[goType]bool) (map[goType]avrotypemap.Ext
 		fmt.Printf("%s\n", buf.Bytes())
 		return nil, fmt.Errorf("cannot format typeinfo source: %v", err)
 	}
-	f, err := ioutil.TempFile(*dirFlag, "avro-introspect*.go")
+	f, err := os.CreateTemp(*dirFlag, "avro-introspect*.go")
 	if err != nil {
 		return nil, err
 	}

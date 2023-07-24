@@ -9,16 +9,16 @@
 //
 // Usage:
 //
-//	usage: avrogo [flags] schema-file...
-//	  -d string
-//	    	directory to write Go files to (default ".")
-//	  -p string
-//	    	package name (defaults to $GOPACKAGE)
-//	  -t	generated files will have _test.go suffix
-//	  -s string
-//	    	suffix for generated files (default "_gen")
-//    -tokenize
-//          if true, generate one dedicated file per qualified name found in the schema files
+//		usage: avrogo [flags] schema-file...
+//		  -d string
+//		    	directory to write Go files to (default ".")
+//		  -p string
+//		    	package name (defaults to $GOPACKAGE)
+//		  -t	generated files will have _test.go suffix
+//		  -s string
+//		    	suffix for generated files (default "_gen")
+//	   -tokenize
+//	         if true, generate one dedicated file per qualified name found in the schema files
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -33,7 +33,6 @@ import (
 	stdflag "flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -216,7 +215,7 @@ func generateFile(outFile string, ns *parser.Namespace, definitions []schema.Qua
 		return fmt.Errorf("cannot create output directory: %v", err)
 	}
 	outFile = filepath.Join(*dirFlag, outFile)
-	if err := ioutil.WriteFile(outFile, resultData, 0666); err != nil {
+	if err := os.WriteFile(outFile, resultData, 0666); err != nil {
 		return err
 	}
 	return nil
@@ -230,7 +229,7 @@ func parseFiles(files []string) (*parser.Namespace, [][]schema.QualifiedName, er
 	var fileDefinitions [][]schema.QualifiedName
 	ns := parser.NewNamespace(false)
 	for _, f := range files {
-		data, err := ioutil.ReadFile(f)
+		data, err := os.ReadFile(f)
 		if err != nil {
 			return nil, nil, err
 		}
