@@ -51,7 +51,7 @@ jobs:
           (cd /usr/local/bin && tar xzf $tgz cue)
       - name: "Lint: static"
         id: lint-static
-        continue-on-error: true
+        continue-on-error: false
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.52.2
