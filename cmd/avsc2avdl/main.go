@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	stdflag "flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
@@ -48,7 +47,7 @@ func main1() int {
 // avsc2avdl converts the AVSC data in the file avscFile and writes
 // it to outFile (or stdout if outFile is empty).
 func avsc2avdl(avscFile, outFile string) error {
-	data, err := ioutil.ReadFile(avscFile)
+	data, err := os.ReadFile(avscFile)
 	if err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func avsc2avdl(avscFile, outFile string) error {
 	if outFile == "" {
 		os.Stdout.Write(g.buf.Bytes())
 	} else {
-		err := ioutil.WriteFile(outFile, g.buf.Bytes(), 0666)
+		err := os.WriteFile(outFile, g.buf.Bytes(), 0666)
 		if err != nil {
 			return fmt.Errorf("cannot create output file: %v", err)
 		}

@@ -85,6 +85,7 @@ func TestEmptyGoStructType(t *testing.T) {
 	c.Check(x, qt.Equals, T{})
 }
 
+//nolint:all
 func TestGoTypeWithOmittedFields(t *testing.T) {
 	c := qt.New(t)
 	type R struct {
@@ -301,6 +302,7 @@ func TestGoTypeWithDuration(t *testing.T) {
 	})
 }
 
+//nolint:all
 func TestGoTypeWithStructField(t *testing.T) {
 	c := qt.New(t)
 	type F2 struct {

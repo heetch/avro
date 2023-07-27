@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // This program generates all the test code in internal/generated_tests from
@@ -11,7 +12,6 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -113,7 +113,7 @@ func main() {
 					f = fmt.Sprintf("schema%d.avsc", i)
 				}
 				file := filepath.Join(dir, f)
-				err = ioutil.WriteFile(file, schema, 0666)
+				err = os.WriteFile(file, schema, 0666)
 				check("create schema file", err)
 				schemaFiles = append(schemaFiles, f)
 			}
@@ -152,7 +152,7 @@ func main() {
 		} else {
 			// The Go tool seems to require at least some
 			// non-test code, at least when run with coverage engaged.
-			err = ioutil.WriteFile(filepath.Join(dir, "dummy.go"), []byte("package "+test.TestName+"\n"), 0666)
+			err = os.WriteFile(filepath.Join(dir, "dummy.go"), []byte("package "+test.TestName+"\n"), 0666)
 			check("write dummy", err)
 		}
 		var buf bytes.Buffer
@@ -163,7 +163,7 @@ func main() {
 			goSource = buf.Bytes()
 		}
 		outFile := filepath.Join(dir, "roundtrip_test.go")
-		err = ioutil.WriteFile(outFile, goSource, 0666)
+		err = os.WriteFile(outFile, goSource, 0666)
 		check("write test go file", err)
 		if fmtErr != nil {
 			check("gofmt test code "+outFile, fmtErr)
@@ -171,7 +171,7 @@ func main() {
 		if test.OtherTests != "" {
 			otherTest, err := format.Source([]byte(test.OtherTests))
 			check("format other tests", err)
-			err = ioutil.WriteFile(filepath.Join(dir, "other_test.go"), otherTest, 0666)
+			err = os.WriteFile(filepath.Join(dir, "other_test.go"), otherTest, 0666)
 			check("write other tests", err)
 		}
 	}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"go/token"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -140,7 +142,7 @@ func defName(def schema.Definition) string {
 }
 
 func symbolName(e *schema.EnumDefinition, symbol string) string {
-	return defName(e) + strings.Title(symbol)
+	return defName(e) + cases.Title(language.Und).String(symbol)
 }
 
 func quote(s string) string {

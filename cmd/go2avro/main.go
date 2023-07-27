@@ -7,7 +7,6 @@ import (
 	stdflag "flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -105,7 +104,7 @@ func buildGo(code []byte) (string, error) {
 	// Create the Go file in the current directory so that we
 	// take advantage of the current Go module.
 	// TODO avoid the side-effect of adding the avro import, somehow.
-	tmpFile, err := ioutil.TempFile(".", "go2avro_temp_*.go")
+	tmpFile, err := os.CreateTemp(".", "go2avro_temp_*.go")
 	if err != nil {
 		return "", fmt.Errorf("cannot generate temp file: %v", err)
 	}
@@ -115,7 +114,7 @@ func buildGo(code []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot write %q: %v", tmpFile.Name(), err)
 	}
-	tmpBinary, err := ioutil.TempFile(".", "go2avro_temp_bin")
+	tmpBinary, err := os.CreateTemp(".", "go2avro_temp_bin")
 	if err != nil {
 		return "", fmt.Errorf("cannot generate temp binary file: %v", err)
 	}
