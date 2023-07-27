@@ -8,11 +8,13 @@ on:
     paths:
       - '**.go'
       - 'go.*'
+      - '**.cue'
       - Makefile
   pull_request:
     paths:
       - '**.go'
       - 'go.*'
+      - '**.cue'
       - Makefile
 
 concurrency:
