@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 // DecodingRegistry is used by SingleDecoder to find information
@@ -111,21 +112,19 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 
 	var err error
 	if wType != nil {
-		if es, ok := wType.avroType.(errorSchema); ok {
+		if es, ok := wType.avroType.(errorSchema); ok && (es.invalidAfter.IsZero() || time.Now().Before(es.invalidAfter)) {
 			return nil, es.err
 		}
-	} else {
-		// We haven't seen the writer schema before, so try to fetch it.
-		wType, err = c.registry.SchemaForID(ctx, wID)
-		// TODO look at the SchemaForID error
-		// and return an error without caching it if it's temporary?
-		// See https://github.com/heetch/avro/issues/39
 	}
+
+	// We haven't seen the writer schema before or enough time has passed since fetching failed, so try to fetch it.
+	wType, err = c.registry.SchemaForID(ctx, wID)
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err != nil {
 		c.writerTypes[wID] = &Type{
-			avroType: errorSchema{err: err},
+			avroType: errorSchema{err: err, invalidAfter: time.Now().Add(1 * time.Minute)},
 		}
 		return nil, err
 	}
