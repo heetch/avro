@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/actgardner/gogen-avro/v10 v10.2.1
+	github.com/ettle/strcase v0.2.0
 	github.com/frankban/quicktest v1.14.0
 	github.com/google/uuid v1.3.0
 	github.com/kr/pretty v0.3.0
