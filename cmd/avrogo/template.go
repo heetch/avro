@@ -8,9 +8,6 @@ import (
 	"strings"
 	"text/template"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
 )
@@ -92,7 +89,7 @@ var bodyTemplate = newTemplate(`
 		type «defName .» int
 		const (
 		«- range $i, $sym := .Symbols»
-		«symbolName $def $sym»«if eq $i 0» «defName $def» = iota«end»
+		«symbolName $.Ctx $def $sym»«if eq $i 0» «defName $def» = iota«end»
 		«- end»
 		)
 
@@ -144,8 +141,8 @@ func defName(def schema.Definition) string {
 	return goTypeForDefinition(def).Name
 }
 
-func symbolName(e *schema.EnumDefinition, symbol string) string {
-	return defName(e) + cases.Title(language.Und).String(symbol)
+func symbolName(gc *generateContext, e *schema.EnumDefinition, symbol string) string {
+	return defName(e) + gc.caser(symbol)
 }
 
 func quote(s string) string {

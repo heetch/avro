@@ -138,3 +138,66 @@ func TestGoName(t *testing.T) {
 		})
 	}
 }
+
+func TestSymbolName(t *testing.T) {
+	enumDef := avro.NewEnumDefinition(avro.QualifiedName{Namespace: "ns", Name: "name"}, nil, nil, "", "", nil)
+
+	var testcases = []struct {
+		testName         string
+		goInitialisms    bool
+		extraInitialisms string
+		symbol           string
+		goName           string
+	}{
+		{
+			testName:      "default naming",
+			goInitialisms: false,
+			symbol:        "OPTION_ONE",
+			goName:        "NameOption_one",
+		},
+		{
+			testName:      "Go initialisms",
+			goInitialisms: true,
+			symbol:        "OPTION_ONE",
+			goName:        "NameOptionOne",
+		},
+		{
+			testName:      "default naming with ID",
+			goInitialisms: false,
+			symbol:        "OPTION_ID",
+			goName:        "NameOption_id",
+		},
+		{
+			testName:      "Go initialisms with ID",
+			goInitialisms: true,
+			symbol:        "OPTION_ID",
+			goName:        "NameOptionID",
+		},
+		{
+			testName:      "Go initialisms without extra initialisms",
+			goInitialisms: true,
+			symbol:        "OPTION_TWO",
+			goName:        "NameOptionTwo",
+		},
+		{
+			testName:         "Go initialisms with extra initialisms",
+			goInitialisms:    true,
+			extraInitialisms: "ONE,TWO,THREE",
+			symbol:           "OPTION_TWO",
+			goName:           "NameOptionTWO",
+		},
+	}
+
+	c := qt.New(t)
+
+	for _, test := range testcases {
+		c.Run(test.testName, func(c *qt.C) {
+			goInitalismFlag = &test.goInitialisms
+			extraInitialismsFlag = &test.extraInitialisms
+			gc := generateContext{caser: getCaser()}
+
+			gotName := symbolName(&gc, enumDef, test.symbol)
+			c.Assert(gotName, qt.Equals, test.goName)
+		})
+	}
+}
