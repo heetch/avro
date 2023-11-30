@@ -2,13 +2,14 @@ package main
 
 import (
 	"go/token"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
@@ -27,9 +28,11 @@ var templateFuncs = template.FuncMap{
 	"isExportedGoIdentifier": isExportedGoIdentifier,
 	"defName":                defName,
 	"symbolName":             symbolName,
-	"goName":                 goName,
-	"indent":                 indent,
-	"doc":                    doc,
+	"goName": func(gc *generateContext, name string) (string, error) {
+		return gc.goName(name)
+	},
+	"indent": indent,
+	"doc":    doc,
 	"import": func(gc *generateContext, pkg string) string {
 		gc.addImport(pkg)
 		return ""
@@ -73,7 +76,7 @@ var bodyTemplate = newTemplate(`
 			«- if isExportedGoIdentifier .Name»
 				«- .Name» «$type.GoType»
 			«- else»
-				«- goName .Name» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
+				«- goName $.Ctx .Name» «$type.GoType» ` + "`" + `json:«printf "%q" .Name»` + "`" + `
 			«- end»
 		«end»
 		}
