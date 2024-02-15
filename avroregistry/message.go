@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/heetch/avro"
 )
@@ -74,7 +76,8 @@ func (r decodingRegistry) DecodeSchemaID(msg []byte) (int64, []byte) {
 //
 // See https://docs.confluent.io/current/schema-registry/develop/api.html#get--schemas-ids-int-%20id
 func (r decodingRegistry) SchemaForID(ctx context.Context, id int64) (*avro.Type, error) {
-	req := r.r.newRequest(ctx, "GET", fmt.Sprintf("/schemas/ids/%d", id), nil)
+	req := r.r.newRequest(ctx, http.MethodGet, fmt.Sprintf("/schemas/ids/%d", id), nil)
+	log.Printf("=======> %d getting schema with ID: %s", id, req.URL.String())
 	var resp struct {
 		Schema string `json:"schema"`
 	}
