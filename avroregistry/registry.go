@@ -190,7 +190,7 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			if !attempt.More() || !isTemporaryError(err) {
-				return err
+				return &UnavailableError{err}
 			}
 			continue
 		}
@@ -201,7 +201,7 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		if !attempt.More() {
 			return err
 		}
-		if err, ok := err.(*apiError); ok && err.StatusCode/100 != 5 {
+		if err, ok := err.(*apiError); ok && err.StatusCode != http.StatusInternalServerError {
 			// It's not a 5xx error. We want to retry on 5xx
 			// errors, because the Confluent Avro registry
 			// can occasionally return them as a matter of

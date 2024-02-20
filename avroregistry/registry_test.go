@@ -36,6 +36,31 @@ func TestRegister(t *testing.T) {
 	c.Assert(id1, qt.Equals, id)
 }
 
+func TestSchemaRegistryUnavailableError(t *testing.T) {
+	c := qt.New(t)
+	ctx := context.Background()
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	}))
+
+	// close the server
+	testServer.Close()
+
+	registry, err := avroregistry.New(avroregistry.Params{
+		ServerURL:     testServer.URL,
+		RetryStrategy: noRetry,
+	})
+	c.Assert(err, qt.IsNil)
+
+	type R struct {
+		X int
+	}
+
+	_, err = registry.Register(ctx, randomString(), schemaOf(nil, R{}))
+	c.Assert(err, qt.ErrorMatches, "schema registry unavailability caused by: .*")
+}
+
 func TestRegisterWithEmptyStruct(t *testing.T) {
 	c := qt.New(t)
 
@@ -255,7 +280,7 @@ func TestRetryOnError(t *testing.T) {
 	c.Assert(err, qt.Equals, nil)
 	t0 := time.Now()
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
-	c.Assert(err, qt.ErrorMatches, `Put "?http://0.1.2.3/config/x"?: temporary test error true`)
+	c.Assert(err, qt.ErrorMatches, `schema registry unavailability caused by: Put "?http://0.1.2.3/config/x"?: temporary test error true`)
 	if d := time.Since(t0); d < 30*time.Millisecond {
 		c.Errorf("retry duration too small, want >=30ms got %v", d)
 	}
