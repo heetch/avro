@@ -92,7 +92,7 @@ func (c *SingleDecoder) Unmarshal(ctx context.Context, data []byte, x interface{
 	}
 	prog, err := c.getProgram(ctx, vt, wID)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal: %v", err)
+		return nil, fmt.Errorf("cannot unmarshal: %w", err)
 	}
 	return unmarshal(nil, body, prog, v)
 }
