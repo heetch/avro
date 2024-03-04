@@ -199,7 +199,7 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 			return nil
 		}
 		if !attempt.More() {
-			return err
+			return &UnavailableError{err}
 		}
 		if err, ok := err.(*apiError); ok && err.StatusCode != http.StatusInternalServerError {
 			// It's not a 5xx error. We want to retry on 5xx
@@ -208,6 +208,9 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 			// course (and there could also be an
 			// unavailable service that we're reaching
 			// through a proxy).
+			if !attempt.More() {
+				return &UnavailableError{err}
+			}
 			return err
 		}
 	}
