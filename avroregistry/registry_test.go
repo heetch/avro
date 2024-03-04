@@ -340,7 +340,7 @@ func TestRetryOn500(t *testing.T) {
 	// an error.
 	failCount = 5
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
-	c.Assert(err, qt.ErrorMatches, `Avro registry error \(code 50001; HTTP status 500\): Failed to update compatibility level`)
+	c.Assert(err, qt.ErrorMatches, `schema registry unavailability caused by: Avro registry error \(code 50001; HTTP status 500\): Failed to update compatibility level`)
 }
 
 func TestNoRetryOnNon5XXStatus(t *testing.T) {
@@ -392,7 +392,7 @@ func TestUnavailableError(t *testing.T) {
 	})
 	c.Assert(err, qt.Equals, nil)
 	err = registry.SetCompatibility(context.Background(), "x", avro.BackwardTransitive)
-	c.Assert(err, qt.ErrorMatches, `cannot unmarshal JSON error response from .*/config/x: unexpected content type text/html; want application/json; content: 502 Proxy Error; Proxy Error; The whole world is bogus`)
+	c.Assert(err, qt.ErrorMatches, `schema registry unavailability caused by: cannot unmarshal JSON error response from .*/config/x: unexpected content type text/html; want application/json; content: 502 Proxy Error; Proxy Error; The whole world is bogus`)
 }
 
 var schemaEquivalenceTests = []struct {
