@@ -210,6 +210,12 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 			} else {
 				return apiErr
 			}
+		} else {
+			// some 5XX response body cannot be decoded
+			// hence an *apiError is not returned
+			if resp.StatusCode/100 == 5 {
+				err = &UnavailableError{err}
+			}
 		}
 
 		if !attempt.More() {
