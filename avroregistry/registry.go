@@ -206,9 +206,9 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 			// unavailable service that we're reaching
 			// through a proxy).
 			if apiErr.StatusCode/100 == 5 {
-				return apiErr
-			} else {
 				err = &UnavailableError{apiErr}
+			} else {
+				return apiErr
 			}
 		}
 
