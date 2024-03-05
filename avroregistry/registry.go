@@ -198,32 +198,25 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		if err == nil {
 			return nil
 		}
-		if err, ok := err.(*apiError); ok {
+		if apiErr, ok := err.(*apiError); ok {
 			// We want to retry on 5xx
 			// errors, because the Confluent Avro registry
 			// can occasionally return them as a matter of
 			// course (and there could also be an
 			// unavailable service that we're reaching
 			// through a proxy).
-			switch err.StatusCode {
-			case http.StatusInternalServerError:
-				if !attempt.More() {
-					return &UnavailableError{err}
-				}
-			default:
-				return err
+			if apiErr.StatusCode/100 == 5 {
+				return apiErr
+			} else {
+				err = &UnavailableError{apiErr}
 			}
 		}
 
 		if !attempt.More() {
-			switch resp.StatusCode {
-			case http.StatusInternalServerError:
-				return &UnavailableError{err}
-			default:
-				return err
-			}
+			return err
 		}
 	}
+
 	if attempt.Stopped() {
 		return ctx.Err()
 	}
