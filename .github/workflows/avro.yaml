@@ -6,15 +6,15 @@ on:
       - master
       - main
     paths:
-      - '**.go'
-      - 'go.*'
-      - '**.cue'
+      - "**.go"
+      - "go.*"
+      - "**.cue"
       - Makefile
   pull_request:
     paths:
-      - '**.go'
-      - 'go.*'
-      - '**.cue'
+      - "**.go"
+      - "go.*"
+      - "**.cue"
       - Makefile
 
 concurrency:
@@ -30,14 +30,14 @@ jobs:
     runs-on: ubuntu-22.04
     services:
       registry:
-        image: lensesio/fast-data-dev:2.6.2-L0
+        image: lensesio/fast-data-dev:3.6.1-L0
         ports:
           - 8081:8081
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up env
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           cache: true
           check-latest: true
@@ -46,7 +46,7 @@ jobs:
       - name: Install Tools
         shell: bash
         run: |
-          go install github.com/mfridman/tparse@v0.12.1
+          go install github.com/mfridman/tparse@v0.13.2
           tgz=$(mktemp)
           ARCH="$(uname -s)_$(uname -m)"
           curl "https://github.com/cuelang/cue/releases/download/v0.0.15/cue_0.0.15_$ARCH.tar.gz" -L -o $tgz
@@ -54,9 +54,9 @@ jobs:
       - name: "Lint: static"
         id: lint-static
         continue-on-error: false
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
-          version: v1.52.2
+          version: v1.56
           working-directory: ${{ env.directory }}
           args: --timeout=5m
           skip-cache: true
