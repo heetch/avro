@@ -14,7 +14,7 @@ func (m *UnavailableError) Error() string {
 	return fmt.Sprintf("schema registry unavailability caused by: %v", m.Cause)
 }
 
-// Unwrap unwraps and return Cause error. It is needed to properly handle %w usage in fmt.Errorf cases.
+// Unwrap unwraps and return Cause error. It is needed to properly handle and compare errors.
 func (e *UnavailableError) Unwrap() error {
 	return e.Cause
 }
