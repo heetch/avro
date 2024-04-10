@@ -13,3 +13,8 @@ type UnavailableError struct {
 func (m *UnavailableError) Error() string {
 	return fmt.Sprintf("schema registry unavailability caused by: %v", m.Cause)
 }
+
+// Unwrap unwraps and return Cause error. It is needed to properly handle %w usage in fmt.Errorf cases.
+func (e *UnavailableError) Unwrap() error {
+	return e.Cause
+}
