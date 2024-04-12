@@ -190,7 +190,7 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			if !attempt.More() || !isTemporaryError(err) {
-				return err
+				return &UnavailableError{err}
 			}
 			continue
 		}
@@ -198,19 +198,31 @@ func (r *Registry) doRequest(req *http.Request, result interface{}) error {
 		if err == nil {
 			return nil
 		}
-		if !attempt.More() {
-			return err
-		}
-		if err, ok := err.(*apiError); ok && err.StatusCode/100 != 5 {
-			// It's not a 5xx error. We want to retry on 5xx
+		if apiErr, ok := err.(*apiError); ok {
+			// We want to retry on 5xx
 			// errors, because the Confluent Avro registry
 			// can occasionally return them as a matter of
 			// course (and there could also be an
 			// unavailable service that we're reaching
 			// through a proxy).
+			if apiErr.StatusCode/100 == 5 {
+				err = &UnavailableError{apiErr}
+			} else {
+				return apiErr
+			}
+		} else {
+			// some 5XX response body cannot be decoded
+			// hence an *apiError is not returned
+			if resp.StatusCode/100 == 5 {
+				err = &UnavailableError{err}
+			}
+		}
+
+		if !attempt.More() {
 			return err
 		}
 	}
+
 	if attempt.Stopped() {
 		return ctx.Err()
 	}
@@ -228,13 +240,13 @@ func unmarshalResponse(req *http.Request, resp *http.Response, result interface{
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
 		if err := httprequest.UnmarshalJSONResponse(resp, result); err != nil {
-			return fmt.Errorf("cannot unmarshal JSON response from %v: %v", req.URL, err)
+			return fmt.Errorf("cannot unmarshal JSON response from %v: %w", req.URL, err)
 		}
 		return nil
 	}
 	var apiErr apiError
 	if err := httprequest.UnmarshalJSONResponse(resp, &apiErr); err != nil {
-		return fmt.Errorf("cannot unmarshal JSON error response from %v: %v", req.URL, err)
+		return fmt.Errorf("cannot unmarshal JSON error response from %v: %w", req.URL, err)
 	}
 	apiErr.StatusCode = resp.StatusCode
 	return &apiErr
