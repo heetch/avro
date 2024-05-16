@@ -19,6 +19,10 @@
 //		    	suffix for generated files (default "_gen")
 //	   -tokenize
 //	         if true, generate one dedicated file per qualified name found in the schema files
+//	   -goinitialisms
+//	         if true, use standard Go initialisms in names
+//	   -extrainitialisms
+//	         comma separated list of initialisms to use in names in addition to standard Go initialisms
 //
 // By default, a type is generated for each Avro definition
 // in the schema. Some additional metadata fields are
@@ -42,6 +46,9 @@ import (
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/resolver"
 	"github.com/actgardner/gogen-avro/v10/schema"
+	"github.com/ettle/strcase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Generate the tests.
@@ -49,11 +56,13 @@ import (
 //go:generate go run ./generatetestcode.go
 
 var (
-	dirFlag      = flag.String("d", ".", "directory to write Go files to")
-	pkgFlag      = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
-	testFlag     = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
-	suffixFlag   = flag.String("s", "_gen", "suffix for generated files")
-	tokenizeFlag = flag.Bool("tokenize", false, "generate one dedicated file per qualified name found in the input schema files")
+	dirFlag              = flag.String("d", ".", "directory to write Go files to")
+	pkgFlag              = flag.String("p", os.Getenv("GOPACKAGE"), "package name (defaults to $GOPACKAGE)")
+	testFlag             = flag.Bool("t", strings.HasSuffix(os.Getenv("GOFILE"), "_test.go"), "generated files will have _test.go suffix (defaults to true if $GOFILE is a test file)")
+	suffixFlag           = flag.String("s", "_gen", "suffix for generated files")
+	tokenizeFlag         = flag.Bool("tokenize", false, "generate one dedicated file per qualified name found in the input schema files")
+	goInitalismFlag      = flag.Bool("goinitialisms", false, "use standard Go initialisms in names")
+	extraInitialismsFlag = flag.String("extrainitialisms", "", "comma separated list of initialisms to use in names in addition to standard Go initialisms")
 )
 
 var flag = stdflag.NewFlagSet("", stdflag.ContinueOnError)
@@ -77,6 +86,10 @@ func main1() int {
 	}
 	if *pkgFlag == "" {
 		fmt.Fprintf(os.Stderr, "avrogo: -p flag must specify a package name or set $GOPACKAGE\n")
+		return 1
+	}
+	if *extraInitialismsFlag != "" && !*goInitalismFlag {
+		fmt.Fprintf(os.Stderr, "avrogo: -extrainitialisms flag must only be used with -goinitialisms")
 		return 1
 	}
 	if err := generateFiles(files); err != nil {
@@ -196,9 +209,29 @@ func baseN(name string, n int) (string, bool) {
 	return strings.Join(parts, "_"), ok
 }
 
+// getCaser returns a function to be used to set the case of names in generated Go. The behaviour is
+// determined by flags.
+func getCaser() func(string) string {
+	if *goInitalismFlag {
+		return strcase.NewCaser(true, parseExtraInitialismsFlag(), nil).ToPascal
+	}
+
+	return func(name string) string {
+		return cases.Title(language.Und).String(strings.Trim(name, "_"))
+	}
+}
+
+func parseExtraInitialismsFlag() map[string]bool {
+	result := map[string]bool{}
+	for _, initial := range strings.Split(*extraInitialismsFlag, ",") {
+		result[initial] = true
+	}
+	return result
+}
+
 func generateFile(outFile string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	var buf bytes.Buffer
-	if err := generate(&buf, *pkgFlag, ns, definitions); err != nil {
+	if err := generate(&buf, *pkgFlag, getCaser(), ns, definitions); err != nil {
 		return err
 	}
 	if buf.Len() == 0 {
