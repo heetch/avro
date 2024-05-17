@@ -63,6 +63,8 @@ func main() {
 }
 
 func main1() int {
+	fmt.Println("custom")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: avrogo [flags] schema-file...\n")
 		flag.PrintDefaults()
