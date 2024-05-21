@@ -2,8 +2,6 @@ package main
 
 import (
 	"go/token"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -12,6 +10,8 @@ import (
 
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func newTemplate(s string) *template.Template {
@@ -89,37 +89,51 @@ var bodyTemplate = newTemplate(`
 		type «defName .» int
 		const (
 		«- range $i, $sym := .Symbols»
-		«symbolName $def $sym»«if eq $i 0» «defName $def» = iota«end»
+		«symbolName $def $sym» «defName $def» = «$i»
 		«- end»
 		)
 
-		var _«defName .»_strings = []string{
+		var «defName .»_indices = []«defName .»{«range $i, $sym := .Symbols»«$i»,«end»}
+
+		var «defName .»_strings = []string{
 		«range $i, $sym := .Symbols»
 		«- printf "%q" $sym»,
 		«end»}
 
+		var «defName .»_names = map[«defName .»]string{
+		«- range $i, $sym := .Symbols»
+		«$i»: «- printf "%q" $sym»,
+		«- end»
+		}
+
+		var «defName .»_values = map[string]«defName .»{
+		«- range $i, $sym := .Symbols»
+		«printf "%q" $sym»: «$i»,
+		«- end»
+		}
+
 		// String returns the textual representation of «defName .».
 		func (e «defName .») String() string {
-			if e < 0 || int(e) >= len(_«defName .»_strings) {
+			if e < 0 || int(e) >= len(«defName .»_strings) {
 				return "«defName .»(" + strconv.FormatInt(int64(e), 10) + ")"
 			}
-			return _«defName .»_strings[e]
+			return «defName .»_strings[e]
 		}
 
 		// MarshalText implements encoding.TextMarshaler
 		// by returning the textual representation of «defName .».
 		func (e «defName .») MarshalText() ([]byte, error) {
-			if e < 0 || int(e) >= len(_«defName .»_strings) {
+			if e < 0 || int(e) >= len(«defName .»_strings) {
 				return nil, fmt.Errorf("«defName .» value %d is out of bounds", e)
 			}
-			return []byte(_«defName .»_strings[e]), nil
+			return []byte(«defName .»_strings[e]), nil
 		}
 
 		// UnmarshalText implements encoding.TextUnmarshaler
 		// by expecting the textual representation of «.Name».
 		func (e *«defName .») UnmarshalText(data []byte) error {
 			// Note for future: this could be more efficient.
-			for i, s := range _«defName .»_strings {
+			for i, s := range «defName .»_strings {
 				if string(data) == s {
 					*e = «defName .»(i)
 					return nil
