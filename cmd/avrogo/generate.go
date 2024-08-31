@@ -29,10 +29,7 @@ const nullType = "avrotypegen.Null"
 // schema.RecordDefinition by looking at their match within given parsed namespace
 func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.QualifiedName) bool {
 	for _, def := range namespace.Definitions {
-		defToGenerateIdx := sort.Search(len(definitions), func(i int) bool {
-			return definitions[i].Name == def.AvroName().Name
-		})
-		if defToGenerateIdx < len(definitions) && def.AvroName().Name == definitions[defToGenerateIdx].Name {
+		if indexOf(definitions, def.AvroName().Name) > -1 {
 			if _, ok := def.(*schema.RecordDefinition); ok {
 				return true
 			}
@@ -42,6 +39,17 @@ func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.Q
 		}
 	}
 	return false
+}
+
+func indexOf(definitions []schema.QualifiedName, avroName string) int {
+	found := -1
+	for i := 0; i < len(definitions); i++ {
+		if definitions[i].Name == avroName {
+			found = i
+			break
+		}
+	}
+	return found
 }
 
 func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
