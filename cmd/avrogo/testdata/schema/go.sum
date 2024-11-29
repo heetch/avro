@@ -1,0 +1,8 @@
+github.com/actgardner/gogen-avro/v10 v10.2.1 h1:z3pOGblRjAJCYpkIJ8CmbMJdksi4rAhaygw0dyXZ930=
+github.com/actgardner/gogen-avro/v10 v10.2.1/go.mod h1:QUhjeHPchheYmMDni/Nx7VB0RsT/ee8YIgGY/xpEQgQ=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/heetch/avro v0.4.6-0.20241128170218-20b562ce498f h1:iK4+HtIuNeOEJsVBRMOmmEl9mVbnhbf2MYbvzvK22+E=
+github.com/heetch/avro v0.4.6-0.20241128170218-20b562ce498f/go.mod h1:gxf9GnbjTXmWmqxhdNbAMcZCjpye7RV5r9t3Q0dL6ws=
+github.com/heetch/galaxy-go/v2 v2.24.0 h1:qn5wIMWpFSogzQQ2SzvVoUrd1sc74U9xjbsjmbkWils=
+github.com/heetch/galaxy-go/v2 v2.24.0/go.mod h1:VSyZlEylS5T7UDPlaC9fjVvMz5qo0sh3JyHjajWyh9E=

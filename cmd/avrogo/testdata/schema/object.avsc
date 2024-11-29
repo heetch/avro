@@ -1,0 +1,46 @@
+{
+  "heetchmeta": {
+    "version": 1
+  },
+  "name": "Object",
+  "namespace": "ns",
+  "type": "record",
+  "fields": [
+    {
+      "doc": "Child1",
+      "name": "Child1",
+      "type": {
+        "default": "UNSPECIFIED",
+        "doc": "doc",
+        "heetchmeta": {
+          "skipRFC": true
+        },
+        "name": "Child1",
+        "namespace": "subns",
+        "symbols": [
+          "UNSPECIFIED",
+          "VALUE1",
+          "VALUE2",
+          "VALUE_EXTRA_1",
+          "VALUE_EXTRA_2"
+        ],
+        "type": "enum"
+      }
+    },
+    {
+      "default": "UNSPECIFIED",
+      "name": "Child2",
+      "type": {
+        "name": "Child2",
+        "symbols": [
+          "UNSPECIFIED",
+          "STARTED",
+          "COMPLETED",
+          "FAILED",
+          "ADDED_BY_OPERATOR"
+        ],
+        "type": "enum"
+      }
+    }
+  ]
+}
