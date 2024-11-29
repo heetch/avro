@@ -142,7 +142,7 @@ func defName(def schema.Definition) string {
 }
 
 func symbolName(e *schema.EnumDefinition, symbol string) string {
-	return defName(e) + cases.Title(language.Und).String(symbol)
+	return defName(e) + cases.Title(language.Und, cases.NoLower).String(symbol)
 }
 
 func quote(s string) string {

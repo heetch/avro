@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"io"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
@@ -425,7 +426,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 func goName(s string) (string, error) {
 	lastIndex := strings.LastIndex(s, ".")
 	name := s[lastIndex+1:]
-	name = cases.Title(language.Und).String(strings.Trim(name, "_"))
+	name = cases.Title(language.Und, cases.NoLower).String(strings.Trim(name, "_"))
 	if !isExportedGoIdentifier(name) {
 		return "", fmt.Errorf("cannot form an exported Go identifier from %q", s)
 	}

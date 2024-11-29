@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
+	"github.com/sebdah/goldie/v2"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	avro "github.com/actgardner/gogen-avro/v10/schema"
@@ -74,4 +77,18 @@ func TestShouldImportAvroTypeGen(t *testing.T) {
 			c.Assert(value, qt.Equals, test.shouldImportAvroTypeGen)
 		})
 	}
+}
+
+func TestGenerate(t *testing.T) {
+	fixtureDir := "testdata/schema"
+	g := goldie.New(t, goldie.WithFixtureDir(fixtureDir), goldie.WithNameSuffix(".golden.go"))
+
+	var buf bytes.Buffer
+	testPackage := "dummy"
+	ns, fileDefinitions, err := parseFiles([]string{"testdata/schema/object.avsc"})
+	assert.NoError(t, err)
+
+	err = generate(&buf, testPackage, ns, fileDefinitions[0])
+	assert.NoError(t, err)
+	g.Assert(t, "object", buf.Bytes())
 }
