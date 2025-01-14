@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/actgardner/gogen-avro/v10/schema"
 
@@ -29,7 +30,8 @@ var globalNames = new(Names)
 // In fact it just holds an error so that we can cache errors.
 type errorSchema struct {
 	schema.AvroType
-	err error
+	err          error
+	invalidAfter time.Time
 }
 
 // TypeOf returns the Avro type for the Go type of x.
@@ -40,30 +42,30 @@ type errorSchema struct {
 // Otherwise TypeOf(T) is derived according to
 // the following rules:
 //
-//	- int, int64 and uint32 encode as "long"
-//	- int32, int16, uint16, int8 and uint8 encode as "int"
-//	- float32 encodes as "float"
-//	- float64 encodes as "double"
-//	- string encodes as "string"
-//	- Null{} encodes as "null"
-//	- time.Duration encodes as {"type": "long", "logicalType": "duration-nanos"}
-//	- time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
-//	- github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
-//	- [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
-//	- a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
-//	- []T encodes as {"type": "array", "items": TypeOf(T)}
-//	- map[string]T encodes as {"type": "map", "values": TypeOf(T)}
-//	- *T encodes as ["null", TypeOf(T)]
-//	- a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
-//		where the fields are encoded as described below.
-//	- interface types are disallowed.
+//   - int, int64 and uint32 encode as "long"
+//   - int32, int16, uint16, int8 and uint8 encode as "int"
+//   - float32 encodes as "float"
+//   - float64 encodes as "double"
+//   - string encodes as "string"
+//   - Null{} encodes as "null"
+//   - time.Duration encodes as {"type": "long", "logicalType": "duration-nanos"}
+//   - time.Time encodes as {"type": "long", "logicalType": "timestamp-micros"}
+//   - github.com/google/uuid.UUID encodes as {"type": "string", "logicalType": "string"}
+//   - [N]byte encodes as {"type": "fixed", "name": "go.FixedN", "size": N}
+//   - a named type with underlying type [N]byte encodes as [N]byte but typeName(T) for the name.
+//   - []T encodes as {"type": "array", "items": TypeOf(T)}
+//   - map[string]T encodes as {"type": "map", "values": TypeOf(T)}
+//   - *T encodes as ["null", TypeOf(T)]
+//   - a named struct type encodes as {"type": "record", "name": typeName(T), "fields": ...}
+//     where the fields are encoded as described below.
+//   - interface types are disallowed.
 //
 // Struct fields are encoded as follows:
 //
-//	- unexported struct fields are ignored
-//	- the field name is taken from the Go field name, or from a "json" tag for the field if present.
-//	- the default value for the field is the zero value for the type.
-//	- anonymous struct fields are disallowed (this restriction may be lifted in the future).
+//   - unexported struct fields are ignored
+//   - the field name is taken from the Go field name, or from a "json" tag for the field if present.
+//   - the default value for the field is the zero value for the type.
+//   - anonymous struct fields are disallowed (this restriction may be lifted in the future).
 func TypeOf(x interface{}) (*Type, error) {
 	return globalNames.TypeOf(x)
 }
