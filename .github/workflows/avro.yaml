@@ -59,6 +59,7 @@ jobs:
           version: v1.64.8
           working-directory: ${{ env.directory }}
           args: --timeout=5m
+          only-new-issues: true
       - name: "Lint: security"
         id: lint-security
         continue-on-error: true
