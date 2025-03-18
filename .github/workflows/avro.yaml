@@ -35,7 +35,7 @@ jobs:
           - 8081:8081
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up env
         uses: actions/setup-go@v5
         with:
