@@ -3,7 +3,6 @@ package avro
 import (
 	"context"
 	"fmt"
-	"github.com/heetch/avro/avroregistry"
 	"reflect"
 	"strings"
 	"sync"
