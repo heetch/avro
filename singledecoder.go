@@ -119,6 +119,8 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 		// We haven't seen the writer schema before, so try to fetch it.
 		wType, err = c.registry.SchemaForID(ctx, wID)
 		// do not cache the error when schema registry is unavailable
+		// we can't import avroregistry, to compare the error, so we're looking at the error message to see if the
+		// error is of type `UnavailableError` (avroregistry/errors.go)
 		if strings.HasPrefix(err.Error(), "schema registry unavailability caused by") {
 			return nil, err
 		}
