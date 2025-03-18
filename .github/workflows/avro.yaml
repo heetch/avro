@@ -37,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up env
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           cache: true
           check-latest: true
@@ -54,12 +54,12 @@ jobs:
       - name: "Lint: static"
         id: lint-static
         continue-on-error: false
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.52.2
+          version: v1.64.8
           working-directory: ${{ env.directory }}
           args: --timeout=5m
-          skip-cache: true
+          only-new-issues: true
       - name: "Lint: security"
         id: lint-security
         continue-on-error: true
