@@ -34,7 +34,7 @@ be generated for exported Go types.
 For example:
 
 	go2avro foo.com/bar/somepkg.Foo
-`[1:])
+`)
 	}
 	if flag.Parse(os.Args[1:]) != nil {
 		return 2
