@@ -1,5 +1,5 @@
 ! go2avro Foo
-stderr 'undefined: bar.Foo'
+stderr 'undefined: pkg.Foo'
 
 -- bar.go --
 package bar
