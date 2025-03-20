@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -117,9 +118,12 @@ func (c *SingleDecoder) getProgram(ctx context.Context, vt reflect.Type, wID int
 	} else {
 		// We haven't seen the writer schema before, so try to fetch it.
 		wType, err = c.registry.SchemaForID(ctx, wID)
-		// TODO look at the SchemaForID error
-		// and return an error without caching it if it's temporary?
-		// See https://github.com/heetch/avro/issues/39
+		// do not cache the error when schema registry is unavailable
+		// we can't import avroregistry, to compare the error, so we're looking at the error message to see if the
+		// error is of type `UnavailableError` (avroregistry/errors.go)
+		if err != nil && strings.HasPrefix(err.Error(), "schema registry unavailability caused by") {
+			return nil, err
+		}
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
