@@ -194,7 +194,9 @@ func canOmitUnionInfo(u typeInfo) bool {
 	// (the default union type for a pointer) and the Go type is also
 	// a pointer, meaning the avro package can infer that it's a
 	// pointer union.
-	return len(u.Union) == 0 || (len(u.Union) == 2 && u.Union[0].GoType == nullType && u.GoType[0] == '*')
+	// If the union is ["null", map[string]T] then we can't omit the union
+	// Example: mapTest *map[string]interface{} `json:"mapTest"` will omit the union without this check for map
+	return len(u.Union) == 0 || (len(u.Union) == 2 && u.Union[0].GoType == nullType && u.GoType[0] == '*' && len(u.GoType) > 3 && u.GoType[:4] != "*map")
 }
 
 func writeUnionInfo(w io.Writer, info typeInfo) {
