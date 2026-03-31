@@ -10,9 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
 	"github.com/actgardner/gogen-avro/v10/parser"
 	"github.com/actgardner/gogen-avro/v10/schema"
 )
@@ -45,7 +42,7 @@ func shouldImportAvroTypeGen(namespace *parser.Namespace, definitions []schema.Q
 	return false
 }
 
-func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
+func generate(w io.Writer, pkg string, caser func(string) string, ns *parser.Namespace, definitions []schema.QualifiedName) error {
 	extTypes, err := externalTypeMap(ns)
 	if err != nil {
 		return err
@@ -63,6 +60,7 @@ func generate(w io.Writer, pkg string, ns *parser.Namespace, definitions []schem
 	gc := &generateContext{
 		imports:  make(map[string]string),
 		extTypes: extTypes,
+		caser:    caser,
 	}
 	// Add avrotypegen package conditionally when there is a RecordDefinition in the namespace.
 	if shouldImportAvroTypeGen(ns, definitions) {
@@ -405,7 +403,7 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 				if err != nil {
 					return "", fmt.Errorf("at field %s: %v", field.Name(), err)
 				}
-				ident, err := goName(field.Name())
+				ident, err := gc.goName(field.Name())
 				if err != nil {
 					return "", err
 				}
@@ -423,10 +421,10 @@ func (gc *generateContext) defaultFuncLiteral(v interface{}, t schema.AvroType) 
 }
 
 // goName returns an exported Go identifier for the Avro name s.
-func goName(s string) (string, error) {
+func (gc *generateContext) goName(s string) (string, error) {
 	lastIndex := strings.LastIndex(s, ".")
 	name := s[lastIndex+1:]
-	name = cases.Title(language.Und, cases.NoLower).String(strings.Trim(name, "_"))
+	name = gc.caser(name)
 	if !isExportedGoIdentifier(name) {
 		return "", fmt.Errorf("cannot form an exported Go identifier from %q", s)
 	}
@@ -489,6 +487,7 @@ func writeUnionComment(w io.Writer, union []typeInfo, indent string) {
 type generateContext struct {
 	imports  map[string]string
 	extTypes map[schema.QualifiedName]goType
+	caser    func(string) string
 }
 
 func (gc *generateContext) GoTypeOf(t schema.AvroType) typeInfo {
